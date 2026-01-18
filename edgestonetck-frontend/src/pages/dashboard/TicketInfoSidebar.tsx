@@ -103,7 +103,9 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                         </div>
                         <div className="flex justify-between items-center text-[14px]">
                             <span className="text-gray-400 font-medium">Date</span>
-                            <span className="text-gray-600 font-bold">{ticket.date || '6th Jun, 2025'}</span>
+                            <span className="text-gray-600 font-bold">
+                                {ticket.date ? new Date(ticket.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '6th Jun, 2025'}
+                            </span>
                         </div>
                         <div className="flex justify-between items-center text-[14px]">
                             <span className="text-gray-400 font-medium">Time</span>
@@ -170,11 +172,19 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                                 <CheckCircle size={18} />
                             </div>
                             <div className="flex-1">
-                                <div className="flex justify-between items-center mb-0.5">
-                                    <span className="text-[13px] font-bold text-gray-900">Ticket closed</span>
-                                    <span className="text-[12px] font-medium text-gray-400">{closedAt || 'Current hrs'}</span>
+                                <div className="space-y-1">
+                                    <span className="text-[13px] font-bold text-gray-900 block">Ticket closed</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[11px] font-bold text-gray-400 uppercase">
+                                            {closedAt ? closedAt.split(' • ')[0] : 'Pending'}
+                                        </span>
+                                        {closedAt && <div className="w-1 h-1 rounded-full bg-gray-200" />}
+                                        <span className="text-[11px] font-bold text-gray-400 uppercase">
+                                            {closedAt ? closedAt.split(' • ')[1] : ''}
+                                        </span>
+                                    </div>
                                 </div>
-                                <p className="text-[11px] text-green-500 font-bold">Ticket resolution confirmed</p>
+                                <p className="text-[11px] text-green-500 font-bold mt-2">Ticket resolution confirmed</p>
                             </div>
                         </div>
                     )}
@@ -184,11 +194,17 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                             <TicketIcon size={18} />
                         </div>
                         <div className="flex-1">
-                            <div className="flex justify-between items-center mb-0.5">
-                                <span className="text-[13px] font-bold text-gray-900">Ticket raise</span>
-                                <span className="text-[12px] font-medium text-gray-400">19:00 hrs</span>
+                            <div className="space-y-1">
+                                <span className="text-[13px] font-bold text-gray-900 block">Ticket opened</span>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[11px] font-bold text-gray-400 uppercase tracking-tight">
+                                        {ticket.date ? new Date(ticket.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '6th Jun'}
+                                    </span>
+                                    <div className="w-1 h-1 rounded-full bg-gray-200" />
+                                    <span className="text-[11px] font-bold text-gray-400 uppercase tracking-tight">19:00 hrs</span>
+                                </div>
                             </div>
-                            <p className="text-[11px] text-[#A688C4] font-bold">Ticket #{ticket.ticketId} created</p>
+                            <p className="text-[11px] text-[#A688C4] font-bold mt-2">Ticket #{ticket.ticketId} created</p>
                         </div>
                     </div>
                 </div>

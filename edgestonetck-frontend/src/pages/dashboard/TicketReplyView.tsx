@@ -81,9 +81,11 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
 
         if (newStatus.toLowerCase() === 'closed') {
             const now = new Date();
+            const dateStr = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
             const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')} hrs`;
-            setClosedAt(timeStr);
-            localStorage.setItem(`ticket_closed_at_${ticket.id}`, timeStr);
+            const fullStr = `${dateStr} • ${timeStr}`;
+            setClosedAt(fullStr);
+            localStorage.setItem(`ticket_closed_at_${ticket.id}`, fullStr);
         } else {
             setClosedAt('');
             localStorage.removeItem(`ticket_closed_at_${ticket.id}`);

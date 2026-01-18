@@ -23,6 +23,7 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ agentName, isMobileOpen, onClose }) => {
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
+    const [showLogoutModal, setShowLogoutModal] = useState(false);
     const navigate = useNavigate();
     const { id } = useParams<{ id: string }>();
 
@@ -35,7 +36,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ agentName, isMobileOpen, onClo
         { icon: FileText, label: 'SLA', path: 'sla' },
     ];
 
-    const handleLogout = () => {
+    const handleLogoutTrigger = () => {
+        setShowMenu(false);
+        setShowLogoutModal(true);
+    };
+
+    const confirmLogout = () => {
         navigate('/login');
     };
 
@@ -43,7 +49,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ agentName, isMobileOpen, onClo
         <>
             {/* Mobile Overlay */}
             <div
-                className={`fixed inset-0 bg-black/50 z-40 lg:hidden transition-opacity duration-300 ${isMobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+                className={`fixed inset-0 bg-black/50 z-[100] lg:hidden transition-opacity duration-300 ${isMobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
                 onClick={onClose}
             />
 
@@ -139,7 +145,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ agentName, isMobileOpen, onClo
                                     className="absolute bottom-full right-0 mb-3 bg-white border border-gray-100 rounded-lg shadow-xl py-2 min-w-[150px] z-50 animate-in fade-in slide-in-from-bottom-2 duration-200"
                                 >
                                     <button
-                                        onClick={handleLogout}
+                                        onClick={handleLogoutTrigger}
                                         className="w-full flex items-center gap-3 px-4 py-2 text-brand-red hover:bg-red-50 text-sm font-bold transition-colors"
                                     >
                                         <LogOut size={16} />
@@ -150,7 +156,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ agentName, isMobileOpen, onClo
 
                             {isCollapsed && (
                                 <button
-                                    onClick={handleLogout}
+                                    onClick={handleLogoutTrigger}
                                     className="p-2 text-gray-400 hover:text-brand-red transition-colors"
                                     title="Logout"
                                 >
@@ -161,6 +167,40 @@ export const Sidebar: React.FC<SidebarProps> = ({ agentName, isMobileOpen, onClo
                     </div>
                 </div>
             </div>
+
+            {/* Logout Confirmation Modal */}
+            {showLogoutModal && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-[#0F172A]/20 backdrop-blur-[6px] animate-in fade-in duration-500">
+                    <div className="bg-white rounded-[32px] w-full max-w-[400px] shadow-[0_32px_128px_-12px_rgba(15,23,42,0.25)] border border-gray-100/50 p-10 animate-in zoom-in-95 duration-300 relative">
+                        <button onClick={() => setShowLogoutModal(false)} className="absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-full transition-all">
+                            <X size={20} />
+                        </button>
+
+                        <div className="flex flex-col items-center text-center">
+                            <div className="w-16 h-16 bg-gray-50 text-brand-red rounded-2xl flex items-center justify-center mb-6">
+                                <LogOut size={32} />
+                            </div>
+                            <h3 className="text-[24px] font-bold text-gray-900 mb-2 tracking-tight">Logging out?</h3>
+                            <p className="text-[14px] text-gray-500 mb-8 font-medium">Are you sure you want to log out from your session?</p>
+
+                            <div className="flex flex-col w-full gap-3">
+                                <button
+                                    onClick={confirmLogout}
+                                    className="w-full h-[56px] bg-brand-red text-white font-bold rounded-2xl text-[15px] shadow-lg shadow-gray-200/50 hover:bg-[#d41c34] hover:-translate-y-0.5 transition-all active:scale-95"
+                                >
+                                    Confirm Log out
+                                </button>
+                                <button
+                                    onClick={() => setShowLogoutModal(false)}
+                                    className="w-full h-[56px] bg-gray-50 text-gray-600 font-bold rounded-2xl text-[15px] hover:bg-gray-100 transition-all active:scale-95"
+                                >
+                                    Keep me logged in
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 };
