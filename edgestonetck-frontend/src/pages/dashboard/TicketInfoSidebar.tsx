@@ -60,7 +60,12 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
         if (!newNote.trim()) return;
         const now = new Date();
         const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')} hrs`;
-        const updatedNotes: Note[] = [...notes, { text: newNote.trim(), time: timeStr, author: currentAgentName }];
+        const dateStr = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+        const updatedNotes: Note[] = [...notes, {
+            text: newNote.trim(),
+            time: `${dateStr} • ${timeStr}`,
+            author: currentAgentName
+        }];
         setNotes(updatedNotes);
         localStorage.setItem(`ticket_notes_${ticket.id}`, JSON.stringify(updatedNotes));
         setNewNote('');

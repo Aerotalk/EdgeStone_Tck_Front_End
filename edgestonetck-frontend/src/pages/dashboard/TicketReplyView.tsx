@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams } from 'react-router-dom';
 import {
     ChevronLeft,
     Mail,
@@ -7,7 +8,11 @@ import {
     Reply as ReplyIcon,
     MoreVertical,
     User,
-    X
+    X,
+    Send,
+    Eye,
+    Paperclip,
+    Plus
 } from 'lucide-react';
 import { TicketInfoSidebar } from './TicketInfoSidebar';
 
@@ -21,6 +26,19 @@ interface Ticket {
     date?: string;
 }
 
+interface Reply {
+    text: string;
+    time: string;
+    date: string;
+    author: string;
+    type: 'agent' | 'client' | 'vendor';
+    category: 'client' | 'vendor'; // To distinguish which thread it belongs to
+    to?: string[];
+    cc?: string[];
+    bcc?: string[];
+    subject?: string;
+}
+
 interface TicketReplyViewProps {
     ticket: Ticket;
     onBack: () => void;
@@ -32,6 +50,34 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
     const [selectedCircuit, setSelectedCircuit] = useState('BA/SNG-TY2/ESPL-003');
     const [selectedPriority, setSelectedPriority] = useState('');
     const [openDropdown, setOpenDropdown] = useState<'circuit' | 'priority' | null>(null);
+    const [replyText, setReplyText] = useState('');
+    const [showEmailModal, setShowEmailModal] = useState(false);
+    const [replies, setReplies] = useState<Reply[]>([]);
+    const [attachments, setAttachments] = useState<File[]>([]);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [showCc, setShowCc] = useState(false);
+
+    // Email Modal form states
+    const [emailForm, setEmailForm] = useState({
+        from: 'support@edgestone.in',
+        to: [] as string[],
+        cc: [] as string[],
+        bcc: [] as string[],
+        subject: ''
+    });
+
+    const [inputValues, setInputValues] = useState({
+        to: '',
+        cc: '',
+        bcc: ''
+    });
+
+    const { id: agentId } = useParams<{ id: string }>();
+    const SUPPORT_AGENTS = [
+        { id: 'agent-1', name: 'Soumyajit' },
+        { id: 'agent-2', name: 'Priyanshu' }
+    ];
+    const currentAgentName = SUPPORT_AGENTS.find(a => a.id === agentId)?.name || 'Agent';
 
     const [confirmedCircuit, setConfirmedCircuit] = useState(() => {
         return localStorage.getItem(`confirmed_circuit_id_${ticket.id}`) || '';
@@ -57,7 +103,22 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
         } else {
             setShowCircuitModal(false);
         }
-    }, [ticketStatus]);
+
+        // Load replies from localStorage
+        const savedReplies = localStorage.getItem(`ticket_replies_${ticket.id}`);
+        if (savedReplies) {
+            setReplies(JSON.parse(savedReplies));
+        }
+    }, [ticketStatus, ticket.id]);
+
+    useEffect(() => {
+        // Update toEmail when tab or ticket changes
+        setEmailForm(prev => ({
+            ...prev,
+            to: [activeTab === 'client' ? ticket.email : vendorEmail],
+            subject: `RE: ${ticket.header}`
+        }));
+    }, [activeTab, ticket.email, ticket.header]);
 
     const handleConfirm = () => {
         localStorage.setItem(`confirmed_circuit_${ticket.id}`, 'true');
@@ -93,6 +154,81 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
 
         setShowStatusDropdown(false);
     };
+
+    const handleSendReply = () => {
+        if (!replyText.trim()) return;
+
+        const now = new Date();
+        const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')} hrs`;
+        const dateStr = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+
+        const newReply: Reply = {
+            text: replyText.trim(),
+            time: timeStr,
+            date: dateStr,
+            author: currentAgentName,
+            type: 'agent',
+            category: activeTab,
+            to: [...emailForm.to],
+            cc: [...emailForm.cc],
+            bcc: [...emailForm.bcc],
+            subject: emailForm.subject
+        };
+
+        const updatedReplies = [...replies, newReply];
+        setReplies(updatedReplies);
+        localStorage.setItem(`ticket_replies_${ticket.id}`, JSON.stringify(updatedReplies));
+
+        // Reset form
+        setReplyText('');
+        setAttachments([]);
+        setEmailForm(prev => ({
+            ...prev,
+            cc: [],
+            bcc: []
+        }));
+        setShowCc(false);
+        setShowEmailModal(false);
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            setAttachments(prev => [...prev, ...Array.from(e.target.files!)]);
+        }
+    };
+
+    const removeAttachment = (index: number) => {
+        setAttachments(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const addRecipient = (field: 'to' | 'cc' | 'bcc', value: string) => {
+        const email = value.trim().replace(/,$/, '');
+        if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && !emailForm[field].includes(email)) {
+            setEmailForm(prev => ({
+                ...prev,
+                [field]: [...prev[field], email]
+            }));
+            setInputValues(prev => ({ ...prev, [field]: '' }));
+        }
+    };
+
+    const removeRecipient = (field: 'to' | 'cc' | 'bcc', index: number) => {
+        setEmailForm(prev => ({
+            ...prev,
+            [field]: prev[field].filter((_, i) => i !== index)
+        }));
+    };
+
+    const handleRecipientKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, field: 'to' | 'cc' | 'bcc') => {
+        if (e.key === 'Enter' || e.key === ',') {
+            e.preventDefault();
+            addRecipient(field, inputValues[field]);
+        } else if (e.key === 'Backspace' && !inputValues[field] && emailForm[field].length > 0) {
+            removeRecipient(field, emailForm[field].length - 1);
+        }
+    };
+
+    const vendorEmail = "partner.noc@airtel.com";
 
     const circuitOptions = [
         'BA/SNG-TY2/ESPL-003',
@@ -204,80 +340,143 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                 {/* Left Conversation Area */}
                 <div className="flex-1 flex flex-col p-8 space-y-6 overflow-y-auto bg-gray-50/30 scrollbar-hide">
 
-                    {/* Message 1: Client Email */}
-                    <div className="flex gap-4 group">
-                        <div className="w-10 h-10 rounded-full bg-[#E5DCC3] flex items-center justify-center text-[#5C5648] font-bold text-sm shadow-sm flex-shrink-0">
-                            CL
-                        </div>
-                        <div className="flex-1">
-                            <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm relative">
-                                <div className="flex items-start justify-between mb-4">
-                                    <div className="space-y-0.5">
-                                        <div className="flex items-center gap-1.5">
-                                            <span className="text-[15px] font-bold text-gray-900">{ticket.name}</span>
-                                            <span className="text-[14px] text-gray-400 font-medium">&lt;{ticket.email}&gt;</span>
+                    {/* Original Client Message (Always visible but maybe distinct based on user preference) */}
+                    {activeTab === 'client' && (
+                        <div className="flex gap-4 group">
+                            <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-sm shadow-sm flex-shrink-0">
+                                {ticket.name[0].toUpperCase()}
+                            </div>
+                            <div className="flex-1">
+                                <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm relative">
+                                    <div className="flex items-start justify-between mb-4">
+                                        <div className="space-y-0.5">
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="text-[15px] font-bold text-gray-900">{ticket.name}</span>
+                                                <span className="text-[14px] text-gray-400 font-medium">&lt;{ticket.email}&gt;</span>
+                                            </div>
+                                            <p className="text-[13px] text-gray-400 font-medium">To: support@edgestone.in</p>
                                         </div>
-                                        <p className="text-[13px] text-gray-400 font-medium">To: support@edgestone.in</p>
-                                    </div>
-                                    <div className="flex items-center gap-4 text-gray-400">
-                                        <span className="text-[13px] font-medium">19:00 hrs</span>
-                                        <div className="flex items-center gap-2.5">
-                                            <button className="hover:text-gray-600"><CornerUpLeft size={16} /></button>
-                                            <button className="hover:text-gray-600"><ReplyIcon size={16} className="-scale-x-100" /></button>
-                                            <button className="hover:text-gray-600"><MoreVertical size={16} /></button>
+                                        <div className="flex items-center gap-4 text-gray-400">
+                                            <span className="text-[13px] font-medium">{ticket.date || '24 Oct'} • 19:00 hrs</span>
+                                            <div className="flex items-center gap-2.5">
+                                                <button className="hover:text-gray-600"><CornerUpLeft size={16} /></button>
+                                                <button className="hover:text-gray-600" onClick={() => setShowEmailModal(true)}><ReplyIcon size={16} className="-scale-x-100" /></button>
+                                                <button className="hover:text-gray-600"><MoreVertical size={16} /></button>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
 
-                                <div className="text-[14px] text-gray-600 leading-relaxed font-medium space-y-4">
-                                    <p>Dear Team,</p>
-                                    <p>Kindly raise a TT for Link down issue. And share your observation.</p>
-                                    <p>We observed the link to be down around 8:53 UTC today.</p>
-                                    <p>{ticket.header.split('||')[1]?.trim() || 'Circuit ID Missing'}</p>
+                                    <div className="text-[14px] text-gray-600 leading-relaxed font-medium space-y-4">
+                                        <p>Dear Team,</p>
+                                        <p>Kindly raise a TT for Link down issue. And share your observation.</p>
+                                        <p>We observed the link to be down around 8:53 UTC today.</p>
+                                        <p>{ticket.header.split('||')[1]?.trim() || 'Circuit ID Missing'}</p>
+                                    </div>
+                                    <div className="absolute left-[-17px] top-5 w-4 h-4 bg-white border-l border-b border-gray-100 rotate-45"></div>
                                 </div>
-                                <div className="absolute left-[-17px] top-5 w-4 h-4 bg-white border-l border-b border-gray-100 rotate-45"></div>
                             </div>
                         </div>
-                    </div>
+                    )}
 
-                    <div className="ml-5 border-l-2 border-gray-100 py-1"></div>
-
-                    {/* Message 2: Auto Reply */}
-                    <div className="flex gap-4">
-                        <div className="w-10 h-10 rounded-full bg-[#E5DCC3] flex items-center justify-center text-[#5C5648] font-bold text-sm shadow-sm flex-shrink-0">
-                            N
+                    {activeTab === 'vendor' && (
+                        <div className="bg-[#FFF8F0] border border-orange-100 rounded-2xl p-6 mb-4">
+                            <div className="flex items-center gap-3 text-orange-600 mb-2">
+                                <ReplyIcon size={20} className="rotate-180" />
+                                <span className="font-bold text-[15px]">Vendor Support Communication</span>
+                            </div>
+                            <p className="text-[13px] text-orange-500 font-medium tracking-tight">
+                                This section is for coordination with our partner vendors. All emails sent here go to the vendor's NOC team.
+                            </p>
                         </div>
-                        <div className="flex-1">
-                            <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm relative">
-                                <div className="flex items-start justify-between mb-4">
-                                    <div className="space-y-0.5">
-                                        <div className="flex items-center gap-1.5">
-                                            <span className="text-[15px] font-bold text-gray-900">No-reply Edgestone</span>
-                                            <span className="text-[14px] text-gray-400 font-medium">&lt;support@edgestone.in&gt;</span>
-                                        </div>
-                                        <p className="text-[13px] text-gray-400 font-medium">To: {ticket.email}</p>
-                                    </div>
-                                    <div className="flex items-center gap-4 text-gray-400">
-                                        <div className="flex items-center gap-2.5">
-                                            <button className="hover:text-gray-600 rotate-180"><ReplyIcon size={16} /></button>
-                                            <button className="hover:text-gray-600"><MoreVertical size={16} /></button>
-                                        </div>
-                                    </div>
-                                </div>
+                    )}
 
-                                <div className="text-[14px] text-gray-600 leading-relaxed font-medium opacity-80">
-                                    <p>Thank you for reaching out to us. We have received your ticket and our team will get back to you as soon as possible. Please note that this is an automated response and this email box is not be monitored.</p>
+                    {activeTab === 'client' && <div className="ml-5 border-l-2 border-gray-100 py-1"></div>}
+
+                    {/* Auto Reply (Only in client tab) */}
+                    {activeTab === 'client' && (
+                        <div className="flex gap-4">
+                            <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold text-sm shadow-sm flex-shrink-0">
+                                ES
+                            </div>
+                            <div className="flex-1">
+                                <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm relative">
+                                    <div className="flex items-start justify-between mb-4">
+                                        <div className="space-y-0.5">
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="text-[15px] font-bold text-gray-900">No-reply Edgestone</span>
+                                                <span className="text-[14px] text-gray-400 font-medium">&lt;support@edgestone.in&gt;</span>
+                                            </div>
+                                            <p className="text-[13px] text-gray-400 font-medium">To: {ticket.email}</p>
+                                        </div>
+                                        <div className="flex items-center gap-4 text-gray-400">
+                                            <span className="text-[13px] font-medium">{ticket.date || '24 Oct'} • 19:05 hrs</span>
+                                            <div className="flex items-center gap-2.5">
+                                                <button className="hover:text-gray-600 rotate-180" onClick={() => setShowEmailModal(true)}><ReplyIcon size={16} /></button>
+                                                <button className="hover:text-gray-600"><MoreVertical size={16} /></button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="text-[14px] text-gray-600 leading-relaxed font-medium opacity-80">
+                                        <p>Thank you for reaching out to us. We have received your ticket and our team will get back to you as soon as possible. Please note that this is an automated response and this email box is not be monitored.</p>
+                                    </div>
+                                    <div className="absolute left-[-17px] top-5 w-4 h-4 bg-white border-l border-b border-gray-100 rotate-45"></div>
                                 </div>
-                                <div className="absolute left-[-17px] top-5 w-4 h-4 bg-white border-l border-b border-gray-100 rotate-45"></div>
                             </div>
                         </div>
-                    </div>
+                    )}
 
-                    {/* Lower Reply Button */}
-                    <div className="pt-8">
-                        <button className="flex items-center gap-2 px-6 py-2.5 border border-gray-900 rounded-lg text-[14px] font-bold text-gray-900 hover:bg-gray-50 transition-all active:scale-95">
+                    {activeTab === 'client' && <div className="ml-5 border-l-2 border-gray-100 py-1"></div>}
+
+                    {/* Persistent Agent Replies (Filtered by category) */}
+                    {replies.filter(r => r.category === activeTab).map((reply, idx) => (
+                        <div key={idx} className="flex flex-col">
+                            <div className="flex gap-4">
+                                <div className="w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold text-sm shadow-sm flex-shrink-0">
+                                    {reply.author[0].toUpperCase()}
+                                </div>
+                                <div className="flex-1">
+                                    <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm relative">
+                                        <div className="flex items-start justify-between mb-4">
+                                            <div className="space-y-0.5">
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="text-[15px] font-bold text-gray-900">{reply.author}</span>
+                                                    <span className="text-[14px] text-gray-400 font-medium">&lt;support@edgestone.in&gt;</span>
+                                                </div>
+                                                <div className="flex flex-col gap-0.5">
+                                                    <p className="text-[12px] text-gray-400 font-medium">To: {reply.to?.join(', ') || (activeTab === 'client' ? ticket.email : vendorEmail)}</p>
+                                                    {reply.cc && reply.cc.length > 0 && (
+                                                        <p className="text-[11px] text-gray-400 font-medium">Cc: {reply.cc.join(', ')}</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-4 text-gray-400">
+                                                <span className="text-[13px] font-medium">{reply.date} • {reply.time}</span>
+                                                <div className="flex items-center gap-2.5">
+                                                    <button className="hover:text-gray-600"><MoreVertical size={16} /></button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="text-[14px] text-gray-600 leading-relaxed font-medium whitespace-pre-wrap">
+                                            {reply.text}
+                                        </div>
+                                        <div className="absolute left-[-17px] top-5 w-4 h-4 bg-white border-l border-b border-gray-100 rotate-45"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="ml-5 border-l-2 border-gray-100 py-1"></div>
+                        </div>
+                    ))}
+
+                    {/* Reply CTA */}
+                    <div className="pt-4">
+                        <button
+                            onClick={() => setShowEmailModal(true)}
+                            className="flex items-center gap-2 px-6 py-2.5 border border-gray-900 rounded-lg text-[14px] font-bold text-gray-900 hover:bg-gray-50 transition-all active:scale-95"
+                        >
                             <Mail size={16} />
-                            Reply
+                            Reply {activeTab === 'vendor' ? 'to Vendor' : ''}
                         </button>
                     </div>
                 </div>
@@ -399,6 +598,204 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                             >
                                 Confirm and Continue
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Email Modal */}
+            {showEmailModal && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-[#0F172A]/20 backdrop-blur-[6px] animate-in fade-in duration-500">
+                    <div className="bg-white rounded-[32px] w-full max-w-[650px] max-h-[90vh] shadow-[0_32px_128px_-12px_rgba(15,23,42,0.25)] border border-gray-100/50 animate-in zoom-in-95 duration-300 flex flex-col overflow-hidden">
+                        {/* Modal Header */}
+                        <div className="px-10 py-8 border-b border-gray-50 flex items-center justify-between bg-white relative">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-white border border-gray-100 rounded-xl flex items-center justify-center text-orange-500 shadow-sm">
+                                    <Mail size={20} />
+                                </div>
+                                <div>
+                                    <h3 className="text-[18px] font-bold text-gray-900 leading-none mb-1">Send Email</h3>
+                                    <p className="text-[12px] text-gray-400 font-medium">Communicating with {activeTab === 'vendor' ? 'Vendor' : 'Client'}</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setShowEmailModal(false)}
+                                className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-full transition-all"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div className="p-10 space-y-6 overflow-y-auto flex-1 scrollbar-hide">
+                            {/* Email Fields */}
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-4 px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl group focus-within:ring-4 focus-within:ring-gray-900/5 focus-within:border-gray-200 transition-all">
+                                    <span className="text-[13px] font-bold text-gray-400 uppercase tracking-wider w-12">From</span>
+                                    <input
+                                        type="email"
+                                        value={emailForm.from}
+                                        onChange={(e) => setEmailForm(prev => ({ ...prev, from: e.target.value }))}
+                                        className="flex-1 bg-transparent border-none focus:ring-0 text-[14px] font-bold text-gray-900 placeholder:text-gray-300"
+                                    />
+                                </div>
+
+                                <div className="flex items-center gap-4 px-4 py-2 bg-gray-50 border border-gray-100 rounded-2xl group focus-within:ring-4 focus-within:ring-gray-900/5 focus-within:border-gray-200 transition-all min-h-[52px]">
+                                    <span className="text-[13px] font-bold text-gray-400 uppercase tracking-wider w-12 flex-shrink-0">To</span>
+                                    <div className="flex-1 flex flex-wrap gap-2 py-1">
+                                        {emailForm.to.map((email, i) => (
+                                            <div key={i} className="flex items-center gap-1.5 px-2.5 py-1 bg-white border border-gray-200 rounded-lg shadow-sm animate-in zoom-in-95 duration-200">
+                                                <span className="text-[13px] font-bold text-gray-900">{email}</span>
+                                                <button onClick={() => removeRecipient('to', i)} className="text-gray-400 hover:text-red-500 transition-colors">
+                                                    <X size={12} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                        <input
+                                            type="text"
+                                            placeholder={emailForm.to.length === 0 ? "Add recipients..." : ""}
+                                            value={inputValues.to}
+                                            onChange={(e) => setInputValues(prev => ({ ...prev, to: e.target.value }))}
+                                            onKeyDown={(e) => handleRecipientKeyDown(e, 'to')}
+                                            onBlur={() => addRecipient('to', inputValues.to)}
+                                            className="flex-1 min-w-[120px] bg-transparent border-none focus:ring-0 text-[14px] font-bold text-gray-900 placeholder:text-gray-300 py-1"
+                                        />
+                                    </div>
+                                    <button
+                                        onClick={() => setShowCc(!showCc)}
+                                        className={`p-1 rounded-md transition-all flex-shrink-0 ${showCc ? 'bg-orange-100 text-orange-600' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}
+                                        title="Add Cc/Bcc"
+                                    >
+                                        <Plus size={16} />
+                                    </button>
+                                </div>
+
+                                {showCc && (
+                                    <>
+                                        <div className="flex items-center gap-4 px-4 py-2 bg-gray-50 border border-gray-100 rounded-2xl group focus-within:ring-4 focus-within:ring-gray-900/5 focus-within:border-gray-200 transition-all animate-in slide-in-from-top-2 duration-300 min-h-[52px]">
+                                            <span className="text-[13px] font-bold text-gray-400 uppercase tracking-wider w-12 flex-shrink-0">Cc</span>
+                                            <div className="flex-1 flex flex-wrap gap-2 py-1">
+                                                {emailForm.cc.map((email, i) => (
+                                                    <div key={i} className="flex items-center gap-1.5 px-2.5 py-1 bg-white border border-gray-200 rounded-lg shadow-sm animate-in zoom-in-95 duration-200">
+                                                        <span className="text-[13px] font-bold text-gray-900">{email}</span>
+                                                        <button onClick={() => removeRecipient('cc', i)} className="text-gray-400 hover:text-red-500 transition-colors">
+                                                            <X size={12} />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                                <input
+                                                    type="text"
+                                                    placeholder="Cc recipients..."
+                                                    value={inputValues.cc}
+                                                    onChange={(e) => setInputValues(prev => ({ ...prev, cc: e.target.value }))}
+                                                    onKeyDown={(e) => handleRecipientKeyDown(e, 'cc')}
+                                                    onBlur={() => addRecipient('cc', inputValues.cc)}
+                                                    className="flex-1 min-w-[120px] bg-transparent border-none focus:ring-0 text-[14px] font-bold text-gray-900 placeholder:text-gray-300 py-1"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-4 px-4 py-2 bg-gray-50 border border-gray-100 rounded-2xl group focus-within:ring-4 focus-within:ring-gray-900/5 focus-within:border-gray-200 transition-all animate-in slide-in-from-top-2 duration-300 min-h-[52px]">
+                                            <span className="text-[13px] font-bold text-gray-400 uppercase tracking-wider w-12 flex-shrink-0">Bcc</span>
+                                            <div className="flex-1 flex flex-wrap gap-2 py-1">
+                                                {emailForm.bcc.map((email, i) => (
+                                                    <div key={i} className="flex items-center gap-1.5 px-2.5 py-1 bg-white border border-gray-100 rounded-lg shadow-sm animate-in zoom-in-95 duration-200">
+                                                        <span className="text-[13px] font-bold text-gray-900">{email}</span>
+                                                        <button onClick={() => removeRecipient('bcc', i)} className="text-gray-400 hover:text-red-500 transition-colors">
+                                                            <X size={12} />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                                <input
+                                                    type="text"
+                                                    placeholder="Bcc recipients..."
+                                                    value={inputValues.bcc}
+                                                    onChange={(e) => setInputValues(prev => ({ ...prev, bcc: e.target.value }))}
+                                                    onKeyDown={(e) => handleRecipientKeyDown(e, 'bcc')}
+                                                    onBlur={() => addRecipient('bcc', inputValues.bcc)}
+                                                    className="flex-1 min-w-[120px] bg-transparent border-none focus:ring-0 text-[14px] font-bold text-gray-900 placeholder:text-gray-300 py-1"
+                                                />
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+
+                                <div className="flex items-center gap-4 px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl group focus-within:ring-4 focus-within:ring-gray-900/5 focus-within:border-gray-200 transition-all">
+                                    <span className="text-[13px] font-bold text-gray-400 uppercase tracking-wider w-12">Subject</span>
+                                    <input
+                                        type="text"
+                                        value={emailForm.subject}
+                                        onChange={(e) => setEmailForm(prev => ({ ...prev, subject: e.target.value }))}
+                                        className="flex-1 bg-transparent border-none focus:ring-0 text-[14px] font-bold text-gray-900 placeholder:text-gray-300"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Message Area */}
+                            <div className="relative group">
+                                <textarea
+                                    value={replyText}
+                                    onChange={(e) => setReplyText(e.target.value)}
+                                    placeholder="Type your message here..."
+                                    className="w-full min-h-[200px] p-6 bg-white border border-gray-100 rounded-[24px] text-[15px] font-medium text-gray-700 placeholder:text-gray-300 focus:outline-none focus:border-gray-900/10 focus:ring-4 focus:ring-gray-900/5 transition-all resize-none shadow-inner"
+                                    autoFocus
+                                />
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    onChange={handleFileChange}
+                                    className="hidden"
+                                    multiple
+                                />
+                                <div className="absolute bottom-4 left-6 flex items-center gap-3">
+                                    <button
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className="p-2 text-gray-400 hover:text-orange-500 hover:bg-orange-50 rounded-lg transition-all flex items-center gap-2"
+                                        title="Attach files"
+                                    >
+                                        <Paperclip size={18} />
+                                        {attachments.length > 0 && <span className="text-[11px] font-bold">{attachments.length} files</span>}
+                                    </button>
+                                    <button className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all">
+                                        <Eye size={18} />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Attachment Pills */}
+                            {attachments.length > 0 && (
+                                <div className="flex flex-wrap gap-2">
+                                    {attachments.map((file, i) => (
+                                        <div key={i} className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-xl">
+                                            <span className="text-[11px] font-bold text-gray-600 truncate max-w-[150px]">{file.name}</span>
+                                            <button onClick={() => removeAttachment(i)} className="text-gray-400 hover:text-red-500">
+                                                <X size={12} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div className="px-10 py-8 bg-gray-50/50 border-t border-gray-50 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <button
+                                    onClick={() => setShowEmailModal(false)}
+                                    className="px-6 py-2.5 text-[14px] font-bold text-gray-500 hover:bg-white rounded-xl transition-all border border-transparent hover:border-gray-100"
+                                >
+                                    Discard
+                                </button>
+                                <button
+                                    onClick={handleSendReply}
+                                    disabled={!replyText.trim()}
+                                    className="flex items-center gap-2.5 px-8 py-3 bg-orange-500 text-white rounded-xl text-[15px] font-bold hover:bg-orange-600 transition-all active:scale-[0.98] shadow-[0_20px_40px_-12px_rgba(249,115,22,0.3)] disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed group"
+                                >
+                                    <span>Send Message</span>
+                                    <Send size={18} className="group-hover:translate-x-1 transition-transform" />
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
