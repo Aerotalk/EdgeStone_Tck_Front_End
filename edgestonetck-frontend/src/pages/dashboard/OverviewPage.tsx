@@ -24,41 +24,22 @@ import {
 
 
 const chartData = [
-    { day: '06', count: 12 },
-    { day: '', count: 15 },
-    { day: '07', count: 18 },
-    { day: '', count: 28 },
-    { day: '', count: 22 },
-    { day: '08', count: 25 },
-    { day: '', count: 18 },
-    { day: '', count: 22 },
-    { day: '', count: 20 },
-    { day: '09', count: 28 },
-    { day: '', count: 47 },
-    { day: '', count: 18 },
-    { day: '10', count: 24 },
-    { day: '', count: 28 },
-    { day: '', count: 24 },
-    { day: '11', count: 28 },
-    { day: '', count: 20 },
-    { day: '', count: 24 },
-    { day: '', count: 32 },
-    { day: '12', count: 14 },
-    { day: '', count: 18 },
-    { day: '13', count: 16 },
-    { day: '', count: 24 },
-    { day: '', count: 22 },
-    { day: '', count: 40 },
-    { day: '14', count: 32 },
-    { day: '', count: 35 },
-    { day: '', count: 32 },
-    { day: '15', count: 30 },
-    { day: '', count: 30 },
-    { day: '16', count: 42 },
-    { day: '', count: 26 },
-    { day: '', count: 32 },
-    { day: '17', count: 28 },
-    { day: '', count: 32 },
+    { day: 'Jan 10', count: 42 },
+    { day: 'Jan 11', count: 38 },
+    { day: 'Jan 12', count: 45 },
+    { day: 'Jan 13', count: 52 },
+    { day: 'Jan 14', count: 48 },
+    { day: 'Jan 15', count: 65 },
+    { day: 'Jan 16', count: 58 },
+    { day: 'Jan 17', count: 72 },
+    { day: 'Jan 18', count: 68 },
+    { day: 'Jan 19', count: 85 },
+    { day: 'Jan 20', count: 92 },
+    { day: 'Jan 21', count: 78 },
+    { day: 'Jan 22', count: 88 },
+    { day: 'Jan 23', count: 95 },
+    { day: 'Jan 24', count: 112 },
+    { day: 'Jan 25', count: 105 },
 ];
 
 interface StatCardProps {
@@ -97,8 +78,8 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, trend, trendType, tre
 
 const OverviewPage: React.FC = () => {
     useParams<{ id: string }>();
-    const [selectedMonth, setSelectedMonth] = React.useState('October');
-    const [selectedYear, setSelectedYear] = React.useState('2024');
+    const [selectedMonth, setSelectedMonth] = React.useState('January');
+    const [selectedYear, setSelectedYear] = React.useState('2026');
 
     const months = [
         'January', 'February', 'March', 'April', 'May', 'June',
@@ -115,8 +96,8 @@ const OverviewPage: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
                     <StatCard
                         title="Open tickets"
-                        value="56"
-                        trend="8.5%"
+                        value="156"
+                        trend="12.5%"
                         trendType="up"
                         trendLabel="Up from yesterday"
                         icon={<Ticket size={24} />}
@@ -125,8 +106,8 @@ const OverviewPage: React.FC = () => {
                     />
                     <StatCard
                         title="In Progress tickets"
-                        value="23"
-                        trend="1.3%"
+                        value="84"
+                        trend="3.2%"
                         trendType="up"
                         trendLabel="Up from past week"
                         icon={<Package size={24} />}
@@ -135,18 +116,18 @@ const OverviewPage: React.FC = () => {
                     />
                     <StatCard
                         title="Total Clients"
-                        value="160"
-                        trend="4.3%"
-                        trendType="down"
-                        trendLabel="Down from last month"
+                        value="420"
+                        trend="5.8%"
+                        trendType="up"
+                        trendLabel="Up from last month"
                         icon={<Users size={24} />}
                         iconBg="bg-indigo-50"
                         iconColor="#7986CB"
                     />
                     <StatCard
                         title="Total Vendor"
-                        value="89"
-                        trend="1.8%"
+                        value="125"
+                        trend="2.4%"
                         trendType="up"
                         trendLabel="Up from last month"
                         icon={<Building2 size={24} />}
@@ -219,21 +200,22 @@ const OverviewPage: React.FC = () => {
                                     axisLine={false}
                                     tickLine={false}
                                     tick={{ fill: '#9CA3AF', fontSize: 10, fontWeight: 500 }}
-                                    domain={[0, 50]}
-                                    ticks={[0, 10, 20, 30, 40, 50]}
+                                    domain={[0, 120]}
+                                    ticks={[0, 20, 40, 60, 80, 100, 120]}
                                 />
                                 <Tooltip
                                     content={({ active, payload }) => {
                                         if (active && payload && payload.length) {
                                             return (
-                                                <div className="bg-[#4F46E5] text-white px-3 py-1 rounded-md text-[10px] sm:text-xs font-bold shadow-lg">
-                                                    {payload[0].value}
+                                                <div className="bg-[#F24444] text-white px-4 py-2 rounded-xl text-[11px] font-bold shadow-[0_10px_30px_rgba(242,68,68,0.2)] border border-white/20 animate-in fade-in zoom-in-95 duration-200">
+                                                    <p className="text-white/70 text-[9px] uppercase tracking-wider mb-0.5">{payload[0].payload.day}</p>
+                                                    <p className="text-[14px] leading-tight">{payload[0].value} Tickets</p>
                                                 </div>
                                             );
                                         }
                                         return null;
                                     }}
-                                    cursor={{ stroke: '#F24444', strokeWidth: 1, strokeDasharray: '4 4' }}
+                                    cursor={{ stroke: '#F24444', strokeDasharray: '4 4' }}
                                 />
                                 <Area
                                     type="monotone"
