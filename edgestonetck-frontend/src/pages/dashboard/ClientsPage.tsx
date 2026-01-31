@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Topbar } from '../../components/ui/Topbar';
 import { Plus, Calendar, Edit3, Check, X } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface Client {
     id: string;
@@ -24,6 +25,7 @@ const mockClients: Client[] = [
 ];
 
 const ClientsPage: React.FC = () => {
+    const { isSuperAdmin } = useAuth();
     const [clients, setClients] = useState<Client[]>(mockClients);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editFormData, setEditFormData] = useState<Partial<Client>>({});
@@ -281,15 +283,17 @@ const ClientsPage: React.FC = () => {
             )}
 
             <div className="px-4 sm:px-8 pt-4 sm:pt-6 pb-8 flex-1 overflow-auto relative">
-                <div className="mb-6">
-                    <button
-                        onClick={() => setIsAddModalOpen(true)}
-                        className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 bg-brand-red hover:bg-brand-red-hover text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-brand-red/20 active:scale-95"
-                    >
-                        <Plus size={18} />
-                        Add Client
-                    </button>
-                </div>
+                {isSuperAdmin() && (
+                    <div className="mb-6">
+                        <button
+                            onClick={() => setIsAddModalOpen(true)}
+                            className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 bg-brand-red hover:bg-brand-red-hover text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-brand-red/20 active:scale-95"
+                        >
+                            <Plus size={18} />
+                            Add Client
+                        </button>
+                    </div>
+                )}
 
                 {/* Mobile/Tablet Card View */}
                 <div className="grid grid-cols-1 gap-4 md:hidden mb-8">

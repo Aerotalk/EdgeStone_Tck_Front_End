@@ -4,15 +4,18 @@ import { Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { Input } from '../../components/ui/Input'
 import { Button } from '../../components/ui/Button'
 import AuthLayout from '../../layouts/AuthLayout'
+import { useAuth, type UserRole } from '../../contexts/AuthContext'
 
-// Dummy Support Agents
+// Dummy Support Agents with Roles
 const SUPPORT_AGENTS = [
-    { id: 'agent-1', email: 'agent.one@edgestone.com', password: 'password123', name: 'Soumyajit' },
-    { id: 'agent-2', email: 'agent.two@edgestone.com', password: 'password456', name: 'Priyanshu' }
+    { id: 'super-admin-1', email: 'superadmin@edgestone.in', password: 'superadmin123', name: 'Super Admin', role: 'super_admin' as UserRole },
+    { id: 'agent-1', email: 'agent.one@edgestone.com', password: 'password123', name: 'Soumyajit', role: 'agent' as UserRole },
+    { id: 'agent-2', email: 'agent.two@edgestone.com', password: 'password456', name: 'Priyanshu', role: 'agent' as UserRole }
 ]
 
 export default function LoginPage() {
     const navigate = useNavigate()
+    const { login } = useAuth()
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [showPassword, setShowPassword] = useState(false)
@@ -42,6 +45,14 @@ export default function LoginPage() {
                 setError('Credentials incorrect.')
                 setIsLoading(false)
             } else {
+                // Store user data in AuthContext
+                login({
+                    id: user.id,
+                    name: user.name,
+                    email: user.email,
+                    role: user.role
+                })
+
                 setIsSuccess(true)
                 setIsLoading(false)
                 // Redirect after a short delay

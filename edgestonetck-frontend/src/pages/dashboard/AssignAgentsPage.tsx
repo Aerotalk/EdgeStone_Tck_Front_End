@@ -33,13 +33,7 @@ const AssignAgentsPage: React.FC = () => {
         email: '',
         password: '',
         status: 'Active',
-        access: {
-            dashboard: false,
-            sla: false,
-            vendor: false,
-            superAdmin: false,
-            client: false
-        }
+        isSuperAdmin: false
     });
 
     // Search state
@@ -98,13 +92,7 @@ const AssignAgentsPage: React.FC = () => {
             email: '',
             password: '',
             status: 'Active',
-            access: {
-                dashboard: false,
-                sla: false,
-                vendor: false,
-                superAdmin: false,
-                client: false
-            }
+            isSuperAdmin: false
         });
         setShowPassword(false);
 
@@ -122,13 +110,10 @@ const AssignAgentsPage: React.FC = () => {
         }
     };
 
-    const toggleAccess = (key: keyof typeof newAgentData.access) => {
+    const toggleSuperAdmin = () => {
         setNewAgentData(prev => ({
             ...prev,
-            access: {
-                ...prev.access,
-                [key]: !prev.access[key]
-            }
+            isSuperAdmin: !prev.isSuperAdmin
         }));
     };
 
@@ -254,19 +239,15 @@ const AssignAgentsPage: React.FC = () => {
                             {/* Assign Access Section */}
                             <div className="pt-4 border-t border-gray-50">
                                 <h3 className="text-[15px] font-black text-gray-900 mb-6 uppercase tracking-wider">Assign access</h3>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-6">
-                                    {Object.entries(newAgentData.access).map(([key, value]) => (
-                                        <div key={key} className="flex items-center justify-between">
-                                            <span className="text-[14px] font-bold text-gray-500 capitalize">{key}</span>
-                                            <button
-                                                type="button"
-                                                onClick={() => toggleAccess(key as any)}
-                                                className={`w-12 h-6 flex items-center ${value ? (key === 'superAdmin' ? 'bg-red-100' : 'bg-green-100') : 'bg-gray-100'} rounded-full p-1 transition-all duration-300`}
-                                            >
-                                                <div className={`w-4 h-4 rounded-full shadow-sm transition-transform duration-300 ${value ? 'translate-x-6 ' + (key === 'superAdmin' ? 'bg-red-500' : 'bg-green-500') : 'translate-x-0 bg-gray-400'}`} />
-                                            </button>
-                                        </div>
-                                    ))}
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[14px] font-bold text-gray-500">Super Admin</span>
+                                    <button
+                                        type="button"
+                                        onClick={toggleSuperAdmin}
+                                        className={`w-12 h-6 flex items-center ${newAgentData.isSuperAdmin ? 'bg-red-100' : 'bg-gray-100'} rounded-full p-1 transition-all duration-300`}
+                                    >
+                                        <div className={`w-4 h-4 rounded-full shadow-sm transition-transform duration-300 ${newAgentData.isSuperAdmin ? 'translate-x-6 bg-red-500' : 'translate-x-0 bg-gray-400'}`} />
+                                    </button>
                                 </div>
                             </div>
 
