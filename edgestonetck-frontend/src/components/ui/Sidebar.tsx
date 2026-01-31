@@ -13,6 +13,7 @@ import {
     LogOut,
     X
 } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface SidebarProps {
     agentName: string;
@@ -26,15 +27,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ agentName, isMobileOpen, onClo
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const navigate = useNavigate();
     const { id } = useParams<{ id: string }>();
+    const { isSuperAdmin, logout } = useAuth();
 
-    const menuItems = [
+    const allMenuItems = [
         { icon: PieChart, label: 'Dashboard', path: 'overview' },
         { icon: Files, label: 'Tickets', path: 'tickets' },
         { icon: UserIcon, label: 'Client', path: 'clients' },
         { icon: Building2, label: 'Vendor', path: 'vendors' },
-        { icon: UserPlus, label: 'Assign agent', path: 'assign-agents' },
+        { icon: UserPlus, label: 'Assign agent', path: 'assign-agents', superAdminOnly: true },
         { icon: FileText, label: 'SLA', path: 'sla' },
     ];
+
+    // Filter menu items based on user role
+    const menuItems = allMenuItems.filter(item => !item.superAdminOnly || isSuperAdmin());
 
     const handleLogoutTrigger = () => {
         setShowMenu(false);
@@ -42,6 +47,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ agentName, isMobileOpen, onClo
     };
 
     const confirmLogout = () => {
+        logout();
         navigate('/login');
     };
 

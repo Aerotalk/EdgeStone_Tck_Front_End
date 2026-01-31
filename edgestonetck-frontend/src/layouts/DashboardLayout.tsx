@@ -1,16 +1,11 @@
 import React, { useEffect } from 'react';
 import { Outlet, useParams, Navigate } from 'react-router-dom';
 import { Sidebar } from '../components/ui/Sidebar';
-
-// Dummy Support Agents Data
-const SUPPORT_AGENTS = [
-    { id: 'agent-1', name: 'Soumyajit' },
-    { id: 'agent-2', name: 'Priyanshu' }
-]
+import { useAuth } from '../contexts/AuthContext';
 
 const DashboardLayout: React.FC = () => {
     const { id } = useParams<{ id: string }>();
-    const agent = SUPPORT_AGENTS.find(a => a.id === id);
+    const { user } = useAuth();
 
     const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
@@ -18,14 +13,15 @@ const DashboardLayout: React.FC = () => {
         document.title = 'EdgeStone - Dashboard';
     }, []);
 
-    if (!agent) {
+    // Check if user is authenticated and the ID matches
+    if (!user || user.id !== id) {
         return <Navigate to="/login" replace />;
     }
 
     return (
         <div className="h-screen w-full bg-white flex flex-col lg:flex-row font-sans selection:bg-brand-red selection:text-white overflow-hidden">
             <Sidebar
-                agentName={agent.name}
+                agentName={user.name}
                 isMobileOpen={isMobileMenuOpen}
                 onClose={() => setIsMobileMenuOpen(false)}
             />
