@@ -39,6 +39,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ agentName, isMobileOpen, onClo
     ];
 
     // Filter menu items based on user role
+    console.log('Current User Role:', useAuth().user?.role);
+    console.log('Is Super Admin?', isSuperAdmin());
     const menuItems = allMenuItems.filter(item => !item.superAdminOnly || isSuperAdmin());
 
     const handleLogoutTrigger = () => {

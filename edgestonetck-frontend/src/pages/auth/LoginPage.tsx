@@ -4,14 +4,10 @@ import { Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { Input } from '../../components/ui/Input'
 import { Button } from '../../components/ui/Button'
 import AuthLayout from '../../layouts/AuthLayout'
-import { useAuth, type UserRole } from '../../contexts/AuthContext'
+import { useAuth } from '../../contexts/AuthContext'
 
 // Dummy Support Agents with Roles
-const SUPPORT_AGENTS = [
-    { id: 'super-admin-1', email: 'superadmin@edgestone.in', password: 'superadmin123', name: 'Super Admin', role: 'super_admin' as UserRole },
-    { id: 'agent-1', email: 'agent.one@edgestone.com', password: 'password123', name: 'Soumyajit', role: 'agent' as UserRole },
-    { id: 'agent-2', email: 'agent.two@edgestone.com', password: 'password456', name: 'Priyanshu', role: 'agent' as UserRole }
-]
+
 
 export default function LoginPage() {
     const navigate = useNavigate()
@@ -28,39 +24,60 @@ export default function LoginPage() {
         document.title = 'EdgeStone - Login';
     }, []);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setError(null)
         setIsSuccess(false)
         setIsLoading(true)
 
-        // Simulate API delay
-        setTimeout(() => {
-            const user = SUPPORT_AGENTS.find(u => u.email === email)
+        try {
+            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email, password }),
+            });
 
-            if (!user) {
-                setError('User does not exist.')
-                setIsLoading(false)
-            } else if (user.password !== password) {
-                setError('Credentials incorrect.')
-                setIsLoading(false)
-            } else {
+            const data = await response.json();
+
+            if (response.ok) {
+                // Store user data in AuthContext
+
+                console.log('Login Response Data:', data);
+                console.log('Access Object:', data.access);
+                console.log('Is SuperAdmin (Access):', data.access?.superAdmin);
+
+                // Determine role based on access rights or direct role property
+                const userRole = (data.access?.superAdmin || data.isSuperAdmin) ? 'super_admin' : (data.role === 'super_admin' ? 'super_admin' : 'agent');
+                console.log('Determined Role:', userRole);
+
                 // Store user data in AuthContext
                 login({
-                    id: user.id,
-                    name: user.name,
-                    email: user.email,
-                    role: user.role
+                    id: data.id,
+                    name: data.name,
+                    email: data.email,
+                    role: userRole,
+                    token: data.token
                 })
 
                 setIsSuccess(true)
                 setIsLoading(false)
                 // Redirect after a short delay
                 setTimeout(() => {
-                    navigate(`/dashboard/${user.id}`)
+                    if (userRole === 'super_admin') {
+                        navigate(`/dashboard/${data.id}/assign-agents`)
+                    } else {
+                        navigate(`/dashboard/${data.id}`)
+                    }
                 }, 1500)
+            } else {
+                throw new Error(data.message || 'Login failed');
             }
-        }, 1500)
+        } catch (err: any) {
+            setError(err.message || 'An error occurred during login.')
+            setIsLoading(false)
+        }
     }
 
     return (

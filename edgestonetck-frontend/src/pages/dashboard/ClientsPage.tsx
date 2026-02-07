@@ -1,32 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Topbar } from '../../components/ui/Topbar';
-import { Plus, Calendar, Edit3, Check, X } from 'lucide-react';
+import { Plus, Calendar, Edit3, Check, X, Loader2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-
-interface Client {
-    id: string;
-    name: string;
-    createdOn: string;
-    emails: string[];
-    status: 'Active' | 'In-Active';
-}
-
-const mockClients: Client[] = [
-    { id: '1', name: 'Airtel', createdOn: '24 Jan 2023', emails: ['support@airtel.com', 'admin@airtel.com'], status: 'Active' },
-    { id: '2', name: 'Reliance Jio', createdOn: '15 Feb 2023', emails: ['contact@jio.com'], status: 'Active' },
-    { id: '3', name: 'Vodafone Idea', createdOn: '10 Mar 2023', emails: ['help@vi.in', 'it@vi.in'], status: 'In-Active' },
-    { id: '4', name: 'Tata Communications', createdOn: '05 Apr 2023', emails: ['business@tata.com'], status: 'Active' },
-    { id: '5', name: 'Google Cloud', createdOn: '20 May 2023', emails: ['sales@google.com'], status: 'Active' },
-    { id: '6', name: 'Microsoft Azure', createdOn: '12 Jun 2023', emails: ['billing@microsoft.com', 'support@azure.com'], status: 'Active' },
-    { id: '7', name: 'Amazon Web Services', createdOn: '28 Jul 2023', emails: ['aws-it@amazon.com'], status: 'Active' },
-    { id: '8', name: 'Zoho Corp', createdOn: '14 Aug 2023', emails: ['admin@zoho.com'], status: 'In-Active' },
-    { id: '9', name: 'Freshworks Inc', createdOn: '02 Sep 2023', emails: ['helpdesk@freshworks.com'], status: 'Active' },
-    { id: '10', name: 'Salesforce', createdOn: '19 Oct 2023', emails: ['it-ops@salesforce.com'], status: 'In-Active' },
-];
+import { clientService } from '../../services/clientService';
+import type { Client, CreateClientData } from '../../services/clientService';
 
 const ClientsPage: React.FC = () => {
+    const navigate = useNavigate();
     const { isSuperAdmin } = useAuth();
-    const [clients, setClients] = useState<Client[]>(mockClients);
+    const [clients, setClients] = useState<Client[]>([]);
+    const [loading, setLoading] = useState(true);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editFormData, setEditFormData] = useState<Partial<Client>>({});
     const [showSuccess, setShowSuccess] = useState(false);
@@ -43,6 +27,26 @@ const ClientsPage: React.FC = () => {
 
     // Search state
     const [searchQuery, setSearchQuery] = useState('');
+
+    useEffect(() => {
+        fetchClients();
+    }, []);
+
+    const fetchClients = async () => {
+        try {
+            setLoading(true);
+            const data = await clientService.getAllClients();
+            setClients(data);
+        } catch (error: any) {
+            console.error('Failed to fetch clients:', error);
+            if (error.message === 'Unauthorized') {
+                localStorage.removeItem('edgestone_user');
+                navigate('/login');
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const filteredClients = clients.filter(client => {
         const query = searchQuery.toLowerCase();
@@ -64,37 +68,47 @@ const ClientsPage: React.FC = () => {
         setEditEmailInput('');
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!editingId) return;
-        setClients(prev => prev.map(c => c.id === editingId ? { ...c, ...editFormData } as Client : c));
-        setEditingId(null);
 
-        // Show success notification
-        setSuccessMessage('Details Updated Successfully');
-        setShowSuccess(true);
-        setTimeout(() => setShowSuccess(false), 2000);
+        try {
+            await clientService.updateClient(editingId, editFormData);
+            await fetchClients();
+            setEditingId(null);
+
+            setSuccessMessage('Details Updated Successfully');
+            setShowSuccess(true);
+            setTimeout(() => setShowSuccess(false), 2000);
+        } catch (error: any) {
+            console.error('Failed to update client:', error);
+            if (error.message === 'Unauthorized') {
+                localStorage.removeItem('edgestone_user');
+                navigate('/login');
+            }
+        }
     };
 
-    const handleAddClient = (e: React.FormEvent) => {
+    const handleAddClient = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newClientData.name || newClientData.emails.length === 0) return;
 
-        const newClient: Client = {
-            id: Date.now().toString(),
-            name: newClientData.name,
-            createdOn: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-            emails: newClientData.emails,
-            status: 'Active'
-        };
+        try {
+            await clientService.createClient(newClientData);
+            await fetchClients();
+            setIsAddModalOpen(false);
+            setNewClientData({ name: '', emails: [] });
+            setCurrentEmail('');
 
-        setClients(prev => [newClient, ...prev]);
-        setIsAddModalOpen(false);
-        setNewClientData({ name: '', emails: [] });
-        setCurrentEmail('');
-
-        setSuccessMessage('Client Added Successfully');
-        setShowSuccess(true);
-        setTimeout(() => setShowSuccess(false), 2000);
+            setSuccessMessage('Client Added Successfully');
+            setShowSuccess(true);
+            setTimeout(() => setShowSuccess(false), 2000);
+        } catch (error: any) {
+            console.error('Failed to create client:', error);
+            if (error.message === 'Unauthorized') {
+                localStorage.removeItem('edgestone_user');
+                navigate('/login');
+            }
+        }
     };
 
     const addEmailToModal = () => {
@@ -295,310 +309,318 @@ const ClientsPage: React.FC = () => {
                     </div>
                 )}
 
-                {/* Mobile/Tablet Card View */}
-                <div className="grid grid-cols-1 gap-4 md:hidden mb-8">
-                    {filteredClients.map((client) => (
-                        <div key={client.id} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-4">
-                            {editingId === client.id ? (
-                                <div className="space-y-4">
-                                    <div>
-                                        <label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Client Name</label>
-                                        <input
-                                            type="text"
-                                            value={editFormData.name || ''}
-                                            onChange={(e) => handleInputChange('name', e.target.value)}
-                                            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-brand-red text-sm font-bold"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Email IDs</label>
-                                        <div className="flex gap-2 mb-2">
-                                            <input
-                                                type="email"
-                                                value={editEmailInput}
-                                                onChange={(e) => setEditEmailInput(e.target.value)}
-                                                onKeyDown={(e) => {
-                                                    if (e.key === 'Enter') {
-                                                        e.preventDefault();
-                                                        addEmailToEdit();
-                                                    }
-                                                }}
-                                                placeholder="Add email..."
-                                                className="flex-1 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-brand-red text-sm"
-                                            />
-                                            <button
-                                                onClick={addEmailToEdit}
-                                                className="p-1 px-2.5 bg-gray-900 text-white rounded-lg hover:bg-black transition-colors"
-                                            >
-                                                <Check size={14} />
-                                            </button>
-                                        </div>
-                                        <div className="flex flex-wrap gap-1.5 p-2 bg-gray-50/50 rounded-lg border border-dashed border-gray-200 min-h-[40px]">
-                                            {(editFormData.emails || []).map((email, i) => (
-                                                <span
-                                                    key={i}
-                                                    onClick={() => startEditingEmail(email)}
-                                                    className="group flex items-center gap-1 px-2 py-0.5 bg-white text-gray-700 rounded text-[11px] font-bold border border-gray-100 shadow-sm whitespace-nowrap cursor-pointer hover:border-brand-red/30 hover:bg-brand-red/5 transition-all"
-                                                    title="Click to edit"
-                                                >
-                                                    {email}
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            removeEmailFromEdit(email);
-                                                        }}
-                                                        className="text-gray-400 hover:text-red-500"
-                                                    >
-                                                        <X size={12} />
-                                                    </button>
-                                                </span>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <div className="flex gap-4">
-                                        <div className="flex-1">
-                                            <label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Status</label>
-                                            <select
-                                                value={editFormData.status}
-                                                onChange={(e) => handleInputChange('status', e.target.value)}
-                                                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-brand-red text-sm bg-white"
-                                            >
-                                                <option value="Active">Active</option>
-                                                <option value="In-Active">In-Active</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div className="flex gap-3 pt-2">
-                                        <button
-                                            onClick={handleCancel}
-                                            className="flex-1 py-2.5 flex items-center justify-center gap-2 text-sm font-bold text-gray-400 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-                                        >
-                                            <X size={16} />
-                                            Cancel
-                                        </button>
-                                        <button
-                                            onClick={handleSave}
-                                            className="flex-1 py-2.5 flex items-center justify-center gap-2 text-sm font-bold text-white bg-green-500 rounded-xl hover:bg-green-600 transition-colors"
-                                        >
-                                            <Check size={16} />
-                                            Save Changes
-                                        </button>
-                                    </div>
-                                </div>
-                            ) : (
-                                <>
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <h3 className="font-bold text-gray-900 text-lg">{client.name}</h3>
-                                            <p className="text-xs text-gray-400 flex items-center gap-1.5 mt-1">
-                                                <Calendar size={12} />
-                                                Created: {client.createdOn}
-                                            </p>
-                                        </div>
-                                        <span className={`px-3 py-1 rounded-full text-[11px] font-bold ${client.status === 'Active'
-                                            ? 'bg-green-50 text-green-600'
-                                            : 'bg-red-50 text-red-600'
-                                            }`}>
-                                            {client.status}
-                                        </span>
-                                    </div>
-
-                                    <div className="flex flex-wrap gap-1.5">
-                                        {(expandedRows.has(client.id) ? client.emails : client.emails.slice(0, 2)).map((email, i) => (
-                                            <span key={i} className="px-2 py-0.5 bg-orange-50 text-[#D97706] rounded text-[11px] border border-orange-100/50 font-medium whitespace-nowrap">
-                                                {email}
-                                            </span>
-                                        ))}
-                                        {client.emails.length > 2 && (
-                                            <button
-                                                onClick={(e) => toggleRowExpansion(client.id, e)}
-                                                className="px-2 py-0.5 bg-gray-50 text-gray-500 rounded text-[11px] border border-gray-100 font-bold hover:bg-gray-100 transition-colors"
-                                            >
-                                                {expandedRows.has(client.id) ? 'Show less' : `+${client.emails.length - 2} more`}
-                                            </button>
-                                        )}
-                                    </div>
-
-                                    <button
-                                        onClick={() => handleEditClick(client)}
-                                        className="w-full py-2.5 flex items-center justify-center gap-2 text-sm font-bold text-gray-600 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-                                    >
-                                        <Edit3 size={16} />
-                                        Edit Client
-                                    </button>
-                                </>
-                            )}
-                        </div>
-                    ))}
-                </div>
-
-                {/* Desktop Table View */}
-                <div className="hidden md:block bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse min-w-[800px]">
-                            <thead>
-                                <tr className="border-b border-gray-100 bg-gray-50/30">
-                                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                                        Client Name
-                                    </th>
-                                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                                        Created on
-                                    </th>
-                                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                                        Email
-                                    </th>
-                                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                                        Status
-                                    </th>
-                                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">
-                                        Actions
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredClients.map((client) => (
-                                    <tr key={client.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
-                                        <td className="px-6 py-5 text-sm font-bold text-gray-800">
-                                            {editingId === client.id ? (
+                {loading ? (
+                    <div className="flex items-center justify-center h-64">
+                        <Loader2 className="w-8 h-8 animate-spin text-brand-red" />
+                    </div>
+                ) : (
+                    <>
+                        {/* Mobile/Tablet Card View */}
+                        <div className="grid grid-cols-1 gap-4 md:hidden mb-8">
+                            {filteredClients.map((client) => (
+                                <div key={client.id} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+                                    {editingId === client.id ? (
+                                        <div className="space-y-4">
+                                            <div>
+                                                <label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Client Name</label>
                                                 <input
                                                     type="text"
                                                     value={editFormData.name || ''}
                                                     onChange={(e) => handleInputChange('name', e.target.value)}
-                                                    className="w-full px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:border-brand-red focus:ring-4 focus:ring-brand-red/5 text-sm"
+                                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-brand-red text-sm font-bold"
                                                 />
-                                            ) : (
-                                                client.name
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-5 text-sm text-gray-600">
-                                            <div className="flex items-center gap-2">
-                                                <Calendar size={14} className="text-gray-400" />
-                                                {client.createdOn}
                                             </div>
-                                        </td>
-                                        <td className="px-6 py-5 text-sm text-gray-600">
-                                            {editingId === client.id ? (
-                                                <div className="max-w-[300px]">
-                                                    <div className="flex gap-2 mb-2">
-                                                        <input
-                                                            type="email"
-                                                            value={editEmailInput}
-                                                            onChange={(e) => setEditEmailInput(e.target.value)}
-                                                            onKeyDown={(e) => {
-                                                                if (e.key === 'Enter') {
-                                                                    e.preventDefault();
-                                                                    addEmailToEdit();
-                                                                }
-                                                            }}
-                                                            placeholder="Add email..."
-                                                            className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:border-brand-red text-xs"
-                                                        />
-                                                        <button
-                                                            onClick={addEmailToEdit}
-                                                            className="p-1 px-2 bg-gray-900 text-white rounded-lg hover:bg-black transition-colors"
-                                                        >
-                                                            <Check size={12} />
-                                                        </button>
-                                                    </div>
-                                                    <div className="flex flex-wrap gap-1.5 p-1.5 bg-gray-50/50 rounded-lg border border-dashed border-gray-200 min-h-[36px]">
-                                                        {(editFormData.emails || []).map((email, i) => (
-                                                            <span
-                                                                key={i}
-                                                                onClick={() => startEditingEmail(email)}
-                                                                className="group flex items-center gap-1 px-1.5 py-0.5 bg-white text-gray-700 rounded text-[10px] font-bold border border-gray-100 shadow-sm whitespace-nowrap cursor-pointer hover:border-brand-red/30 hover:bg-brand-red/5 transition-all"
-                                                                title="Click to edit"
-                                                            >
-                                                                {email}
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        removeEmailFromEdit(email);
-                                                                    }}
-                                                                    className="text-gray-400 hover:text-red-500"
-                                                                >
-                                                                    <X size={10} />
-                                                                </button>
-                                                            </span>
-                                                        ))}
-                                                    </div>
+                                            <div>
+                                                <label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Email IDs</label>
+                                                <div className="flex gap-2 mb-2">
+                                                    <input
+                                                        type="email"
+                                                        value={editEmailInput}
+                                                        onChange={(e) => setEditEmailInput(e.target.value)}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') {
+                                                                e.preventDefault();
+                                                                addEmailToEdit();
+                                                            }
+                                                        }}
+                                                        placeholder="Add email..."
+                                                        className="flex-1 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-brand-red text-sm"
+                                                    />
+                                                    <button
+                                                        onClick={addEmailToEdit}
+                                                        className="p-1 px-2.5 bg-gray-900 text-white rounded-lg hover:bg-black transition-colors"
+                                                    >
+                                                        <Check size={14} />
+                                                    </button>
                                                 </div>
-                                            ) : (
-                                                <div className="flex flex-wrap gap-2 max-w-[300px]">
-                                                    {(expandedRows.has(client.id) ? client.emails : client.emails.slice(0, 2)).map((email, i) => (
-                                                        <span key={i} className="px-2 py-1 bg-orange-50 text-[#D97706] rounded text-[12px] border border-orange-100/50 font-medium whitespace-nowrap">
+                                                <div className="flex flex-wrap gap-1.5 p-2 bg-gray-50/50 rounded-lg border border-dashed border-gray-200 min-h-[40px]">
+                                                    {(editFormData.emails || []).map((email, i) => (
+                                                        <span
+                                                            key={i}
+                                                            onClick={() => startEditingEmail(email)}
+                                                            className="group flex items-center gap-1 px-2 py-0.5 bg-white text-gray-700 rounded text-[11px] font-bold border border-gray-100 shadow-sm whitespace-nowrap cursor-pointer hover:border-brand-red/30 hover:bg-brand-red/5 transition-all"
+                                                            title="Click to edit"
+                                                        >
                                                             {email}
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    removeEmailFromEdit(email);
+                                                                }}
+                                                                className="text-gray-400 hover:text-red-500"
+                                                            >
+                                                                <X size={12} />
+                                                            </button>
                                                         </span>
                                                     ))}
-                                                    {client.emails.length > 2 && (
-                                                        <button
-                                                            onClick={(e) => toggleRowExpansion(client.id, e)}
-                                                            className="px-2 py-1 bg-gray-50 text-gray-500 rounded text-[12px] border border-gray-100 font-bold hover:bg-gray-100 transition-colors"
-                                                        >
-                                                            {expandedRows.has(client.id) ? 'Show less' : `+${client.emails.length - 2} more`}
-                                                        </button>
-                                                    )}
                                                 </div>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-5">
-                                            {editingId === client.id ? (
-                                                <select
-                                                    value={editFormData.status}
-                                                    onChange={(e) => handleInputChange('status', e.target.value)}
-                                                    className="w-full px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:border-brand-red focus:ring-4 focus:ring-brand-red/5 text-sm bg-white"
+                                            </div>
+                                            <div className="flex gap-4">
+                                                <div className="flex-1">
+                                                    <label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Status</label>
+                                                    <select
+                                                        value={editFormData.status}
+                                                        onChange={(e) => handleInputChange('status', e.target.value)}
+                                                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-brand-red text-sm bg-white"
+                                                    >
+                                                        <option value="Active">Active</option>
+                                                        <option value="In-Active">In-Active</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-3 pt-2">
+                                                <button
+                                                    onClick={handleCancel}
+                                                    className="flex-1 py-2.5 flex items-center justify-center gap-2 text-sm font-bold text-gray-400 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
                                                 >
-                                                    <option value="Active">Active</option>
-                                                    <option value="In-Active">In-Active</option>
-                                                </select>
-                                            ) : (
-                                                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${client.status === 'Active'
+                                                    <X size={16} />
+                                                    Cancel
+                                                </button>
+                                                <button
+                                                    onClick={handleSave}
+                                                    className="flex-1 py-2.5 flex items-center justify-center gap-2 text-sm font-bold text-white bg-green-500 rounded-xl hover:bg-green-600 transition-colors"
+                                                >
+                                                    <Check size={16} />
+                                                    Save Changes
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <h3 className="font-bold text-gray-900 text-lg">{client.name}</h3>
+                                                    <p className="text-xs text-gray-400 flex items-center gap-1.5 mt-1">
+                                                        <Calendar size={12} />
+                                                        Created: {client.createdOn}
+                                                    </p>
+                                                </div>
+                                                <span className={`px-3 py-1 rounded-full text-[11px] font-bold ${client.status === 'Active'
                                                     ? 'bg-green-50 text-green-600'
                                                     : 'bg-red-50 text-red-600'
                                                     }`}>
-                                                    <span className={`w-1.5 h-1.5 rounded-full ${client.status === 'Active' ? 'bg-green-500' : 'bg-red-500'
-                                                        }`} />
                                                     {client.status}
                                                 </span>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-5">
-                                            <div className="flex items-center justify-end gap-3">
-                                                {editingId === client.id ? (
-                                                    <>
-                                                        <button
-                                                            onClick={handleSave}
-                                                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                                                            title="Save"
-                                                        >
-                                                            <Check size={20} />
-                                                        </button>
-                                                        <button
-                                                            onClick={handleCancel}
-                                                            className="p-2 text-gray-400 hover:bg-gray-100 rounded-lg transition-colors"
-                                                            title="Cancel"
-                                                        >
-                                                            <X size={20} />
-                                                        </button>
-                                                    </>
-                                                ) : (
+                                            </div>
+
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {(expandedRows.has(client.id) ? client.emails : client.emails.slice(0, 2)).map((email, i) => (
+                                                    <span key={i} className="px-2 py-0.5 bg-orange-50 text-[#D97706] rounded text-[11px] border border-orange-100/50 font-medium whitespace-nowrap">
+                                                        {email}
+                                                    </span>
+                                                ))}
+                                                {client.emails.length > 2 && (
                                                     <button
-                                                        onClick={() => handleEditClick(client)}
-                                                        className="flex items-center gap-2 text-sm font-bold text-gray-400 hover:text-brand-red transition-all group"
+                                                        onClick={(e) => toggleRowExpansion(client.id, e)}
+                                                        className="px-2 py-0.5 bg-gray-50 text-gray-500 rounded text-[11px] border border-gray-100 font-bold hover:bg-gray-100 transition-colors"
                                                     >
-                                                        <span className="opacity-0 group-hover:opacity-100 transition-opacity">Edit</span>
-                                                        <div className="p-2 group-hover:bg-brand-red/5 rounded-lg transition-colors">
-                                                            <Edit3 size={18} />
-                                                        </div>
+                                                        {expandedRows.has(client.id) ? 'Show less' : `+${client.emails.length - 2} more`}
                                                     </button>
                                                 )}
                                             </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+
+                                            <button
+                                                onClick={() => handleEditClick(client)}
+                                                className="w-full py-2.5 flex items-center justify-center gap-2 text-sm font-bold text-gray-600 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                                            >
+                                                <Edit3 size={16} />
+                                                Edit Client
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Desktop Table View */}
+                        <div className="hidden md:block bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left border-collapse min-w-[800px]">
+                                    <thead>
+                                        <tr className="border-b border-gray-100 bg-gray-50/30">
+                                            <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                                Client Name
+                                            </th>
+                                            <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                                Created on
+                                            </th>
+                                            <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                                Email
+                                            </th>
+                                            <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                                Status
+                                            </th>
+                                            <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">
+                                                Actions
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {filteredClients.map((client) => (
+                                            <tr key={client.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
+                                                <td className="px-6 py-5 text-sm font-bold text-gray-800">
+                                                    {editingId === client.id ? (
+                                                        <input
+                                                            type="text"
+                                                            value={editFormData.name || ''}
+                                                            onChange={(e) => handleInputChange('name', e.target.value)}
+                                                            className="w-full px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:border-brand-red focus:ring-4 focus:ring-brand-red/5 text-sm"
+                                                        />
+                                                    ) : (
+                                                        client.name
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-5 text-sm text-gray-600">
+                                                    <div className="flex items-center gap-2">
+                                                        <Calendar size={14} className="text-gray-400" />
+                                                        {client.createdOn}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-5 text-sm text-gray-600">
+                                                    {editingId === client.id ? (
+                                                        <div className="max-w-[300px]">
+                                                            <div className="flex gap-2 mb-2">
+                                                                <input
+                                                                    type="email"
+                                                                    value={editEmailInput}
+                                                                    onChange={(e) => setEditEmailInput(e.target.value)}
+                                                                    onKeyDown={(e) => {
+                                                                        if (e.key === 'Enter') {
+                                                                            e.preventDefault();
+                                                                            addEmailToEdit();
+                                                                        }
+                                                                    }}
+                                                                    placeholder="Add email..."
+                                                                    className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:border-brand-red text-xs"
+                                                                />
+                                                                <button
+                                                                    onClick={addEmailToEdit}
+                                                                    className="p-1 px-2 bg-gray-900 text-white rounded-lg hover:bg-black transition-colors"
+                                                                >
+                                                                    <Check size={12} />
+                                                                </button>
+                                                            </div>
+                                                            <div className="flex flex-wrap gap-1.5 p-1.5 bg-gray-50/50 rounded-lg border border-dashed border-gray-200 min-h-[36px]">
+                                                                {(editFormData.emails || []).map((email, i) => (
+                                                                    <span
+                                                                        key={i}
+                                                                        onClick={() => startEditingEmail(email)}
+                                                                        className="group flex items-center gap-1 px-1.5 py-0.5 bg-white text-gray-700 rounded text-[10px] font-bold border border-gray-100 shadow-sm whitespace-nowrap cursor-pointer hover:border-brand-red/30 hover:bg-brand-red/5 transition-all"
+                                                                        title="Click to edit"
+                                                                    >
+                                                                        {email}
+                                                                        <button
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                removeEmailFromEdit(email);
+                                                                            }}
+                                                                            className="text-gray-400 hover:text-red-500"
+                                                                        >
+                                                                            <X size={10} />
+                                                                        </button>
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex flex-wrap gap-2 max-w-[300px]">
+                                                            {(expandedRows.has(client.id) ? client.emails : client.emails.slice(0, 2)).map((email, i) => (
+                                                                <span key={i} className="px-2 py-1 bg-orange-50 text-[#D97706] rounded text-[12px] border border-orange-100/50 font-medium whitespace-nowrap">
+                                                                    {email}
+                                                                </span>
+                                                            ))}
+                                                            {client.emails.length > 2 && (
+                                                                <button
+                                                                    onClick={(e) => toggleRowExpansion(client.id, e)}
+                                                                    className="px-2 py-1 bg-gray-50 text-gray-500 rounded text-[12px] border border-gray-100 font-bold hover:bg-gray-100 transition-colors"
+                                                                >
+                                                                    {expandedRows.has(client.id) ? 'Show less' : `+${client.emails.length - 2} more`}
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-5">
+                                                    {editingId === client.id ? (
+                                                        <select
+                                                            value={editFormData.status}
+                                                            onChange={(e) => handleInputChange('status', e.target.value)}
+                                                            className="w-full px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:border-brand-red focus:ring-4 focus:ring-brand-red/5 text-sm bg-white"
+                                                        >
+                                                            <option value="Active">Active</option>
+                                                            <option value="In-Active">In-Active</option>
+                                                        </select>
+                                                    ) : (
+                                                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${client.status === 'Active'
+                                                            ? 'bg-green-50 text-green-600'
+                                                            : 'bg-red-50 text-red-600'
+                                                            }`}>
+                                                            <span className={`w-1.5 h-1.5 rounded-full ${client.status === 'Active' ? 'bg-green-500' : 'bg-red-500'
+                                                                }`} />
+                                                            {client.status}
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-5">
+                                                    <div className="flex items-center justify-end gap-3">
+                                                        {editingId === client.id ? (
+                                                            <>
+                                                                <button
+                                                                    onClick={handleSave}
+                                                                    className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                                                                    title="Save"
+                                                                >
+                                                                    <Check size={20} />
+                                                                </button>
+                                                                <button
+                                                                    onClick={handleCancel}
+                                                                    className="p-2 text-gray-400 hover:bg-gray-100 rounded-lg transition-colors"
+                                                                    title="Cancel"
+                                                                >
+                                                                    <X size={20} />
+                                                                </button>
+                                                            </>
+                                                        ) : (
+                                                            <button
+                                                                onClick={() => handleEditClick(client)}
+                                                                className="flex items-center gap-2 text-sm font-bold text-gray-400 hover:text-brand-red transition-all group"
+                                                            >
+                                                                <span className="opacity-0 group-hover:opacity-100 transition-opacity">Edit</span>
+                                                                <div className="p-2 group-hover:bg-brand-red/5 rounded-lg transition-colors">
+                                                                    <Edit3 size={18} />
+                                                                </div>
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </>
+                )}
             </div>
         </div>
     );

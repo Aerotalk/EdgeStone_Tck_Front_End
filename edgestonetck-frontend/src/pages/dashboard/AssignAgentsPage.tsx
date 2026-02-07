@@ -1,25 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Topbar } from '../../components/ui/Topbar';
-import { Plus, Calendar, Edit3, Check, X, ChevronLeft, Eye, EyeOff } from 'lucide-react';
-
-interface Agent {
-    id: string;
-    name: string;
-    createdOn: string;
-    emails: string[];
-    status: 'Active' | 'In-Active';
-}
-
-const mockAgents: Agent[] = [
-    { id: '1', name: 'Priyanshu Routh', createdOn: '10 Jan 2024', emails: ['priyanshu@aerotalk.com'], status: 'Active' },
-    { id: '2', name: 'Soumyajit Dhar', createdOn: '12 Jan 2024', emails: ['soumyajit@aerotalk.com'], status: 'Active' },
-    { id: '3', name: 'Rahul Sharma', createdOn: '15 Jan 2024', emails: ['rahul@aerotalk.com'], status: 'Active' },
-    { id: '4', name: 'Ananya Gupta', createdOn: '18 Jan 2024', emails: ['ananya@aerotalk.com'], status: 'Active' },
-    { id: '5', name: 'Vikram Singh', createdOn: '20 Jan 2024', emails: ['vikram@aerotalk.com'], status: 'In-Active' },
-];
+import { Plus, Calendar, Edit3, Check, X, ChevronLeft, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { agentService } from '../../services/agentService';
+import type { Agent, CreateAgentData } from '../../services/agentService';
 
 const AssignAgentsPage: React.FC = () => {
-    const [agents, setAgents] = useState<Agent[]>(mockAgents);
+    const navigate = useNavigate();
+    const [agents, setAgents] = useState<Agent[]>([]);
+    const [loading, setLoading] = useState(true);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editFormData, setEditFormData] = useState<Partial<Agent>>({});
     const [showSuccess, setShowSuccess] = useState(false);
@@ -28,7 +17,7 @@ const AssignAgentsPage: React.FC = () => {
     // Add Agent Modal states
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
-    const [newAgentData, setNewAgentData] = useState({
+    const [newAgentData, setNewAgentData] = useState<CreateAgentData>({
         name: '',
         email: '',
         password: '',
@@ -38,6 +27,27 @@ const AssignAgentsPage: React.FC = () => {
 
     // Search state
     const [searchQuery, setSearchQuery] = useState('');
+
+    useEffect(() => {
+        fetchAgents();
+    }, []);
+
+    const fetchAgents = async () => {
+        try {
+            setLoading(true);
+            const data = await agentService.getAllAgents();
+            setAgents(data);
+        } catch (error: any) {
+            console.error('Failed to fetch agents:', error);
+            if (error.message === 'Unauthorized') {
+                // Clear session and redirect to login
+                localStorage.removeItem('edgestone_user');
+                navigate('/login');
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const isNameValid = (name: string) => {
         const words = name.trim().split(/\s+/).filter(word => word.length > 0);
@@ -62,43 +72,61 @@ const AssignAgentsPage: React.FC = () => {
         setEditFormData({});
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!editingId) return;
-        setAgents(prev => prev.map(a => a.id === editingId ? { ...a, ...editFormData } as Agent : a));
-        setEditingId(null);
 
-        // Show success notification
-        setSuccessMessage('Details Updated Successfully');
-        setShowSuccess(true);
-        setTimeout(() => setShowSuccess(false), 2000);
+        try {
+            await agentService.updateAgent(editingId, editFormData);
+
+            // Re-fetch or update local state
+            await fetchAgents();
+
+            setEditingId(null);
+
+            // Show success notification
+            setSuccessMessage('Details Updated Successfully');
+            setShowSuccess(true);
+            setTimeout(() => setShowSuccess(false), 2000);
+        } catch (error: any) {
+            console.error('Failed to update agent:', error);
+            if (error.message === 'Unauthorized') {
+                localStorage.removeItem('edgestone_user');
+                navigate('/login');
+            }
+            // Handle error UI
+        }
     };
 
-    const handleAddAgent = (e: React.FormEvent) => {
+    const handleAddAgent = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newAgentData.name || !newAgentData.email) return;
 
-        const newAgent: Agent = {
-            id: Date.now().toString(),
-            name: newAgentData.name,
-            createdOn: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-            emails: [newAgentData.email],
-            status: newAgentData.status as any
-        };
+        try {
+            await agentService.createAgent(newAgentData);
 
-        setAgents(prev => [newAgent, ...prev]);
-        setIsAddModalOpen(false);
-        setNewAgentData({
-            name: '',
-            email: '',
-            password: '',
-            status: 'Active',
-            isSuperAdmin: false
-        });
-        setShowPassword(false);
+            await fetchAgents();
 
-        setSuccessMessage('Agent Assigned Successfully');
-        setShowSuccess(true);
-        setTimeout(() => setShowSuccess(false), 2000);
+            setIsAddModalOpen(false);
+            setNewAgentData({
+                name: '',
+                email: '',
+                password: '',
+                status: 'Active',
+                isSuperAdmin: false
+            });
+            setShowPassword(false);
+
+            setSuccessMessage('Agent Assigned Successfully');
+            setShowSuccess(true);
+            setTimeout(() => setShowSuccess(false), 2000);
+        } catch (error: any) {
+            console.error('Failed to create agent:', error);
+            if (error.message === 'Unauthorized') {
+                localStorage.removeItem('edgestone_user');
+                navigate('/login');
+            }
+            // Handle error UI
+        }
     };
 
     const handleInputChange = (field: keyof Agent, value: any) => {
@@ -225,7 +253,7 @@ const AssignAgentsPage: React.FC = () => {
                                     <div className="relative">
                                         <select
                                             value={newAgentData.status}
-                                            onChange={e => setNewAgentData(prev => ({ ...prev, status: e.target.value }))}
+                                            onChange={e => setNewAgentData(prev => ({ ...prev, status: e.target.value as 'Active' | 'In-Active' }))}
                                             className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl focus:outline-none focus:border-brand-red focus:ring-4 focus:ring-brand-red/5 transition-all appearance-none text-[15px] font-bold text-gray-700"
                                         >
                                             <option value="Active">Active</option>
@@ -282,200 +310,208 @@ const AssignAgentsPage: React.FC = () => {
                     </button>
                 </div>
 
-                {/* Mobile/Tablet Card View */}
-                <div className="grid grid-cols-1 gap-4 lg:hidden mb-8">
-                    {filteredAgents.map((agent) => (
-                        <div key={agent.id} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-4">
-                            {editingId === agent.id ? (
-                                <div className="space-y-4">
-                                    <div>
-                                        <label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Agent Name</label>
-                                        <input
-                                            type="text"
-                                            value={editFormData.name || ''}
-                                            onChange={(e) => handleInputChange('name', e.target.value)}
-                                            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-brand-red text-sm font-bold"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Email IDs (comma separated)</label>
-                                        <input
-                                            type="text"
-                                            value={(editFormData.emails || []).join(', ')}
-                                            onChange={(e) => handleInputChange('emails', e.target.value)}
-                                            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-brand-red text-sm"
-                                        />
-                                    </div>
-                                    <div className="flex gap-4">
-                                        <div className="flex-1">
-                                            <label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Status</label>
-                                            <select
-                                                value={editFormData.status}
-                                                onChange={(e) => handleInputChange('status', e.target.value)}
-                                                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-brand-red text-sm bg-white"
-                                            >
-                                                <option value="Active">Active</option>
-                                                <option value="In-Active">In-Active</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div className="flex gap-3 pt-2">
-                                        <button
-                                            onClick={handleCancel}
-                                            className="flex-1 py-2.5 flex items-center justify-center gap-2 text-sm font-bold text-gray-400 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-                                        >
-                                            <X size={16} />
-                                            Cancel
-                                        </button>
-                                        <button
-                                            onClick={handleSave}
-                                            className="flex-1 py-2.5 flex items-center justify-center gap-2 text-sm font-bold text-white bg-green-500 rounded-xl hover:bg-green-600 transition-colors"
-                                        >
-                                            <Check size={16} />
-                                            Save Changes
-                                        </button>
-                                    </div>
-                                </div>
-                            ) : (
-                                <>
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <h3 className="font-bold text-gray-900 text-lg">{agent.name}</h3>
-                                            <p className="text-xs text-gray-400 flex items-center gap-1.5 mt-1">
-                                                <Calendar size={12} />
-                                                Joined: {agent.createdOn}
-                                            </p>
-                                        </div>
-                                        <span className={`px-3 py-1 rounded-full text-[11px] font-bold ${agent.status === 'Active'
-                                            ? 'bg-green-50 text-green-600'
-                                            : 'bg-red-50 text-red-600'
-                                            }`}>
-                                            {agent.status}
-                                        </span>
-                                    </div>
-
-                                    <div className="flex flex-wrap gap-1.5">
-                                        {agent.emails.map((email, i) => (
-                                            <span key={i} className="px-2 py-0.5 bg-orange-50 text-[#D97706] rounded text-[11px] border border-orange-100/50 font-medium">
-                                                {email}
-                                            </span>
-                                        ))}
-                                    </div>
-
-                                    <button
-                                        onClick={() => handleEditClick(agent)}
-                                        className="w-full py-2.5 flex items-center justify-center gap-2 text-sm font-bold text-gray-600 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-                                    >
-                                        <Edit3 size={16} />
-                                        Edit Agent
-                                    </button>
-                                </>
-                            )}
-                        </div>
-                    ))}
-                </div>
-
-                {/* Desktop Table View */}
-                <div className="hidden lg:block bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse min-w-[900px]">
-                            <thead>
-                                <tr className="border-b border-gray-100 bg-gray-50/30">
-                                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Agent Name</th>
-                                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Created on</th>
-                                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Email</th>
-                                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
-                                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredAgents.map((agent) => (
-                                    <tr key={agent.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
-                                        <td className="px-6 py-5 text-sm font-bold text-gray-800">
-                                            {editingId === agent.id ? (
+                {loading ? (
+                    <div className="flex items-center justify-center h-64">
+                        <Loader2 className="w-8 h-8 animate-spin text-brand-red" />
+                    </div>
+                ) : (
+                    <>
+                        {/* Mobile/Tablet Card View */}
+                        <div className="grid grid-cols-1 gap-4 lg:hidden mb-8">
+                            {filteredAgents.map((agent) => (
+                                <div key={agent.id} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+                                    {editingId === agent.id ? (
+                                        <div className="space-y-4">
+                                            <div>
+                                                <label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Agent Name</label>
                                                 <input
                                                     type="text"
                                                     value={editFormData.name || ''}
                                                     onChange={(e) => handleInputChange('name', e.target.value)}
-                                                    className="w-full px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:border-brand-red focus:ring-4 focus:ring-brand-red/5 text-sm"
+                                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-brand-red text-sm font-bold"
                                                 />
-                                            ) : (
-                                                agent.name
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-5 text-sm text-gray-600">
-                                            <div className="flex items-center gap-2">
-                                                <Calendar size={14} className="text-gray-400" />
-                                                {agent.createdOn}
                                             </div>
-                                        </td>
-                                        <td className="px-6 py-5 text-sm text-gray-600">
-                                            {editingId === agent.id ? (
+                                            <div>
+                                                <label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Email IDs (comma separated)</label>
                                                 <input
                                                     type="text"
                                                     value={(editFormData.emails || []).join(', ')}
                                                     onChange={(e) => handleInputChange('emails', e.target.value)}
-                                                    placeholder="Email1, Email2..."
-                                                    className="w-full px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:border-brand-red focus:ring-4 focus:ring-brand-red/5 text-sm"
+                                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-brand-red text-sm"
                                                 />
-                                            ) : (
-                                                <div className="flex flex-wrap gap-2">
-                                                    {agent.emails.map((email, i) => (
-                                                        <span key={i} className="px-2 py-1 bg-orange-50 text-[#D97706] rounded text-[12px] border border-orange-100/50 font-medium">
-                                                            {email}
-                                                        </span>
-                                                    ))}
+                                            </div>
+                                            <div className="flex gap-4">
+                                                <div className="flex-1">
+                                                    <label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Status</label>
+                                                    <select
+                                                        value={editFormData.status}
+                                                        onChange={(e) => handleInputChange('status', e.target.value)}
+                                                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-brand-red text-sm bg-white"
+                                                    >
+                                                        <option value="Active">Active</option>
+                                                        <option value="In-Active">In-Active</option>
+                                                    </select>
                                                 </div>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-5">
-                                            {editingId === agent.id ? (
-                                                <select
-                                                    value={editFormData.status}
-                                                    onChange={(e) => handleInputChange('status', e.target.value)}
-                                                    className="w-full px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:border-brand-red focus:ring-4 focus:ring-brand-red/5 text-sm bg-white"
+                                            </div>
+                                            <div className="flex gap-3 pt-2">
+                                                <button
+                                                    onClick={handleCancel}
+                                                    className="flex-1 py-2.5 flex items-center justify-center gap-2 text-sm font-bold text-gray-400 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
                                                 >
-                                                    <option value="Active">Active</option>
-                                                    <option value="In-Active">In-Active</option>
-                                                </select>
-                                            ) : (
-                                                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${agent.status === 'Active'
+                                                    <X size={16} />
+                                                    Cancel
+                                                </button>
+                                                <button
+                                                    onClick={handleSave}
+                                                    className="flex-1 py-2.5 flex items-center justify-center gap-2 text-sm font-bold text-white bg-green-500 rounded-xl hover:bg-green-600 transition-colors"
+                                                >
+                                                    <Check size={16} />
+                                                    Save Changes
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <h3 className="font-bold text-gray-900 text-lg">{agent.name}</h3>
+                                                    <p className="text-xs text-gray-400 flex items-center gap-1.5 mt-1">
+                                                        <Calendar size={12} />
+                                                        Joined: {agent.createdOn}
+                                                    </p>
+                                                </div>
+                                                <span className={`px-3 py-1 rounded-full text-[11px] font-bold ${agent.status === 'Active'
                                                     ? 'bg-green-50 text-green-600'
                                                     : 'bg-red-50 text-red-600'
                                                     }`}>
-                                                    <span className={`w-1.5 h-1.5 rounded-full ${agent.status === 'Active' ? 'bg-green-500' : 'bg-red-500'
-                                                        }`} />
                                                     {agent.status}
                                                 </span>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-5">
-                                            <div className="flex items-center justify-end gap-3">
-                                                {editingId === agent.id ? (
-                                                    <>
-                                                        <button onClick={handleSave} className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors">
-                                                            <Check size={20} />
-                                                        </button>
-                                                        <button onClick={handleCancel} className="p-2 text-gray-400 hover:bg-gray-100 rounded-lg transition-colors">
-                                                            <X size={20} />
-                                                        </button>
-                                                    </>
-                                                ) : (
-                                                    <button onClick={() => handleEditClick(agent)} className="flex items-center gap-2 text-sm font-bold text-gray-400 hover:text-brand-red transition-all group">
-                                                        <span className="opacity-0 group-hover:opacity-100 transition-opacity">Edit</span>
-                                                        <div className="p-2 group-hover:bg-brand-red/5 rounded-lg transition-colors">
-                                                            <Edit3 size={18} />
-                                                        </div>
-                                                    </button>
-                                                )}
                                             </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {agent.emails.map((email, i) => (
+                                                    <span key={i} className="px-2 py-0.5 bg-orange-50 text-[#D97706] rounded text-[11px] border border-orange-100/50 font-medium">
+                                                        {email}
+                                                    </span>
+                                                ))}
+                                            </div>
+
+                                            <button
+                                                onClick={() => handleEditClick(agent)}
+                                                className="w-full py-2.5 flex items-center justify-center gap-2 text-sm font-bold text-gray-600 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                                            >
+                                                <Edit3 size={16} />
+                                                Edit Agent
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Desktop Table View */}
+                        <div className="hidden lg:block bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left border-collapse min-w-[900px]">
+                                    <thead>
+                                        <tr className="border-b border-gray-100 bg-gray-50/30">
+                                            <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Agent Name</th>
+                                            <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Created on</th>
+                                            <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Email</th>
+                                            <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
+                                            <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {filteredAgents.map((agent) => (
+                                            <tr key={agent.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
+                                                <td className="px-6 py-5 text-sm font-bold text-gray-800">
+                                                    {editingId === agent.id ? (
+                                                        <input
+                                                            type="text"
+                                                            value={editFormData.name || ''}
+                                                            onChange={(e) => handleInputChange('name', e.target.value)}
+                                                            className="w-full px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:border-brand-red focus:ring-4 focus:ring-brand-red/5 text-sm"
+                                                        />
+                                                    ) : (
+                                                        agent.name
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-5 text-sm text-gray-600">
+                                                    <div className="flex items-center gap-2">
+                                                        <Calendar size={14} className="text-gray-400" />
+                                                        {agent.createdOn}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-5 text-sm text-gray-600">
+                                                    {editingId === agent.id ? (
+                                                        <input
+                                                            type="text"
+                                                            value={(editFormData.emails || []).join(', ')}
+                                                            onChange={(e) => handleInputChange('emails', e.target.value)}
+                                                            placeholder="Email1, Email2..."
+                                                            className="w-full px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:border-brand-red focus:ring-4 focus:ring-brand-red/5 text-sm"
+                                                        />
+                                                    ) : (
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {agent.emails.map((email, i) => (
+                                                                <span key={i} className="px-2 py-1 bg-orange-50 text-[#D97706] rounded text-[12px] border border-orange-100/50 font-medium">
+                                                                    {email}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-5">
+                                                    {editingId === agent.id ? (
+                                                        <select
+                                                            value={editFormData.status}
+                                                            onChange={(e) => handleInputChange('status', e.target.value)}
+                                                            className="w-full px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:border-brand-red focus:ring-4 focus:ring-brand-red/5 text-sm bg-white"
+                                                        >
+                                                            <option value="Active">Active</option>
+                                                            <option value="In-Active">In-Active</option>
+                                                        </select>
+                                                    ) : (
+                                                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${agent.status === 'Active'
+                                                            ? 'bg-green-50 text-green-600'
+                                                            : 'bg-red-50 text-red-600'
+                                                            }`}>
+                                                            <span className={`w-1.5 h-1.5 rounded-full ${agent.status === 'Active' ? 'bg-green-500' : 'bg-red-500'
+                                                                }`} />
+                                                            {agent.status}
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-5">
+                                                    <div className="flex items-center justify-end gap-3">
+                                                        {editingId === agent.id ? (
+                                                            <>
+                                                                <button onClick={handleSave} className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors">
+                                                                    <Check size={20} />
+                                                                </button>
+                                                                <button onClick={handleCancel} className="p-2 text-gray-400 hover:bg-gray-100 rounded-lg transition-colors">
+                                                                    <X size={20} />
+                                                                </button>
+                                                            </>
+                                                        ) : (
+                                                            <button onClick={() => handleEditClick(agent)} className="flex items-center gap-2 text-sm font-bold text-gray-400 hover:text-brand-red transition-all group">
+                                                                <span className="opacity-0 group-hover:opacity-100 transition-opacity">Edit</span>
+                                                                <div className="p-2 group-hover:bg-brand-red/5 rounded-lg transition-colors">
+                                                                    <Edit3 size={18} />
+                                                                </div>
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </>
+                )}
             </div>
         </div>
     );
