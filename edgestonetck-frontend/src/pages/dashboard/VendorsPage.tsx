@@ -21,6 +21,7 @@ const VendorsPage: React.FC = () => {
     const [newVendorData, setNewVendorData] = useState({ name: '', emails: [] as string[] });
     const [currentEmail, setCurrentEmail] = useState('');
     const [editEmailInput, setEditEmailInput] = useState('');
+    const [submitting, setSubmitting] = useState(false);
 
     // Row expansion state
     const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
@@ -93,6 +94,7 @@ const VendorsPage: React.FC = () => {
         if (!newVendorData.name || newVendorData.emails.length === 0) return;
 
         try {
+            setSubmitting(true);
             await vendorService.createVendor(newVendorData);
             await fetchVendors();
             setIsAddModalOpen(false);
@@ -108,6 +110,8 @@ const VendorsPage: React.FC = () => {
                 localStorage.removeItem('edgestone_user');
                 navigate('/login');
             }
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -286,10 +290,17 @@ const VendorsPage: React.FC = () => {
                                 </button>
                                 <button
                                     type="submit"
-                                    disabled={!newVendorData.name || newVendorData.emails.length === 0}
-                                    className={`flex-1 py-2.5 bg-brand-red text-white font-bold rounded-xl hover:bg-brand-red-hover shadow-lg shadow-brand-red/20 transition-all font-sans ${(!newVendorData.name || newVendorData.emails.length === 0) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    disabled={!newVendorData.name || newVendorData.emails.length === 0 || submitting}
+                                    className={`flex-1 py-2.5 bg-brand-red text-white font-bold rounded-xl hover:bg-brand-red-hover shadow-lg shadow-brand-red/20 transition-all font-sans flex items-center justify-center gap-2 ${(!newVendorData.name || newVendorData.emails.length === 0) ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 >
-                                    Add Vendor
+                                    {submitting ? (
+                                        <>
+                                            <Loader2 className="w-5 h-5 animate-spin" />
+                                            Adding...
+                                        </>
+                                    ) : (
+                                        "Add Vendor"
+                                    )}
                                 </button>
                             </div>
                         </form>

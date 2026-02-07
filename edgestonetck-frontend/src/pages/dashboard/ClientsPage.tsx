@@ -21,6 +21,7 @@ const ClientsPage: React.FC = () => {
     const [newClientData, setNewClientData] = useState({ name: '', emails: [] as string[] });
     const [currentEmail, setCurrentEmail] = useState('');
     const [editEmailInput, setEditEmailInput] = useState('');
+    const [submitting, setSubmitting] = useState(false);
 
     // Row expansion state
     const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
@@ -93,6 +94,7 @@ const ClientsPage: React.FC = () => {
         if (!newClientData.name || newClientData.emails.length === 0) return;
 
         try {
+            setSubmitting(true);
             await clientService.createClient(newClientData);
             await fetchClients();
             setIsAddModalOpen(false);
@@ -108,6 +110,8 @@ const ClientsPage: React.FC = () => {
                 localStorage.removeItem('edgestone_user');
                 navigate('/login');
             }
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -285,10 +289,17 @@ const ClientsPage: React.FC = () => {
                                 </button>
                                 <button
                                     type="submit"
-                                    disabled={!newClientData.name || newClientData.emails.length === 0}
-                                    className={`flex-1 py-2.5 bg-brand-red text-white font-bold rounded-xl hover:bg-brand-red-hover shadow-lg shadow-brand-red/20 transition-all font-sans ${(!newClientData.name || newClientData.emails.length === 0) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    disabled={!newClientData.name || newClientData.emails.length === 0 || submitting}
+                                    className={`flex-1 py-2.5 bg-brand-red text-white font-bold rounded-xl hover:bg-brand-red-hover shadow-lg shadow-brand-red/20 transition-all font-sans flex items-center justify-center gap-2 ${(!newClientData.name || newClientData.emails.length === 0) ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 >
-                                    Add Client
+                                    {submitting ? (
+                                        <>
+                                            <Loader2 className="w-5 h-5 animate-spin" />
+                                            Adding...
+                                        </>
+                                    ) : (
+                                        "Add Client"
+                                    )}
                                 </button>
                             </div>
                         </form>

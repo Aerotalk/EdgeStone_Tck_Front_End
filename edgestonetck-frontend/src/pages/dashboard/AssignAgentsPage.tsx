@@ -24,6 +24,7 @@ const AssignAgentsPage: React.FC = () => {
         status: 'Active',
         isSuperAdmin: false
     });
+    const [submitting, setSubmitting] = useState(false);
 
     // Search state
     const [searchQuery, setSearchQuery] = useState('');
@@ -102,6 +103,7 @@ const AssignAgentsPage: React.FC = () => {
         if (!newAgentData.name || !newAgentData.email) return;
 
         try {
+            setSubmitting(true);
             await agentService.createAgent(newAgentData);
 
             await fetchAgents();
@@ -126,6 +128,8 @@ const AssignAgentsPage: React.FC = () => {
                 navigate('/login');
             }
             // Handle error UI
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -282,9 +286,17 @@ const AssignAgentsPage: React.FC = () => {
                             <div className="flex gap-4 pt-4">
                                 <button
                                     type="submit"
-                                    className="flex-1 py-4 bg-brand-red text-white font-black rounded-2xl hover:bg-brand-red-hover shadow-xl shadow-brand-red/20 transition-all active:scale-95"
+                                    disabled={submitting}
+                                    className="flex-1 py-4 bg-brand-red text-white font-black rounded-2xl hover:bg-brand-red-hover shadow-xl shadow-brand-red/20 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                                 >
-                                    Add Agent
+                                    {submitting ? (
+                                        <>
+                                            <Loader2 className="w-5 h-5 animate-spin" />
+                                            Adding...
+                                        </>
+                                    ) : (
+                                        "Add Agent"
+                                    )}
                                 </button>
                                 <button
                                     type="button"
