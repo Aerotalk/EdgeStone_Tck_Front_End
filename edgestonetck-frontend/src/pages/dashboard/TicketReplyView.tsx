@@ -16,31 +16,16 @@ import {
 } from 'lucide-react';
 import { TicketInfoSidebar } from './TicketInfoSidebar';
 
-interface Ticket {
-    id: string;
-    name: string;
-    ticketId: string;
-    email: string;
-    header: string;
-    status: string;
-    date?: string;
-}
+import { ticketService, type Reply, type Ticket } from '../../services/ticketService';
 
-interface Reply {
-    text: string;
-    time: string;
-    date: string;
-    author: string;
-    type: 'agent' | 'client' | 'vendor';
-    category: 'client' | 'vendor'; // To distinguish which thread it belongs to
-    to?: string[];
-    cc?: string[];
-    bcc?: string[];
-    subject?: string;
+// ... (keep imports)
+
+interface UITicket extends Ticket {
+    name: string;
 }
 
 interface TicketReplyViewProps {
-    ticket: Ticket;
+    ticket: UITicket;
     onBack: () => void;
 }
 
@@ -56,6 +41,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
     const [attachments, setAttachments] = useState<File[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [showCc, setShowCc] = useState(false);
+    const [isSending, setIsSending] = useState(false);
 
     // Email Modal form states
     const [emailForm, setEmailForm] = useState({
@@ -77,7 +63,9 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
         { id: 'agent-1', name: 'Soumyajit' },
         { id: 'agent-2', name: 'Priyanshu' }
     ];
+    // Default to 'Agent' if not found or no ID
     const currentAgentName = SUPPORT_AGENTS.find(a => a.id === agentId)?.name || 'Agent';
+    const vendorEmail = "partner.noc@airtel.com";
 
     const [confirmedCircuit, setConfirmedCircuit] = useState(() => {
         return localStorage.getItem(`confirmed_circuit_id_${ticket.id}`) || '';
@@ -94,22 +82,13 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
         return localStorage.getItem(`ticket_closed_at_${ticket.id}`) || '';
     });
 
-    // Check if circuit has been confirmed for this specific ticket
-    // This is now implicitly handled by checking if status is 'Open'
-
     useEffect(() => {
         if (ticketStatus.toLowerCase() === 'open') {
             setShowCircuitModal(true);
         } else {
             setShowCircuitModal(false);
         }
-
-        // Load replies from localStorage
-        const savedReplies = localStorage.getItem(`ticket_replies_${ticket.id}`);
-        if (savedReplies) {
-            setReplies(JSON.parse(savedReplies));
-        }
-    }, [ticketStatus, ticket.id]);
+    }, [ticketStatus]);
 
     useEffect(() => {
         // Update toEmail when tab or ticket changes
@@ -119,6 +98,13 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
             subject: `RE: ${ticket.header}`
         }));
     }, [activeTab, ticket.email, ticket.header]);
+
+    // Construct replies from ticket prop
+    useEffect(() => {
+        if (ticket.replies) {
+            setReplies(ticket.replies);
+        }
+    }, [ticket]);
 
     const handleConfirm = () => {
         localStorage.setItem(`confirmed_circuit_${ticket.id}`, 'true');
@@ -155,41 +141,38 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
         setShowStatusDropdown(false);
     };
 
-    const handleSendReply = () => {
+
+    const handleSendReply = async () => {
         if (!replyText.trim()) return;
 
-        const now = new Date();
-        const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')} hrs`;
-        const dateStr = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+        try {
+            setIsSending(true);
+            const newReply = await ticketService.replyToTicket(ticket.id, replyText);
 
-        const newReply: Reply = {
-            text: replyText.trim(),
-            time: timeStr,
-            date: dateStr,
-            author: currentAgentName,
-            type: 'agent',
-            category: activeTab,
-            to: [...emailForm.to],
-            cc: [...emailForm.cc],
-            bcc: [...emailForm.bcc],
-            subject: emailForm.subject
-        };
+            // Update local state
+            const updatedReplies = [...replies, newReply];
+            setReplies(updatedReplies);
 
-        const updatedReplies = [...replies, newReply];
-        setReplies(updatedReplies);
-        localStorage.setItem(`ticket_replies_${ticket.id}`, JSON.stringify(updatedReplies));
+            // Clear form
+            setReplyText('');
+            setAttachments([]);
+            setEmailForm(prev => ({
+                ...prev,
+                cc: [],
+                bcc: []
+            }));
+            setShowCc(false);
+            setShowEmailModal(false);
 
-        // Reset form
-        setReplyText('');
-        setAttachments([]);
-        setEmailForm(prev => ({
-            ...prev,
-            cc: [],
-            bcc: []
-        }));
-        setShowCc(false);
-        setShowEmailModal(false);
+            // Optionally refresh parent or just rely on local update
+        } catch (error) {
+            console.error('Failed to send reply:', error);
+            alert('Failed to send reply. Please try again.');
+        } finally {
+            setIsSending(false);
+        }
     };
+
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
@@ -228,7 +211,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
         }
     };
 
-    const vendorEmail = "partner.noc@airtel.com";
+    // vendorEmail removed (declared at top)
 
     const circuitOptions = [
         'BA/SNG-TY2/ESPL-003',
@@ -357,7 +340,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                             <p className="text-[13px] text-gray-400 font-medium">To: support@edgestone.in</p>
                                         </div>
                                         <div className="flex items-center gap-4 text-gray-400">
-                                            <span className="text-[13px] font-medium">{ticket.date || '24 Oct'} • 19:00 hrs</span>
+                                            <span className="text-[13px] font-medium">{ticket.date || new Date(ticket.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} • {ticket.receivedTime || new Date(ticket.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })} hrs</span>
                                             <div className="flex items-center gap-2.5">
                                                 <button className="hover:text-gray-600"><CornerUpLeft size={16} /></button>
                                                 <button className="hover:text-gray-600" onClick={() => setShowEmailModal(true)}><ReplyIcon size={16} className="-scale-x-100" /></button>
@@ -366,11 +349,10 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                         </div>
                                     </div>
 
-                                    <div className="text-[14px] text-gray-600 leading-relaxed font-medium space-y-4">
-                                        <p>Dear Team,</p>
-                                        <p>Kindly raise a TT for Link down issue. And share your observation.</p>
-                                        <p>We observed the link to be down around 8:53 UTC today.</p>
-                                        <p>{ticket.header.split('||')[1]?.trim() || 'Circuit ID Missing'}</p>
+                                    <div className="text-[14px] text-gray-600 leading-relaxed font-medium space-y-4 whitespace-pre-wrap">
+                                        {replies.length > 0 && replies[0].type === 'client'
+                                            ? replies[0].text
+                                            : 'No message content available'}
                                     </div>
                                     <div className="absolute left-[-17px] top-5 w-4 h-4 bg-white border-l border-b border-gray-100 rotate-45"></div>
                                 </div>
@@ -409,7 +391,14 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                             <p className="text-[13px] text-gray-400 font-medium">To: {ticket.email}</p>
                                         </div>
                                         <div className="flex items-center gap-4 text-gray-400">
-                                            <span className="text-[13px] font-medium">{ticket.date || '24 Oct'} • 19:05 hrs</span>
+                                            <span className="text-[13px] font-medium">{ticket.date || new Date(ticket.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} • {(() => {
+                                                const baseTime = ticket.receivedAt ? new Date(ticket.receivedAt) : new Date(ticket.createdAt);
+                                                // Add 30 seconds for auto-reply simulation if exact time not recorded
+                                                const autoReplyTime = new Date(baseTime.getTime() + 30000);
+                                                const hours = autoReplyTime.getHours().toString().padStart(2, '0');
+                                                const minutes = autoReplyTime.getMinutes().toString().padStart(2, '0');
+                                                return `${hours}:${minutes} hrs`;
+                                            })()}</span>
                                             <div className="flex items-center gap-2.5">
                                                 <button className="hover:text-gray-600 rotate-180" onClick={() => setShowEmailModal(true)}><ReplyIcon size={16} /></button>
                                                 <button className="hover:text-gray-600"><MoreVertical size={16} /></button>
@@ -789,11 +778,11 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                 </button>
                                 <button
                                     onClick={handleSendReply}
-                                    disabled={!replyText.trim()}
+                                    disabled={!replyText.trim() || isSending}
                                     className="flex items-center gap-2.5 px-8 py-3 bg-orange-500 text-white rounded-xl text-[15px] font-bold hover:bg-orange-600 transition-all active:scale-[0.98] shadow-[0_20px_40px_-12px_rgba(249,115,22,0.3)] disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed group"
                                 >
-                                    <span>Send Message</span>
-                                    <Send size={18} className="group-hover:translate-x-1 transition-transform" />
+                                    <span>{isSending ? 'Sending...' : 'Send Message'}</span>
+                                    {!isSending && <Send size={18} className="group-hover:translate-x-1 transition-transform" />}
                                 </button>
                             </div>
                         </div>

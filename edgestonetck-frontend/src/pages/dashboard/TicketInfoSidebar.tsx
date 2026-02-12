@@ -22,6 +22,9 @@ interface TicketInfoSidebarProps {
         header: string;
         status: string;
         date?: string;
+        receivedAt?: string;
+        receivedTime?: string;
+        createdAt?: string;
     };
     priority?: string;
     circuit?: string;
@@ -29,11 +32,22 @@ interface TicketInfoSidebarProps {
     closedAt?: string;
 }
 
+interface ActivityLog {
+    id: string;
+    action: string;
+    description: string;
+    time: string;
+    date: string;
+    author: string;
+    createdAt: string;
+}
+
 export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, priority, circuit, status, closedAt }) => {
     const { id } = useParams();
     const [isNotesOpen, setIsNotesOpen] = useState(false);
     const [notes, setNotes] = useState<Note[]>([]);
     const [newNote, setNewNote] = useState('');
+    const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
 
     // SLA Close states
     const [slaCloseDate, setSlaCloseDate] = useState(() => localStorage.getItem(`sla_close_date_${ticket.id}`) || '');
@@ -54,6 +68,32 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
         } else {
             setNotes([]);
         }
+
+        // Fetch activity logs from backend
+        const fetchActivityLogs = async () => {
+            try {
+                const API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/tickets`;
+
+                // Get token
+                const userStr = localStorage.getItem('edgestone_user');
+                const user = userStr ? JSON.parse(userStr) : null;
+                const token = user?.token || '';
+
+                const response = await fetch(`${API_URL}/${ticket.id}/activity-logs`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                if (response.ok) {
+                    const logs = await response.json();
+                    setActivityLogs(logs);
+                }
+            } catch (error) {
+                console.error('Failed to fetch activity logs:', error);
+            }
+        };
+
+        fetchActivityLogs();
     }, [ticket.id]);
 
     const handleAddNote = () => {
@@ -114,7 +154,7 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                         </div>
                         <div className="flex justify-between items-center text-[14px]">
                             <span className="text-gray-400 font-medium">Time</span>
-                            <span className="text-gray-600 font-bold">19:00hrs</span>
+                            <span className="text-gray-600 font-bold">{ticket.receivedTime || new Date(ticket.createdAt || new Date()).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}hrs</span>
                         </div>
                         <div className="flex justify-between items-center text-[14px]">
                             <span className="text-gray-400 font-medium">Priority</span>
@@ -134,7 +174,13 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                         </div>
                         <div className="flex justify-between items-center text-[14px]">
                             <span className="text-gray-400 font-medium">SLA starts at</span>
-                            <span className="text-gray-600 font-bold">19:01 hrs</span>
+                            <span className="text-gray-600 font-bold">{(() => {
+                                const baseTime = ticket.receivedAt ? new Date(ticket.receivedAt) : (ticket.createdAt ? new Date(ticket.createdAt) : new Date());
+                                const slaStartTime = new Date(baseTime.getTime() + 60000);
+                                const hours = slaStartTime.getHours().toString().padStart(2, '0');
+                                const minutes = slaStartTime.getMinutes().toString().padStart(2, '0');
+                                return `${hours}:${minutes} hrs`;
+                            })()}</span>
                         </div>
                         <div className="flex justify-between items-center text-[14px]">
                             <div className="flex items-center gap-2">
@@ -194,24 +240,52 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                         </div>
                     )}
 
-                    <div className="flex gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-[#F5F2F9] flex items-center justify-center text-[#A688C4] flex-shrink-0">
-                            <TicketIcon size={18} />
-                        </div>
-                        <div className="flex-1">
-                            <div className="space-y-1">
-                                <span className="text-[13px] font-bold text-gray-900 block">Ticket opened</span>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-[11px] font-bold text-gray-400 uppercase tracking-tight">
-                                        {ticket.date ? new Date(ticket.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '6th Jun'}
-                                    </span>
-                                    <div className="w-1 h-1 rounded-full bg-gray-200" />
-                                    <span className="text-[11px] font-bold text-gray-400 uppercase tracking-tight">19:00 hrs</span>
+                    {/* Activity Logs from Backend */}
+                    {activityLogs.length > 0 ? (
+                        activityLogs.slice().reverse().map((log) => (
+                            <div key={log.id} className="flex gap-4">
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${log.action === 'created' ? 'bg-[#F5F2F9] text-[#A688C4]' :
+                                    log.action === 'auto_replied' ? 'bg-orange-50 text-orange-500' :
+                                        log.action === 'replied' ? 'bg-blue-50 text-blue-500' :
+                                            'bg-gray-50 text-gray-500'
+                                    }`}>
+                                    <TicketIcon size={18} />
+                                </div>
+                                <div className="flex-1">
+                                    <div className="space-y-1">
+                                        <span className="text-[13px] font-bold text-gray-900 block">{log.description}</span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-tight">
+                                                {log.date}
+                                            </span>
+                                            <div className="w-1 h-1 rounded-full bg-gray-200" />
+                                            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-tight">{log.time} hrs</span>
+                                        </div>
+                                    </div>
+                                    <p className="text-[11px] text-gray-500 font-bold mt-2">By {log.author}</p>
                                 </div>
                             </div>
-                            <p className="text-[11px] text-[#A688C4] font-bold mt-2">Ticket #{ticket.ticketId} created</p>
+                        ))
+                    ) : (
+                        <div className="flex gap-4">
+                            <div className="w-10 h-10 rounded-xl bg-[#F5F2F9] flex items-center justify-center text-[#A688C4] flex-shrink-0">
+                                <TicketIcon size={18} />
+                            </div>
+                            <div className="flex-1">
+                                <div className="space-y-1">
+                                    <span className="text-[13px] font-bold text-gray-900 block">Ticket opened</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[11px] font-bold text-gray-400 uppercase tracking-tight">
+                                            {ticket.date ? new Date(ticket.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '6th Jun'}
+                                        </span>
+                                        <div className="w-1 h-1 rounded-full bg-gray-200" />
+                                        <span className="text-[11px] font-bold text-gray-400 uppercase tracking-tight">{ticket.receivedTime || new Date(ticket.createdAt || new Date()).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })} hrs</span>
+                                    </div>
+                                </div>
+                                <p className="text-[11px] text-[#A688C4] font-bold mt-2">Ticket #{ticket.ticketId} created</p>
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
             </div>
 
