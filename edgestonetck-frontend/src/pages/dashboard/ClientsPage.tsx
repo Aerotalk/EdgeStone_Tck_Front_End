@@ -4,7 +4,7 @@ import { Topbar } from '../../components/ui/Topbar';
 import { Plus, Calendar, Edit3, Check, X, Loader2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { clientService } from '../../services/clientService';
-import type { Client, CreateClientData } from '../../services/clientService';
+import type { Client } from '../../services/clientService';
 
 const ClientsPage: React.FC = () => {
     const navigate = useNavigate();
