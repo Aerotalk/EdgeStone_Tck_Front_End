@@ -77,7 +77,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
         { id: 'agent-1', name: 'Soumyajit' },
         { id: 'agent-2', name: 'Priyanshu' }
     ];
-    const currentAgentName = SUPPORT_AGENTS.find(a => a.id === agentId)?.name || 'Agent';
+
 
     const [confirmedCircuit, setConfirmedCircuit] = useState(() => {
         return localStorage.getItem(`confirmed_circuit_id_${ticket.id}`) || '';
@@ -166,7 +166,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
             text: replyText.trim(),
             time: timeStr,
             date: dateStr,
-            author: currentAgentName,
+            author: SUPPORT_AGENTS.find(a => a.id === agentId)?.name || 'Agent',
             type: 'agent',
             category: activeTab,
             to: [...emailForm.to],
