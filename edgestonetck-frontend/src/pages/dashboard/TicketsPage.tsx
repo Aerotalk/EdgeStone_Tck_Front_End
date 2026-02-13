@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TicketReplyView } from './TicketReplyView';
 import { Topbar } from '../../components/ui/Topbar';
 import { SubHeader } from '../../components/ui/SubHeader';
@@ -7,81 +7,65 @@ import {
     Rows2,
     Columns2,
     CheckSquare,
-    Filter
+    Filter,
+    Loader2
 } from 'lucide-react';
-
 import { TicketCard } from '../../components/ui/TicketCard';
+import { ticketService, type Ticket } from '../../services/ticketService';
 
-const mockTickets = [
-    {
-        id: 'tk1_v2',
-        name: 'CmF L2 Airtel',
-        ticketId: '5656',
-        email: 'Cmf.L2@airtel.com',
-        header: '37622099 || BA/SNG - TY2/ESPL-003',
-        status: 'open',
-        date: '2026-01-15'
-    },
-    {
-        id: 'tk2',
-        name: 'John Doe',
-        ticketId: '5657',
-        email: 'john.doe@example.com',
-        header: '12345678 || NY/JFK - LDN/EXP-001',
-        status: 'open',
-        date: '2026-01-15'
-    },
-    {
-        id: 'tk3',
-        name: 'Sarah Smith',
-        ticketId: '5658',
-        email: 'sarah.s@techcorp.io',
-        header: '98765432 || SF/SFO - TOK/HND-002',
-        status: 'open',
-        date: '2026-01-14'
-    },
-    {
-        id: 'tk4',
-        name: 'Robert Brown',
-        ticketId: '5659',
-        email: 'r.brown@global.net',
-        header: '45678912 || CH/ORD - PAR/CDG-003',
-        status: 'open',
-        date: '2026-01-13'
-    },
-    {
-        id: 'tk5',
-        name: 'Alice Cooper',
-        ticketId: '5660',
-        email: 'alice.c@mediasolutions.com',
-        header: '54321678 || LA/LAX - SYD/SYD-004',
-        status: 'open',
-        date: '2026-01-10'
-    },
-    {
-        id: 'tk6',
-        name: 'Michael Jordan',
-        ticketId: '5661',
-        email: 'm.jordan@bulls.com',
-        header: '11223344 || CH/ORD - MIA/MIA-005',
-        status: 'open',
-        date: '2025-12-25'
-    },
-    {
-        id: 'tk7',
-        name: 'Emma Watson',
-        ticketId: '5662',
-        email: 'emma.w@books.co.uk',
-        header: '99887766 || LD/LHR - EDI/EDI-006',
-        status: 'open',
-        date: '2025-12-20'
-    }
-];
+interface UITicket extends Ticket {
+    name: string;
+}
 
 const TicketsPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState('open');
     const [appliedFilter, setAppliedFilter] = useState<FilterType>('all');
     const [appliedCustomRange, setAppliedCustomRange] = useState({ start: '', end: '' });
+    const [tickets, setTickets] = useState<UITicket[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    const fetchTickets = async () => {
+        try {
+            setLoading(true);
+            const data = await ticketService.getAllTickets();
+
+            // Map backend data to UI format if needed, but our Ticket interface matches closely enough
+            // Backend returns 'header' as subject. TicketCard expects 'header'.
+            // Backend returns 'ticketId' as friendly ID.
+            // Backend 'date' is string.
+            // We need to ensure 'name' exists. Backend ticket might not have name directly but from email parsing?
+            // Wait, Backend Ticket model has email, but name?
+            // In createTicketFromEmail, we didn't save name to Ticket model directly, only 'email'.
+            // The 'name' in mock was 'CmF L2 Airtel'.
+            // We might need to extract name or use email if name missing.
+            // Let's check Ticket model again. It has 'email' and 'clientId' (relation).
+            // For now, use email as name if name not available, or part of email.
+
+            const formattedTickets = data.map(t => ({
+                ...t,
+                name: t.email.split('@')[0], // Fallback name
+                status: t.status.toLowerCase(), // Ensure lowercase for tab matching
+            }));
+
+            setTickets(formattedTickets);
+            setError(null);
+        } catch (err: any) {
+            console.error('Failed to fetch tickets:', err);
+            setError('Failed to load tickets. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        console.log("TicketsPage Mounted - Fetching tickets...");
+        fetchTickets();
+
+        // Optional: Poll for new tickets every 30s
+        const interval = setInterval(fetchTickets, 30000);
+        return () => clearInterval(interval);
+    }, []);
 
     const handleDateApply = (type: FilterType, range: { start: string; end: string }) => {
         setAppliedFilter(type);
@@ -94,27 +78,43 @@ const TicketsPage: React.FC = () => {
         { id: 'closed', label: 'Closed', icon: CheckSquare },
     ];
 
-    const [selectedTicket, setSelectedTicket] = useState<(typeof mockTickets)[0] | null>(null);
+    const [selectedTicket, setSelectedTicket] = useState<UITicket | null>(null);
 
-    const filteredTickets = mockTickets.filter(t => {
+    const filteredTickets = tickets.filter(t => {
         // Status filter
-        const persistedStatus = localStorage.getItem(`ticket_status_${t.id}`);
-        const currentStatus = persistedStatus ? persistedStatus.toLowerCase().replace(' ', '-') : t.status;
+        // const persistedStatus = localStorage.getItem(`ticket_status_${t.id}`);
+        // Backend status vs LocalStorage status?
+        // If we want to persist local changes immediately without waiting for generic fetch?
+        // Let's rely on backend status primarily, unless we implement optimistic updates properly.
+        // But for now, let's respect the tab filter against the ticket's current status.
+
+        const currentStatus = t.status.toLowerCase().replace(' ', '-');
+        // 'In Progress' -> 'in-progress'
+        // 'Open' -> 'open'
+
         if (currentStatus !== activeTab) return false;
 
         // Date filter
+        // Ticket date format from backend: "10 Jan 2024" (DD Mon YYYY)
         const ticketDate = new Date(t.date);
-        const today = new Date('2026-01-15'); // Current system date
+        const today = new Date(); // Current system date
         today.setHours(0, 0, 0, 0);
 
         if (appliedFilter === 'all') return true;
 
+        const isSameDay = (d1: Date, d2: Date) =>
+            d1.getDate() === d2.getDate() &&
+            d1.getMonth() === d2.getMonth() &&
+            d1.getFullYear() === d2.getFullYear();
+
         if (appliedFilter === 'today') {
-            return t.date === '2026-01-15';
+            return isSameDay(ticketDate, today);
         }
 
         if (appliedFilter === 'yesterday') {
-            return t.date === '2026-01-14';
+            const yesterday = new Date(today);
+            yesterday.setDate(today.getDate() - 1);
+            return isSameDay(ticketDate, yesterday);
         }
 
         if (appliedFilter === 'last7') {
@@ -140,7 +140,10 @@ const TicketsPage: React.FC = () => {
             <div className="flex flex-col h-full overflow-hidden bg-white">
                 <TicketReplyView
                     ticket={selectedTicket}
-                    onBack={() => setSelectedTicket(null)}
+                    onBack={() => {
+                        setSelectedTicket(null);
+                        fetchTickets(); // Refresh on back to show status updates if changed
+                    }}
                 />
             </div>
         );
@@ -160,7 +163,23 @@ const TicketsPage: React.FC = () => {
             />
 
             <div className="px-4 sm:px-8 pb-8 flex-1 overflow-auto mt-6">
-                {filteredTickets.length > 0 ? (
+                {loading ? (
+                    <div className="flex items-center justify-center h-full">
+                        <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+                    </div>
+                ) : error ? (
+                    <div className="flex items-center justify-center h-full">
+                        <div className="text-center">
+                            <p className="text-red-500 font-medium mb-2">{error}</p>
+                            <button
+                                onClick={fetchTickets}
+                                className="text-sm text-gray-600 hover:text-gray-900 underline"
+                            >
+                                Try Again
+                            </button>
+                        </div>
+                    </div>
+                ) : filteredTickets.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {filteredTickets.map(ticket => (
                             <TicketCard
