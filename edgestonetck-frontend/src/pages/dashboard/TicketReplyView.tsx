@@ -58,13 +58,6 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
         bcc: ''
     });
 
-    const { id: agentId } = useParams<{ id: string }>();
-    const SUPPORT_AGENTS = [
-        { id: 'agent-1', name: 'Soumyajit' },
-        { id: 'agent-2', name: 'Priyanshu' }
-    ];
-    // Default to 'Agent' if not found or no ID
-    const currentAgentName = SUPPORT_AGENTS.find(a => a.id === agentId)?.name || 'Agent';
     const vendorEmail = "partner.noc@airtel.com";
 
     const [confirmedCircuit, setConfirmedCircuit] = useState(() => {
