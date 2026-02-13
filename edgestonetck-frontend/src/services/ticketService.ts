@@ -76,5 +76,23 @@ export const ticketService = {
 
         const result = await response.json();
         return result.reply;
+    },
+
+    updateTicketStatus: async (id: string, status: string): Promise<Ticket> => {
+        const response = await fetch(`${API_URL}/${id}/status`, {
+            method: 'PATCH',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ status }),
+        });
+
+        if (!response.ok) {
+            if (response.status === 401) {
+                throw new Error('Unauthorized');
+            }
+            const error = await response.json().catch(() => ({ message: 'Failed to update ticket status' }));
+            throw new Error(error.message);
+        }
+
+        return response.json();
     }
 };

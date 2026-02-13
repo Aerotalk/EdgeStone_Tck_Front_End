@@ -114,24 +114,32 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
         setShowCircuitModal(false);
     };
 
-    const handleStatusChange = (newStatus: string) => {
+    const handleStatusChange = async (newStatus: string) => {
         if (ticketStatus.toLowerCase() === 'closed') return;
-        setTicketStatus(newStatus);
-        localStorage.setItem(`ticket_status_${ticket.id}`, newStatus);
 
-        if (newStatus.toLowerCase() === 'closed') {
-            const now = new Date();
-            const dateStr = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-            const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')} hrs`;
-            const fullStr = `${dateStr} • ${timeStr}`;
-            setClosedAt(fullStr);
-            localStorage.setItem(`ticket_closed_at_${ticket.id}`, fullStr);
-        } else {
-            setClosedAt('');
-            localStorage.removeItem(`ticket_closed_at_${ticket.id}`);
+        try {
+            await ticketService.updateTicketStatus(ticket.id, newStatus);
+
+            setTicketStatus(newStatus);
+            localStorage.setItem(`ticket_status_${ticket.id}`, newStatus);
+
+            if (newStatus.toLowerCase() === 'closed') {
+                const now = new Date();
+                const dateStr = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+                const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')} hrs`;
+                const fullStr = `${dateStr} • ${timeStr}`;
+                setClosedAt(fullStr);
+                localStorage.setItem(`ticket_closed_at_${ticket.id}`, fullStr);
+            } else {
+                setClosedAt('');
+                localStorage.removeItem(`ticket_closed_at_${ticket.id}`);
+            }
+
+            setShowStatusDropdown(false);
+        } catch (error) {
+            console.error('Failed to update status:', error);
+            alert('Failed to update ticket status. Please try again.');
         }
-
-        setShowStatusDropdown(false);
     };
 
 
@@ -156,6 +164,18 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
             }));
             setShowCc(false);
             setShowEmailModal(false);
+
+            // Auto-move to In Progress if currently Open
+            if (ticketStatus.toLowerCase() === 'open') {
+                try {
+                    await ticketService.updateTicketStatus(ticket.id, 'In Progress');
+                    setTicketStatus('In Progress');
+                    localStorage.setItem(`ticket_status_${ticket.id}`, 'In Progress');
+                } catch (error) {
+                    console.error('Failed to auto-update status to In Progress:', error);
+                    // We don't alert here as the reply was sent successfully, status update is secondary
+                }
+            }
 
             // Optionally refresh parent or just rely on local update
         } catch (error) {
