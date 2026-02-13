@@ -118,7 +118,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
         if (ticketStatus.toLowerCase() === 'closed') return;
 
         try {
-            await ticketService.updateTicketStatus(ticket.id, newStatus);
+            await ticketService.updateTicket(ticket.id, { status: newStatus });
 
             setTicketStatus(newStatus);
             localStorage.setItem(`ticket_status_${ticket.id}`, newStatus);
@@ -136,9 +136,9 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
             }
 
             setShowStatusDropdown(false);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to update status:', error);
-            alert('Failed to update ticket status. Please try again.');
+            alert(`Failed to update ticket status: ${error.message}`);
         }
     };
 
@@ -168,12 +168,12 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
             // Auto-move to In Progress if currently Open
             if (ticketStatus.toLowerCase() === 'open') {
                 try {
-                    await ticketService.updateTicketStatus(ticket.id, 'In Progress');
+                    await ticketService.updateTicket(ticket.id, { status: 'In Progress' });
                     setTicketStatus('In Progress');
                     localStorage.setItem(`ticket_status_${ticket.id}`, 'In Progress');
                 } catch (error) {
                     console.error('Failed to auto-update status to In Progress:', error);
-                    // We don't alert here as the reply was sent successfully, status update is secondary
+                    // Silently fail or minimal log as reply was successful
                 }
             }
 

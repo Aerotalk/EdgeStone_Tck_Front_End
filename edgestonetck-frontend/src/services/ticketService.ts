@@ -78,18 +78,21 @@ export const ticketService = {
         return result.reply;
     },
 
-    updateTicketStatus: async (id: string, status: string): Promise<Ticket> => {
-        const response = await fetch(`${API_URL}/${id}/status`, {
-            method: 'PATCH',
+    updateTicket: async (id: string, data: Partial<Ticket>): Promise<Ticket> => {
+        const response = await fetch(`${API_URL}/${id}`, {
+            method: 'PUT',
             headers: getAuthHeaders(),
-            body: JSON.stringify({ status }),
+            body: JSON.stringify(data),
         });
 
         if (!response.ok) {
             if (response.status === 401) {
                 throw new Error('Unauthorized');
             }
-            const error = await response.json().catch(() => ({ message: 'Failed to update ticket status' }));
+            if (response.status === 404) {
+                throw new Error('Ticket API endpoint not found');
+            }
+            const error = await response.json().catch(() => ({ message: 'Failed to update ticket' }));
             throw new Error(error.message);
         }
 
