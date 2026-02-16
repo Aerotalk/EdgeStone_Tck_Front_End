@@ -82,17 +82,16 @@ const TicketsPage: React.FC = () => {
 
     const filteredTickets = tickets.filter(t => {
         // Status filter
-        // const persistedStatus = localStorage.getItem(`ticket_status_${t.id}`);
-        // Backend status vs LocalStorage status?
-        // If we want to persist local changes immediately without waiting for generic fetch?
-        // Let's rely on backend status primarily, unless we implement optimistic updates properly.
-        // But for now, let's respect the tab filter against the ticket's current status.
+        // Prefer locally-updated status (from reply view / dropdown) if present,
+        // otherwise fall back to the backend-provided status.
+        const persistedStatus = localStorage.getItem(`ticket_status_${t.id}`);
+        const effectiveStatus = (persistedStatus || t.status || '').toLowerCase();
 
-        const currentStatus = t.status.toLowerCase().replace(' ', '-');
-        // 'In Progress' -> 'in-progress'
+        const currentStatus = effectiveStatus.replace(' ', '-');
+        // 'In Progress' / 'In progress' -> 'in-progress'
         // 'Open' -> 'open'
 
-        if (currentStatus !== activeTab) return false;
+        if (!currentStatus || currentStatus !== activeTab) return false;
 
         // Date filter
         // Ticket date format from backend: "10 Jan 2024" (DD Mon YYYY)
