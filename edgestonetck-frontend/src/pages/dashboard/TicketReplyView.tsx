@@ -431,7 +431,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                     {activeTab === 'client' && <div className="ml-5 border-l-2 border-gray-100 py-1"></div>}
 
                     {/* Persistent Agent Replies (Filtered by category) */}
-                    {replies.filter(r => r.category === activeTab).map((reply, idx) => (
+                    {replies.filter(r => r && r.category === activeTab).map((reply, idx) => (
                         <div key={idx} className="flex flex-col">
                             <div className="flex gap-4">
                                 <div className="w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold text-sm shadow-sm flex-shrink-0">
