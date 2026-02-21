@@ -8,7 +8,12 @@ interface ProtectedRouteProps {
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requireSuperAdmin = false }) => {
-    const { user, isSuperAdmin } = useAuth();
+    const { user, isLoading, isSuperAdmin } = useAuth();
+
+    // Wait for auth state to be restored from localStorage before making any redirect decisions
+    if (isLoading) {
+        return null;
+    }
 
     // If no user is logged in, redirect to login
     if (!user) {

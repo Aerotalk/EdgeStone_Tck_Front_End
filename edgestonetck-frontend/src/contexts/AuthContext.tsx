@@ -12,6 +12,7 @@ export interface User {
 
 interface AuthContextType {
     user: User | null;
+    isLoading: boolean;
     login: (user: User) => void;
     logout: () => void;
     isSuperAdmin: () => boolean;
@@ -23,6 +24,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
 
     // Load user from localStorage on mount
     useEffect(() => {
@@ -35,6 +37,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 localStorage.removeItem('edgestone_user');
             }
         }
+        setIsLoading(false);
     }, []);
 
     const login = (userData: User) => {
