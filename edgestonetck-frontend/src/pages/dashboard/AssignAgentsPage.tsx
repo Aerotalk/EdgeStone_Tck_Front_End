@@ -312,7 +312,7 @@ const AssignAgentsPage: React.FC = () => {
             )}
 
             <div className="px-4 sm:px-8 pt-4 sm:pt-6 pb-8 flex-1 overflow-auto relative">
-                <div className="mb-6">
+                <div className="mb-6 flex items-center justify-between gap-4">
                     <button
                         onClick={() => setIsAddModalOpen(true)}
                         className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 bg-brand-red hover:bg-brand-red-hover text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-brand-red/20 active:scale-95"
@@ -320,6 +320,11 @@ const AssignAgentsPage: React.FC = () => {
                         <Plus size={18} />
                         Add Agent
                     </button>
+                    {!loading && (
+                        <span className="text-sm font-semibold text-gray-400 whitespace-nowrap">
+                            Showing <span className="text-gray-700 font-bold">{filteredAgents.length}</span> {filteredAgents.length === 1 ? 'result' : 'results'}
+                        </span>
+                    )}
                 </div>
 
                 {loading ? (
