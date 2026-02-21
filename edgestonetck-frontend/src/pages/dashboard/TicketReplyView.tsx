@@ -353,7 +353,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                             <p className="text-[13px] text-gray-400 font-medium">To: support@edgestone.in</p>
                                         </div>
                                         <div className="flex items-center gap-4 text-gray-400">
-                                            <span className="text-[13px] font-medium">{ticket.date ? formatDateIST(ticket.date) : formatDateIST(ticket.createdAt)} • {ticket.receivedTime || formatTimeIST(ticket.createdAt)} hrs</span>
+                                            <span className="text-[13px] font-medium">{ticket.date ? formatDateIST(ticket.date, { day: 'numeric', month: 'short', year: 'numeric' }) : formatDateIST(ticket.createdAt, { day: 'numeric', month: 'short', year: 'numeric' })} • {ticket.receivedAt ? formatTimeIST(ticket.receivedAt) : formatTimeIST(ticket.createdAt)} hrs</span>
                                             <div className="flex items-center gap-2.5">
                                                 <button className="hover:text-gray-600"><CornerUpLeft size={16} /></button>
                                                 <button className="hover:text-gray-600" onClick={() => setShowEmailModal(true)}><ReplyIcon size={16} className="-scale-x-100" /></button>
@@ -451,7 +451,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-4 text-gray-400">
-                                                <span className="text-[13px] font-medium">{reply.date} • {reply.time}</span>
+                                                <span className="text-[13px] font-medium">{reply.createdAt ? `${formatDateIST(reply.createdAt, { day: 'numeric', month: 'short', year: 'numeric' })} • ${formatTimeIST(reply.createdAt)} hrs` : `${reply.date} • ${reply.time}`}</span>
                                                 <div className="flex items-center gap-2.5">
                                                     <button className="hover:text-gray-600"><MoreVertical size={16} /></button>
                                                 </div>

@@ -40,7 +40,7 @@ interface ActivityLog {
     time: string;
     date: string;
     author: string;
-    createdAt: string;
+    createdAt?: string; // ISO timestamp — use this for IST formatting when available
 }
 
 export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, priority, circuit, status, closedAt }) => {
@@ -154,7 +154,7 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                         </div>
                         <div className="flex justify-between items-center text-[14px]">
                             <span className="text-gray-400 font-medium">Time</span>
-                            <span className="text-gray-600 font-bold">{ticket.receivedTime || formatTimeIST(ticket.createdAt || new Date())}hrs</span>
+                            <span className="text-gray-600 font-bold">{formatTimeIST(ticket.receivedAt || ticket.createdAt || new Date())} hrs</span>
                         </div>
                         <div className="flex justify-between items-center text-[14px]">
                             <span className="text-gray-400 font-medium">Priority</span>
@@ -175,7 +175,7 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                         <div className="flex justify-between items-center text-[14px]">
                             <span className="text-gray-400 font-medium">SLA starts at</span>
                             <span className="text-gray-600 font-bold">{(() => {
-                                const baseTime = ticket.receivedAt ? new Date(ticket.receivedAt) : (ticket.createdAt ? new Date(ticket.createdAt) : new Date());
+                                const baseTime = new Date(ticket.receivedAt || ticket.createdAt || new Date());
                                 const slaStartTime = new Date(baseTime.getTime() + 60000);
                                 return formatTimeIST(slaStartTime) + ' hrs';
                             })()}</span>
@@ -254,10 +254,10 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                                         <span className="text-[13px] font-bold text-gray-900 block">{log.description}</span>
                                         <div className="flex items-center gap-2">
                                             <span className="text-[11px] font-bold text-gray-400 uppercase tracking-tight">
-                                                {log.date}
+                                                {log.createdAt ? formatDateIST(log.createdAt) : log.date}
                                             </span>
                                             <div className="w-1 h-1 rounded-full bg-gray-200" />
-                                            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-tight">{log.time} hrs</span>
+                                            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-tight">{log.createdAt ? formatTimeIST(log.createdAt) : log.time} hrs</span>
                                         </div>
                                     </div>
                                     <p className="text-[11px] text-gray-500 font-bold mt-2">By {log.author}</p>
@@ -277,7 +277,7 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                                             {ticket.date ? formatDateIST(ticket.date) : '6th Jun'}
                                         </span>
                                         <div className="w-1 h-1 rounded-full bg-gray-200" />
-                                        <span className="text-[11px] font-bold text-gray-400 uppercase tracking-tight">{ticket.receivedTime || formatTimeIST(ticket.createdAt || new Date())} hrs</span>
+                                        <span className="text-[11px] font-bold text-gray-400 uppercase tracking-tight">{formatTimeIST(ticket.receivedAt || ticket.createdAt || new Date())} hrs</span>
                                     </div>
                                 </div>
                                 <p className="text-[11px] text-[#A688C4] font-bold mt-2">Ticket #{ticket.ticketId} created</p>
