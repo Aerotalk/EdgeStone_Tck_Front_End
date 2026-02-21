@@ -5,10 +5,12 @@ import { Plus, Calendar, Edit3, Check, X, Loader2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { vendorService } from '../../services/vendorService';
 import type { Vendor } from '../../services/vendorService';
+import { useDashboardData } from '../../contexts/DashboardDataContext';
 
 const VendorsPage: React.FC = () => {
     const navigate = useNavigate();
     const { isSuperAdmin } = useAuth();
+    const { refresh: refreshDashboard } = useDashboardData();
     const [vendors, setVendors] = useState<Vendor[]>([]);
     const [loading, setLoading] = useState(true);
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -75,6 +77,7 @@ const VendorsPage: React.FC = () => {
         try {
             await vendorService.updateVendor(editingId, editFormData);
             await fetchVendors();
+            await refreshDashboard();
             setEditingId(null);
 
             setSuccessMessage('Details Updated Successfully');
@@ -97,6 +100,7 @@ const VendorsPage: React.FC = () => {
             setSubmitting(true);
             await vendorService.createVendor(newVendorData);
             await fetchVendors();
+            await refreshDashboard();
             setIsAddModalOpen(false);
             setNewVendorData({ name: '', emails: [] });
             setCurrentEmail('');

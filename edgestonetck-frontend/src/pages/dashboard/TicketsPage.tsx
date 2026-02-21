@@ -12,12 +12,14 @@ import {
 } from 'lucide-react';
 import { TicketCard } from '../../components/ui/TicketCard';
 import { ticketService, type Ticket } from '../../services/ticketService';
+import { useDashboardData } from '../../contexts/DashboardDataContext';
 
 interface UITicket extends Ticket {
     name: string;
 }
 
 const TicketsPage: React.FC = () => {
+    const { refresh: refreshDashboard } = useDashboardData();
     const [activeTab, setActiveTab] = useState('open');
     const [appliedFilter, setAppliedFilter] = useState<FilterType>('all');
     const [appliedCustomRange, setAppliedCustomRange] = useState({ start: '', end: '' });
@@ -136,7 +138,8 @@ const TicketsPage: React.FC = () => {
                     ticket={selectedTicket}
                     onBack={() => {
                         setSelectedTicket(null);
-                        fetchTickets(); // Refresh on back to show status updates if changed
+                        fetchTickets(); // Refresh local list
+                        refreshDashboard(); // Sync dashboard counts
                     }}
                 />
             </div>

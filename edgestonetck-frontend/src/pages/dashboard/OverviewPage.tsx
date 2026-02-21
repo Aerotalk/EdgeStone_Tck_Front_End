@@ -20,9 +20,7 @@ import {
     ResponsiveContainer,
     Dot
 } from 'recharts';
-import { ticketService } from '../../services/ticketService';
-import { clientService } from '../../services/clientService';
-import { vendorService } from '../../services/vendorService';
+import { useDashboardData } from '../../contexts/DashboardDataContext';
 
 interface StatCardProps {
     title: string;
@@ -77,23 +75,17 @@ interface ChartPoint {
 }
 
 function buildChartData(tickets: { createdAt: string }[], month: string, year: string): ChartPoint[] {
-    const monthIndex = MONTH_NAMES.indexOf(month); // 0-based
+    const monthIndex = MONTH_NAMES.indexOf(month);
     const yearNum = parseInt(year, 10);
-
-    // Days in selected month
     const daysInMonth = new Date(yearNum, monthIndex + 1, 0).getDate();
 
-    // Count tickets per day
     const counts: Record<number, number> = {};
     for (let d = 1; d <= daysInMonth; d++) counts[d] = 0;
 
     tickets.forEach(t => {
         if (!t.createdAt) return;
         const date = new Date(t.createdAt);
-        if (
-            date.getFullYear() === yearNum &&
-            date.getMonth() === monthIndex
-        ) {
+        if (date.getFullYear() === yearNum && date.getMonth() === monthIndex) {
             const day = date.getDate();
             counts[day] = (counts[day] || 0) + 1;
         }
@@ -108,69 +100,19 @@ function buildChartData(tickets: { createdAt: string }[], month: string, year: s
 const OverviewPage: React.FC = () => {
     useParams<{ id: string }>();
 
-    const currentMonthIndex = new Date().getMonth(); // 0-based
+    const { tickets, openCount, inProgressCount, totalClients, totalVendors, loading } = useDashboardData();
+
+    const currentMonthIndex = new Date().getMonth();
     const currentYear = String(new Date().getFullYear());
 
     const [selectedMonth, setSelectedMonth] = React.useState(MONTH_NAMES[currentMonthIndex]);
     const [selectedYear, setSelectedYear] = React.useState(currentYear);
 
-    const [openCount, setOpenCount] = React.useState<number>(0);
-    const [inProgressCount, setInProgressCount] = React.useState<number>(0);
-    const [totalClients, setTotalClients] = React.useState<number>(0);
-    const [totalVendors, setTotalVendors] = React.useState<number>(0);
-    const [chartData, setChartData] = React.useState<ChartPoint[]>([]);
-    const [loading, setLoading] = React.useState(true);
-    const [allTickets, setAllTickets] = React.useState<{ createdAt: string }[]>([]);
+    const chartData = React.useMemo(
+        () => buildChartData(tickets, selectedMonth, selectedYear),
+        [tickets, selectedMonth, selectedYear]
+    );
 
-    React.useEffect(() => {
-        let cancelled = false;
-
-        const fetchData = async () => {
-            setLoading(true);
-            try {
-                const [tickets, clients, vendors] = await Promise.all([
-                    ticketService.getAllTickets(),
-                    clientService.getAllClients(),
-                    vendorService.getAllVendors(),
-                ]);
-
-                if (cancelled) return;
-
-                const openTickets = tickets.filter(
-                    t => t.status?.toLowerCase() === 'open'
-                );
-                const inProgressTickets = tickets.filter(
-                    t => t.status?.toLowerCase() === 'in progress' || t.status?.toLowerCase() === 'inprogress'
-                );
-
-                setOpenCount(openTickets.length);
-                setInProgressCount(inProgressTickets.length);
-                setTotalClients(clients.length);
-                setTotalVendors(vendors.length);
-                setAllTickets(tickets);
-                setChartData(buildChartData(tickets, selectedMonth, selectedYear));
-            } catch (err) {
-                console.error('Failed to load dashboard data:', err);
-            } finally {
-                if (!cancelled) setLoading(false);
-            }
-        };
-
-        fetchData();
-        return () => { cancelled = true; };
-        // Only run on mount
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
-    // Recompute chart data when month/year changes (without refetching)
-    React.useEffect(() => {
-        if (allTickets.length > 0 || !loading) {
-            setChartData(buildChartData(allTickets, selectedMonth, selectedYear));
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedMonth, selectedYear, allTickets]);
-
-    // Dynamic Y-axis max
     const maxCount = Math.max(...chartData.map(d => d.count), 10);
     const yMax = Math.ceil(maxCount / 10) * 10 + 10;
     const yTicks: number[] = [];

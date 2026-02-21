@@ -5,10 +5,12 @@ import { Plus, Calendar, Edit3, Check, X, Loader2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { clientService } from '../../services/clientService';
 import type { Client } from '../../services/clientService';
+import { useDashboardData } from '../../contexts/DashboardDataContext';
 
 const ClientsPage: React.FC = () => {
     const navigate = useNavigate();
     const { isSuperAdmin } = useAuth();
+    const { refresh: refreshDashboard } = useDashboardData();
     const [clients, setClients] = useState<Client[]>([]);
     const [loading, setLoading] = useState(true);
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -75,6 +77,7 @@ const ClientsPage: React.FC = () => {
         try {
             await clientService.updateClient(editingId, editFormData);
             await fetchClients();
+            await refreshDashboard();
             setEditingId(null);
 
             setSuccessMessage('Details Updated Successfully');
@@ -97,6 +100,7 @@ const ClientsPage: React.FC = () => {
             setSubmitting(true);
             await clientService.createClient(newClientData);
             await fetchClients();
+            await refreshDashboard();
             setIsAddModalOpen(false);
             setNewClientData({ name: '', emails: [] });
             setCurrentEmail('');
