@@ -93,42 +93,37 @@ const TicketsPage: React.FC = () => {
 
         if (!currentStatus || currentStatus !== activeTab) return false;
 
-        // Date filter
-        // Ticket date format from backend: "10 Jan 2024" (DD Mon YYYY)
-        const ticketDate = new Date(t.date);
-        const today = new Date(); // Current system date
-        today.setHours(0, 0, 0, 0);
+        // Date filter — all comparisons done in IST to avoid UTC midnight shift bugs.
+        // We derive a comparable YYYY-MM-DD string in IST for both the ticket and today.
+        const toISTDateString = (date: Date): string =>
+            date.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }); // 'en-CA' gives YYYY-MM-DD
+
+        // Use createdAt ISO timestamp if available; fall back to t.date string
+        const rawDate = t.createdAt || t.date;
+        const ticketDateStr = toISTDateString(new Date(rawDate));
+        const todayStr = toISTDateString(new Date());
 
         if (appliedFilter === 'all') return true;
 
-        const isSameDay = (d1: Date, d2: Date) =>
-            d1.getDate() === d2.getDate() &&
-            d1.getMonth() === d2.getMonth() &&
-            d1.getFullYear() === d2.getFullYear();
-
         if (appliedFilter === 'today') {
-            return isSameDay(ticketDate, today);
+            return ticketDateStr === todayStr;
         }
 
         if (appliedFilter === 'yesterday') {
-            const yesterday = new Date(today);
-            yesterday.setDate(today.getDate() - 1);
-            return isSameDay(ticketDate, yesterday);
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            return ticketDateStr === toISTDateString(yesterday);
         }
 
         if (appliedFilter === 'last7') {
-            const sevenDaysAgo = new Date(today);
-            sevenDaysAgo.setDate(today.getDate() - 7);
-            return ticketDate >= sevenDaysAgo && ticketDate <= today;
+            const sevenDaysAgo = new Date();
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+            return ticketDateStr >= toISTDateString(sevenDaysAgo) && ticketDateStr <= todayStr;
         }
 
         if (appliedFilter === 'custom') {
             if (!appliedCustomRange.start || !appliedCustomRange.end) return true;
-            const start = new Date(appliedCustomRange.start);
-            const end = new Date(appliedCustomRange.end);
-            start.setHours(0, 0, 0, 0);
-            end.setHours(23, 59, 59, 999);
-            return ticketDate >= start && ticketDate <= end;
+            return ticketDateStr >= appliedCustomRange.start && ticketDateStr <= appliedCustomRange.end;
         }
 
         return true;

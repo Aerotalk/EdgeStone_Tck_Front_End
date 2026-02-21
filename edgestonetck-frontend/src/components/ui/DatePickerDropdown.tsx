@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Calendar, ChevronDown } from 'lucide-react';
+import { formatDateIST } from '../../utils/dateUtils';
 
 export type FilterType = 'all' | 'today' | 'yesterday' | 'last7' | 'custom';
 
@@ -59,7 +60,7 @@ export const DatePickerDropdown: React.FC<DatePickerDropdownProps> = ({
 
     const getFilterLabel = () => {
         switch (appliedFilter) {
-            case 'today': return 'Today, 09 Jan';
+            case 'today': return `Today, ${formatDateIST(new Date(), { day: 'numeric', month: 'short' })}`;
             case 'yesterday': return 'Yesterday';
             case 'last7': return 'Last 7 Days';
             case 'custom': return appliedCustomRange.start ? `${appliedCustomRange.start} - ${appliedCustomRange.end}` : 'Custom Range';
@@ -93,8 +94,8 @@ export const DatePickerDropdown: React.FC<DatePickerDropdownProps> = ({
                                 key={opt.id}
                                 onClick={() => setPendingFilterType(opt.id as FilterType)}
                                 className={`w-full text-left px-3 py-2 rounded-lg text-sm font-bold transition-colors ${pendingFilterType === opt.id
-                                        ? 'bg-brand-red/5 text-brand-red'
-                                        : 'text-gray-600 hover:bg-gray-50'
+                                    ? 'bg-brand-red/5 text-brand-red'
+                                    : 'text-gray-600 hover:bg-gray-50'
                                     }`}
                             >
                                 {opt.label}
@@ -138,8 +139,8 @@ export const DatePickerDropdown: React.FC<DatePickerDropdownProps> = ({
                         onClick={handleApply}
                         disabled={!isDateRangeValid || (pendingFilterType === 'custom' && (!pendingCustomRange.start || !pendingCustomRange.end))}
                         className={`w-full py-2.5 text-white text-xs font-bold rounded-lg transition-all shadow-lg active:scale-95 ${isDateRangeValid && (pendingFilterType !== 'custom' || (pendingCustomRange.start && pendingCustomRange.end))
-                                ? 'bg-brand-red hover:bg-brand-red-hover shadow-brand-red/20'
-                                : 'bg-gray-300 cursor-not-allowed shadow-none'
+                            ? 'bg-brand-red hover:bg-brand-red-hover shadow-brand-red/20'
+                            : 'bg-gray-300 cursor-not-allowed shadow-none'
                             }`}
                     >
                         Apply Filter
