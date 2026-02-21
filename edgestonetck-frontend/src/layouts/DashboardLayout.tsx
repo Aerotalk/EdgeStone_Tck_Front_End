@@ -5,13 +5,18 @@ import { useAuth } from '../contexts/AuthContext';
 
 const DashboardLayout: React.FC = () => {
     const { id } = useParams<{ id: string }>();
-    const { user } = useAuth();
+    const { user, isLoading } = useAuth();
 
     const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
     useEffect(() => {
         document.title = 'EdgeStone - Dashboard';
     }, []);
+
+    // Wait for auth state to be restored from localStorage before redirecting
+    if (isLoading) {
+        return null;
+    }
 
     // Check if user is authenticated and the ID matches
     if (!user || user.id !== id) {
