@@ -336,21 +336,15 @@ const AssignAgentsPage: React.FC = () => {
                                         <div className="space-y-4">
                                             <div>
                                                 <label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Agent Name</label>
-                                                <input
-                                                    type="text"
-                                                    value={editFormData.name || ''}
-                                                    onChange={(e) => handleInputChange('name', e.target.value)}
-                                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-brand-red text-sm font-bold"
-                                                />
+                                                <p className="px-3 py-2 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold text-gray-500 select-none">{editFormData.name || ''}</p>
                                             </div>
                                             <div>
-                                                <label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Email IDs (comma separated)</label>
-                                                <input
-                                                    type="text"
-                                                    value={(editFormData.emails || []).join(', ')}
-                                                    onChange={(e) => handleInputChange('emails', e.target.value)}
-                                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-brand-red text-sm"
-                                                />
+                                                <label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Email IDs</label>
+                                                <div className="px-3 py-2 bg-gray-50 border border-gray-100 rounded-xl flex flex-wrap gap-1.5 min-h-[38px]">
+                                                    {(editFormData.emails || []).map((email, i) => (
+                                                        <span key={i} className="px-2 py-0.5 bg-orange-50 text-[#D97706] rounded text-[11px] border border-orange-100/50 font-medium">{email}</span>
+                                                    ))}
+                                                </div>
                                             </div>
                                             <div className="flex gap-4">
                                                 <div className="flex-1">
@@ -439,12 +433,7 @@ const AssignAgentsPage: React.FC = () => {
                                             <tr key={agent.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
                                                 <td className="px-6 py-5 text-sm font-bold text-gray-800">
                                                     {editingId === agent.id ? (
-                                                        <input
-                                                            type="text"
-                                                            value={editFormData.name || ''}
-                                                            onChange={(e) => handleInputChange('name', e.target.value)}
-                                                            className="w-full px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:border-brand-red focus:ring-4 focus:ring-brand-red/5 text-sm"
-                                                        />
+                                                        <span className="text-gray-500">{agent.name}</span>
                                                     ) : (
                                                         agent.name
                                                     )}
@@ -457,13 +446,11 @@ const AssignAgentsPage: React.FC = () => {
                                                 </td>
                                                 <td className="px-6 py-5 text-sm text-gray-600">
                                                     {editingId === agent.id ? (
-                                                        <input
-                                                            type="text"
-                                                            value={(editFormData.emails || []).join(', ')}
-                                                            onChange={(e) => handleInputChange('emails', e.target.value)}
-                                                            placeholder="Email1, Email2..."
-                                                            className="w-full px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:border-brand-red focus:ring-4 focus:ring-brand-red/5 text-sm"
-                                                        />
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {(editFormData.emails || []).map((email, i) => (
+                                                                <span key={i} className="px-2 py-1 bg-orange-50 text-[#D97706] rounded text-[12px] border border-orange-100/50 font-medium">{email}</span>
+                                                            ))}
+                                                        </div>
                                                     ) : (
                                                         <div className="flex flex-wrap gap-2">
                                                             {agent.emails.map((email, i) => (
