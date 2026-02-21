@@ -20,72 +20,162 @@ import {
     ResponsiveContainer,
     Dot
 } from 'recharts';
-
-
-
-const chartData = [
-    { day: 'Jan 10', count: 42 },
-    { day: 'Jan 11', count: 38 },
-    { day: 'Jan 12', count: 45 },
-    { day: 'Jan 13', count: 52 },
-    { day: 'Jan 14', count: 48 },
-    { day: 'Jan 15', count: 65 },
-    { day: 'Jan 16', count: 58 },
-    { day: 'Jan 17', count: 72 },
-    { day: 'Jan 18', count: 68 },
-    { day: 'Jan 19', count: 85 },
-    { day: 'Jan 20', count: 92 },
-    { day: 'Jan 21', count: 78 },
-    { day: 'Jan 22', count: 88 },
-    { day: 'Jan 23', count: 95 },
-    { day: 'Jan 24', count: 112 },
-    { day: 'Jan 25', count: 105 },
-];
+import { ticketService } from '../../services/ticketService';
+import { clientService } from '../../services/clientService';
+import { vendorService } from '../../services/vendorService';
 
 interface StatCardProps {
     title: string;
-    value: string;
-    trend: string;
-    trendType: 'up' | 'down';
-    trendLabel: string;
+    value: string | number;
+    trend?: string;
+    trendType?: 'up' | 'down';
+    trendLabel?: string;
     icon: React.ReactNode;
     iconBg: string;
     iconColor: string;
+    loading?: boolean;
 }
 
-const StatCard: React.FC<StatCardProps> = ({ title, value, trend, trendType, trendLabel, icon, iconBg, iconColor }) => {
+const StatCard: React.FC<StatCardProps> = ({ title, value, trend, trendType, trendLabel, icon, iconBg, iconColor, loading }) => {
     return (
         <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-300">
             <div className="flex justify-between items-start mb-4">
                 <div>
                     <p className="text-[14px] font-semibold text-gray-400 mb-1">{title}</p>
-                    <h3 className="text-3xl font-bold text-gray-800 tracking-tight">{value}</h3>
+                    {loading ? (
+                        <div className="h-9 w-20 bg-gray-100 rounded-lg animate-pulse" />
+                    ) : (
+                        <h3 className="text-3xl font-bold text-gray-800 tracking-tight">{value}</h3>
+                    )}
                 </div>
                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${iconBg}`}>
                     <div style={{ color: iconColor }}>{icon}</div>
                 </div>
             </div>
-            <div className="flex items-center gap-1.5">
-                <div className={`flex items-center gap-0.5 text-[13px] font-bold ${trendType === 'up' ? 'text-green-500' : 'text-red-500'}`}>
-                    {trendType === 'up' ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                    {trend}
+            {trend && trendType && trendLabel && (
+                <div className="flex items-center gap-1.5">
+                    <div className={`flex items-center gap-0.5 text-[13px] font-bold ${trendType === 'up' ? 'text-green-500' : 'text-red-500'}`}>
+                        {trendType === 'up' ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                        {trend}
+                    </div>
+                    <span className="text-[13px] font-medium text-gray-400">{trendLabel}</span>
                 </div>
-                <span className="text-[13px] font-medium text-gray-400">{trendLabel}</span>
-            </div>
+            )}
         </div>
     );
 }
 
+const MONTH_NAMES = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+];
+const YEARS = ['2023', '2024', '2025', '2026'];
+
+interface ChartPoint {
+    day: string;
+    count: number;
+}
+
+function buildChartData(tickets: { createdAt: string }[], month: string, year: string): ChartPoint[] {
+    const monthIndex = MONTH_NAMES.indexOf(month); // 0-based
+    const yearNum = parseInt(year, 10);
+
+    // Days in selected month
+    const daysInMonth = new Date(yearNum, monthIndex + 1, 0).getDate();
+
+    // Count tickets per day
+    const counts: Record<number, number> = {};
+    for (let d = 1; d <= daysInMonth; d++) counts[d] = 0;
+
+    tickets.forEach(t => {
+        if (!t.createdAt) return;
+        const date = new Date(t.createdAt);
+        if (
+            date.getFullYear() === yearNum &&
+            date.getMonth() === monthIndex
+        ) {
+            const day = date.getDate();
+            counts[day] = (counts[day] || 0) + 1;
+        }
+    });
+
+    return Object.entries(counts).map(([d, count]) => ({
+        day: `${month.slice(0, 3)} ${d}`,
+        count,
+    }));
+}
+
 const OverviewPage: React.FC = () => {
     useParams<{ id: string }>();
-    const [selectedMonth, setSelectedMonth] = React.useState('January');
-    const [selectedYear, setSelectedYear] = React.useState('2026');
 
-    const months = [
-        'January', 'February', 'March', 'April', 'May', 'June',
-        'July', 'August', 'September', 'October', 'November', 'December'
-    ];
-    const years = ['2023', '2024', '2025', '2026'];
+    const currentMonthIndex = new Date().getMonth(); // 0-based
+    const currentYear = String(new Date().getFullYear());
+
+    const [selectedMonth, setSelectedMonth] = React.useState(MONTH_NAMES[currentMonthIndex]);
+    const [selectedYear, setSelectedYear] = React.useState(currentYear);
+
+    const [openCount, setOpenCount] = React.useState<number>(0);
+    const [inProgressCount, setInProgressCount] = React.useState<number>(0);
+    const [totalClients, setTotalClients] = React.useState<number>(0);
+    const [totalVendors, setTotalVendors] = React.useState<number>(0);
+    const [chartData, setChartData] = React.useState<ChartPoint[]>([]);
+    const [loading, setLoading] = React.useState(true);
+    const [allTickets, setAllTickets] = React.useState<{ createdAt: string }[]>([]);
+
+    React.useEffect(() => {
+        let cancelled = false;
+
+        const fetchData = async () => {
+            setLoading(true);
+            try {
+                const [tickets, clients, vendors] = await Promise.all([
+                    ticketService.getAllTickets(),
+                    clientService.getAllClients(),
+                    vendorService.getAllVendors(),
+                ]);
+
+                if (cancelled) return;
+
+                const openTickets = tickets.filter(
+                    t => t.status?.toLowerCase() === 'open'
+                );
+                const inProgressTickets = tickets.filter(
+                    t => t.status?.toLowerCase() === 'in progress' || t.status?.toLowerCase() === 'inprogress'
+                );
+
+                setOpenCount(openTickets.length);
+                setInProgressCount(inProgressTickets.length);
+                setTotalClients(clients.length);
+                setTotalVendors(vendors.length);
+                setAllTickets(tickets);
+                setChartData(buildChartData(tickets, selectedMonth, selectedYear));
+            } catch (err) {
+                console.error('Failed to load dashboard data:', err);
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        };
+
+        fetchData();
+        return () => { cancelled = true; };
+        // Only run on mount
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // Recompute chart data when month/year changes (without refetching)
+    React.useEffect(() => {
+        if (allTickets.length > 0 || !loading) {
+            setChartData(buildChartData(allTickets, selectedMonth, selectedYear));
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedMonth, selectedYear, allTickets]);
+
+    // Dynamic Y-axis max
+    const maxCount = Math.max(...chartData.map(d => d.count), 10);
+    const yMax = Math.ceil(maxCount / 10) * 10 + 10;
+    const yTicks: number[] = [];
+    const step = Math.max(Math.ceil(yMax / 6), 1);
+    for (let i = 0; i <= yMax; i += step) yTicks.push(i);
 
     return (
         <div className="flex flex-col h-full overflow-hidden bg-[#F9FAFB]">
@@ -96,43 +186,35 @@ const OverviewPage: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
                     <StatCard
                         title="Open tickets"
-                        value="156"
-                        trend="12.5%"
-                        trendType="up"
-                        trendLabel="Up from yesterday"
+                        value={openCount}
                         icon={<Ticket size={24} />}
                         iconBg="bg-orange-50"
                         iconColor="#FF8A65"
+                        loading={loading}
                     />
                     <StatCard
                         title="In Progress tickets"
-                        value="84"
-                        trend="3.2%"
-                        trendType="up"
-                        trendLabel="Up from past week"
+                        value={inProgressCount}
                         icon={<Package size={24} />}
                         iconBg="bg-yellow-50"
                         iconColor="#FFD54F"
+                        loading={loading}
                     />
                     <StatCard
                         title="Total Clients"
-                        value="420"
-                        trend="5.8%"
-                        trendType="up"
-                        trendLabel="Up from last month"
+                        value={totalClients}
                         icon={<Users size={24} />}
                         iconBg="bg-indigo-50"
                         iconColor="#7986CB"
+                        loading={loading}
                     />
                     <StatCard
                         title="Total Vendor"
-                        value="125"
-                        trend="2.4%"
-                        trendType="up"
-                        trendLabel="Up from last month"
+                        value={totalVendors}
                         icon={<Building2 size={24} />}
                         iconBg="bg-emerald-50"
                         iconColor="#4DB6AC"
+                        loading={loading}
                     />
                 </div>
 
@@ -153,7 +235,7 @@ const OverviewPage: React.FC = () => {
                                     onChange={(e) => setSelectedMonth(e.target.value)}
                                     className="w-full appearance-none bg-gray-50/50 border border-gray-100 rounded-xl px-4 py-2.5 pr-10 text-sm font-bold text-gray-700 focus:outline-none focus:border-brand-red/30 focus:ring-4 focus:ring-brand-red/5 transition-all cursor-pointer hover:bg-gray-50 hover:border-gray-200"
                                 >
-                                    {months.map(m => (
+                                    {MONTH_NAMES.map(m => (
                                         <option key={m} value={m}>{m}</option>
                                     ))}
                                 </select>
@@ -168,7 +250,7 @@ const OverviewPage: React.FC = () => {
                                     onChange={(e) => setSelectedYear(e.target.value)}
                                     className="w-full appearance-none bg-gray-50/50 border border-gray-100 rounded-xl px-4 py-2.5 pr-10 text-sm font-bold text-gray-700 focus:outline-none focus:border-brand-red/30 focus:ring-4 focus:ring-brand-red/5 transition-all cursor-pointer hover:bg-gray-50 hover:border-gray-200"
                                 >
-                                    {years.map(y => (
+                                    {YEARS.map(y => (
                                         <option key={y} value={y}>{y}</option>
                                     ))}
                                 </select>
@@ -178,63 +260,73 @@ const OverviewPage: React.FC = () => {
                     </div>
 
                     <div className="h-[250px] sm:h-[400px] w-full">
-                        <ResponsiveContainer width="100%" height="100%" debounce={50}>
-                            <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                <defs>
-                                    <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#F24444" stopOpacity={0.15} />
-                                        <stop offset="95%" stopColor="#F24444" stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#f0f0f0" />
-                                <XAxis
-                                    dataKey="day"
-                                    axisLine={false}
-                                    tickLine={false}
-                                    tick={{ fill: '#9CA3AF', fontSize: 10, fontWeight: 600 }}
-                                    interval="preserveStartEnd"
-                                    minTickGap={20}
-                                    dy={15}
-                                />
-                                <YAxis
-                                    axisLine={false}
-                                    tickLine={false}
-                                    tick={{ fill: '#9CA3AF', fontSize: 10, fontWeight: 500 }}
-                                    domain={[0, 120]}
-                                    ticks={[0, 20, 40, 60, 80, 100, 120]}
-                                />
-                                <Tooltip
-                                    content={({ active, payload }) => {
-                                        if (active && payload && payload.length) {
-                                            return (
-                                                <div className="bg-[#F24444] text-white px-4 py-2 rounded-xl text-[11px] font-bold shadow-[0_10px_30px_rgba(242,68,68,0.2)] border border-white/20 animate-in fade-in zoom-in-95 duration-200">
-                                                    <p className="text-white/70 text-[9px] uppercase tracking-wider mb-0.5">{payload[0].payload.day}</p>
-                                                    <p className="text-[14px] leading-tight">{payload[0].value} Tickets</p>
-                                                </div>
-                                            );
-                                        }
-                                        return null;
-                                    }}
-                                    cursor={{ stroke: '#F24444', strokeDasharray: '4 4' }}
-                                />
-                                <Area
-                                    type="monotone"
-                                    dataKey="count"
-                                    stroke="#F24444"
-                                    strokeWidth={2}
-                                    fillOpacity={1}
-                                    fill="url(#colorCount)"
-                                    activeDot={{ r: 4, fill: '#F24444', stroke: '#fff', strokeWidth: 2 }}
-                                    dot={(props: any) => {
-                                        const { cx, cy, payload } = props;
-                                        if (payload.day !== '') {
-                                            return <Dot cx={cx} cy={cy} r={3} fill="#F24444" stroke="#fff" strokeWidth={1.5} />;
-                                        }
-                                        return null;
-                                    }}
-                                />
-                            </AreaChart>
-                        </ResponsiveContainer>
+                        {loading ? (
+                            <div className="w-full h-full bg-gray-50 rounded-2xl animate-pulse" />
+                        ) : chartData.every(d => d.count === 0) ? (
+                            <div className="w-full h-full flex flex-col items-center justify-center text-gray-300">
+                                <Ticket size={48} strokeWidth={1.5} />
+                                <p className="mt-3 text-sm font-semibold">No tickets in {selectedMonth} {selectedYear}</p>
+                            </div>
+                        ) : (
+                            <ResponsiveContainer width="100%" height="100%" debounce={50}>
+                                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                    <defs>
+                                        <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#F24444" stopOpacity={0.15} />
+                                            <stop offset="95%" stopColor="#F24444" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#f0f0f0" />
+                                    <XAxis
+                                        dataKey="day"
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fill: '#9CA3AF', fontSize: 10, fontWeight: 600 }}
+                                        interval="preserveStartEnd"
+                                        minTickGap={20}
+                                        dy={15}
+                                    />
+                                    <YAxis
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fill: '#9CA3AF', fontSize: 10, fontWeight: 500 }}
+                                        domain={[0, yMax]}
+                                        ticks={yTicks}
+                                        allowDecimals={false}
+                                    />
+                                    <Tooltip
+                                        content={({ active, payload }) => {
+                                            if (active && payload && payload.length) {
+                                                return (
+                                                    <div className="bg-[#F24444] text-white px-4 py-2 rounded-xl text-[11px] font-bold shadow-[0_10px_30px_rgba(242,68,68,0.2)] border border-white/20 animate-in fade-in zoom-in-95 duration-200">
+                                                        <p className="text-white/70 text-[9px] uppercase tracking-wider mb-0.5">{payload[0].payload.day}</p>
+                                                        <p className="text-[14px] leading-tight">{payload[0].value} Tickets</p>
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        }}
+                                        cursor={{ stroke: '#F24444', strokeDasharray: '4 4' }}
+                                    />
+                                    <Area
+                                        type="monotone"
+                                        dataKey="count"
+                                        stroke="#F24444"
+                                        strokeWidth={2}
+                                        fillOpacity={1}
+                                        fill="url(#colorCount)"
+                                        activeDot={{ r: 4, fill: '#F24444', stroke: '#fff', strokeWidth: 2 }}
+                                        dot={(props: any) => {
+                                            const { cx, cy, payload } = props;
+                                            if (payload.day !== '') {
+                                                return <Dot cx={cx} cy={cy} r={3} fill="#F24444" stroke="#fff" strokeWidth={1.5} />;
+                                            }
+                                            return null;
+                                        }}
+                                    />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        )}
                     </div>
                 </div>
             </div>
