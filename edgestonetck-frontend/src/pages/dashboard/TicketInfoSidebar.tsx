@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronUp, Ticket as TicketIcon, X, Send, Trash2, CheckCircle, Plus, Calendar, Clock } from 'lucide-react';
 import { useParams } from 'react-router-dom';
+import { formatDateIST, formatTimeIST, nowDateIST, nowTimeIST } from '../../utils/dateUtils';
 
 const SUPPORT_AGENTS = [
     { id: 'agent-1', name: 'Soumyajit' },
@@ -98,9 +99,8 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
 
     const handleAddNote = () => {
         if (!newNote.trim()) return;
-        const now = new Date();
-        const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')} hrs`;
-        const dateStr = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+        const timeStr = nowTimeIST();
+        const dateStr = nowDateIST();
         const updatedNotes: Note[] = [...notes, {
             text: newNote.trim(),
             time: `${dateStr} • ${timeStr}`,
@@ -149,12 +149,12 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                         <div className="flex justify-between items-center text-[14px]">
                             <span className="text-gray-400 font-medium">Date</span>
                             <span className="text-gray-600 font-bold">
-                                {ticket.date ? new Date(ticket.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '6th Jun, 2025'}
+                                {ticket.date ? formatDateIST(ticket.date, { day: 'numeric', month: 'short', year: 'numeric' }) : '6th Jun, 2025'}
                             </span>
                         </div>
                         <div className="flex justify-between items-center text-[14px]">
                             <span className="text-gray-400 font-medium">Time</span>
-                            <span className="text-gray-600 font-bold">{ticket.receivedTime || new Date(ticket.createdAt || new Date()).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}hrs</span>
+                            <span className="text-gray-600 font-bold">{ticket.receivedTime || formatTimeIST(ticket.createdAt || new Date())}hrs</span>
                         </div>
                         <div className="flex justify-between items-center text-[14px]">
                             <span className="text-gray-400 font-medium">Priority</span>
@@ -177,9 +177,7 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                             <span className="text-gray-600 font-bold">{(() => {
                                 const baseTime = ticket.receivedAt ? new Date(ticket.receivedAt) : (ticket.createdAt ? new Date(ticket.createdAt) : new Date());
                                 const slaStartTime = new Date(baseTime.getTime() + 60000);
-                                const hours = slaStartTime.getHours().toString().padStart(2, '0');
-                                const minutes = slaStartTime.getMinutes().toString().padStart(2, '0');
-                                return `${hours}:${minutes} hrs`;
+                                return formatTimeIST(slaStartTime) + ' hrs';
                             })()}</span>
                         </div>
                         <div className="flex justify-between items-center text-[14px]">
@@ -276,10 +274,10 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                                     <span className="text-[13px] font-bold text-gray-900 block">Ticket opened</span>
                                     <div className="flex items-center gap-2">
                                         <span className="text-[11px] font-bold text-gray-400 uppercase tracking-tight">
-                                            {ticket.date ? new Date(ticket.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '6th Jun'}
+                                            {ticket.date ? formatDateIST(ticket.date) : '6th Jun'}
                                         </span>
                                         <div className="w-1 h-1 rounded-full bg-gray-200" />
-                                        <span className="text-[11px] font-bold text-gray-400 uppercase tracking-tight">{ticket.receivedTime || new Date(ticket.createdAt || new Date()).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })} hrs</span>
+                                        <span className="text-[11px] font-bold text-gray-400 uppercase tracking-tight">{ticket.receivedTime || formatTimeIST(ticket.createdAt || new Date())} hrs</span>
                                     </div>
                                 </div>
                                 <p className="text-[11px] text-[#A688C4] font-bold mt-2">Ticket #{ticket.ticketId} created</p>

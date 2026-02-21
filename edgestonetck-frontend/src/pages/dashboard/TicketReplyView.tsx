@@ -17,6 +17,7 @@ import {
 import { TicketInfoSidebar } from './TicketInfoSidebar';
 
 import { ticketService, type Reply, type Ticket } from '../../services/ticketService';
+import { formatDateIST, formatTimeIST, nowDateIST, nowTimeIST } from '../../utils/dateUtils';
 
 // ... (keep imports)
 
@@ -124,9 +125,8 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
             localStorage.setItem(`ticket_status_${ticket.id}`, newStatus);
 
             if (newStatus.toLowerCase() === 'closed') {
-                const now = new Date();
-                const dateStr = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-                const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')} hrs`;
+                const dateStr = nowDateIST();
+                const timeStr = nowTimeIST();
                 const fullStr = `${dateStr} • ${timeStr}`;
                 setClosedAt(fullStr);
                 localStorage.setItem(`ticket_closed_at_${ticket.id}`, fullStr);
@@ -353,7 +353,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                             <p className="text-[13px] text-gray-400 font-medium">To: support@edgestone.in</p>
                                         </div>
                                         <div className="flex items-center gap-4 text-gray-400">
-                                            <span className="text-[13px] font-medium">{ticket.date || new Date(ticket.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} • {ticket.receivedTime || new Date(ticket.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })} hrs</span>
+                                            <span className="text-[13px] font-medium">{ticket.date ? formatDateIST(ticket.date) : formatDateIST(ticket.createdAt)} • {ticket.receivedTime || formatTimeIST(ticket.createdAt)} hrs</span>
                                             <div className="flex items-center gap-2.5">
                                                 <button className="hover:text-gray-600"><CornerUpLeft size={16} /></button>
                                                 <button className="hover:text-gray-600" onClick={() => setShowEmailModal(true)}><ReplyIcon size={16} className="-scale-x-100" /></button>
@@ -404,13 +404,11 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                             <p className="text-[13px] text-gray-400 font-medium">To: {ticket.email}</p>
                                         </div>
                                         <div className="flex items-center gap-4 text-gray-400">
-                                            <span className="text-[13px] font-medium">{ticket.date || new Date(ticket.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} • {(() => {
+                                            <span className="text-[13px] font-medium">{ticket.date ? formatDateIST(ticket.date) : formatDateIST(ticket.createdAt)} • {(() => {
                                                 const baseTime = ticket.receivedAt ? new Date(ticket.receivedAt) : new Date(ticket.createdAt);
                                                 // Add 30 seconds for auto-reply simulation if exact time not recorded
                                                 const autoReplyTime = new Date(baseTime.getTime() + 30000);
-                                                const hours = autoReplyTime.getHours().toString().padStart(2, '0');
-                                                const minutes = autoReplyTime.getMinutes().toString().padStart(2, '0');
-                                                return `${hours}:${minutes} hrs`;
+                                                return formatTimeIST(autoReplyTime) + ' hrs';
                                             })()}</span>
                                             <div className="flex items-center gap-2.5">
                                                 <button className="hover:text-gray-600 rotate-180" onClick={() => setShowEmailModal(true)}><ReplyIcon size={16} /></button>

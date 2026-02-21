@@ -1,5 +1,6 @@
 import React from 'react';
 import { Mail, MessageSquare, Calendar } from 'lucide-react';
+import { formatDateIST } from '../../utils/dateUtils';
 
 interface TicketCardProps {
     name: string;
@@ -43,7 +44,7 @@ export const TicketCard: React.FC<TicketCardProps> = ({
                     </span>
                     <div className="flex items-center gap-1.5 text-[12px] font-bold text-gray-400 uppercase">
                         <Calendar size={14} className="text-gray-300" />
-                        {new Date(date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        {formatDateIST(date, { day: '2-digit', month: 'short', year: 'numeric' })}
                     </div>
                 </div>
 
