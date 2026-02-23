@@ -151,7 +151,9 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
 
         try {
             setIsSending(true);
-            const newReply = await ticketService.replyToTicket(ticket.id, replyText);
+            const newReply = await ticketService.replyToTicket(ticket.id, replyText, activeTab);
+            // Ensure category is set locally even if backend doesn't echo it
+            if (!newReply.category) newReply.category = activeTab;
 
             // Update local state
             const updatedReplies = [...replies, newReply];
