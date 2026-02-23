@@ -149,7 +149,7 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                         <div className="flex justify-between items-center text-[14px]">
                             <span className="text-gray-400 font-medium">Date</span>
                             <span className="text-gray-600 font-bold">
-                                {ticket.date ? formatDateIST(ticket.date, { day: 'numeric', month: 'short', year: 'numeric' }) : '6th Jun, 2025'}
+                                {formatDateIST(ticket.createdAt || ticket.date || '', { day: 'numeric', month: 'short', year: 'numeric' })}
                             </span>
                         </div>
                         <div className="flex justify-between items-center text-[14px]">
@@ -274,7 +274,7 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                                     <span className="text-[13px] font-bold text-gray-900 block">Ticket opened</span>
                                     <div className="flex items-center gap-2">
                                         <span className="text-[11px] font-bold text-gray-400 uppercase tracking-tight">
-                                            {ticket.date ? formatDateIST(ticket.date) : '6th Jun'}
+                                            {formatDateIST(ticket.createdAt || ticket.date || '')}
                                         </span>
                                         <div className="w-1 h-1 rounded-full bg-gray-200" />
                                         <span className="text-[11px] font-bold text-gray-400 uppercase tracking-tight">{formatTimeIST(ticket.receivedAt || ticket.createdAt || new Date())} hrs</span>
