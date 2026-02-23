@@ -186,6 +186,7 @@ const TicketsPage: React.FC = () => {
                                 email={ticket.email}
                                 header={ticket.header}
                                 date={ticket.date}
+                                priority={localStorage.getItem(`confirmed_priority_${ticket.id}`) || undefined}
                                 onReply={() => setSelectedTicket(ticket)}
                             />
                         ))}

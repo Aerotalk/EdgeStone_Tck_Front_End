@@ -8,8 +8,35 @@ interface TicketCardProps {
     email: string;
     header: string;
     date: string;
+    priority?: string;
     onReply?: () => void;
 }
+
+const PriorityBars = ({ priority }: { priority: string }) => {
+    const configs: Record<string, { bars: boolean[]; color: string }> = {
+        High: { bars: [true, true, true], color: '#EF4444' },
+        Medium: { bars: [true, true, false], color: '#F59E0B' },
+        Low: { bars: [true, false, false], color: '#22C55E' },
+    };
+
+    const cfg = configs[priority];
+    if (!cfg) return null;
+
+    return (
+        <div className="flex items-end gap-[2.5px] h-4 flex-shrink-0">
+            {cfg.bars.map((active, i) => (
+                <div
+                    key={i}
+                    className="w-[3.5px] rounded-full transition-all duration-300"
+                    style={{
+                        backgroundColor: active ? cfg.color : '#E5E7EB',
+                        height: i === 0 ? '6px' : i === 1 ? '10px' : '14px',
+                    }}
+                />
+            ))}
+        </div>
+    );
+};
 
 export const TicketCard: React.FC<TicketCardProps> = ({
     name,
@@ -17,6 +44,7 @@ export const TicketCard: React.FC<TicketCardProps> = ({
     email,
     header,
     date,
+    priority,
     onReply
 }) => {
     // Extract initials from name
@@ -29,12 +57,31 @@ export const TicketCard: React.FC<TicketCardProps> = ({
     };
 
     return (
-        <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
+        <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow relative">
+            {/* Priority indicator — upper-right corner */}
+            {priority && (
+                <div className="absolute top-4 right-4 flex items-center gap-1.5 bg-gray-50 border border-gray-100 rounded-lg px-2 py-1">
+                    <PriorityBars priority={priority} />
+                    <span
+                        className="text-[11px] font-bold"
+                        style={{
+                            color:
+                                priority === 'High' ? '#EF4444' :
+                                    priority === 'Medium' ? '#F59E0B' :
+                                        '#22C55E',
+                        }}
+                    >
+                        {priority}
+                    </span>
+                </div>
+            )}
+
             <div className="flex items-center gap-4 mb-4">
                 <div className="w-12 h-12 rounded-full bg-[#E5DCC3] flex items-center justify-center text-[#5C5648] font-bold text-lg">
                     {getInitials(name)}
                 </div>
-                <h3 className="text-[17px] font-bold text-gray-900">{name}</h3>
+                {/* Push name away from priority badge when present */}
+                <h3 className={`text-[17px] font-bold text-gray-900 ${priority ? 'pr-20' : ''}`}>{name}</h3>
             </div>
 
             <div className="mb-4">
