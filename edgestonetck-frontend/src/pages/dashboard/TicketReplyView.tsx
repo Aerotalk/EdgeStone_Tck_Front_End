@@ -115,8 +115,11 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
         setShowCircuitModal(false);
     };
 
+    const handleReopenTicket = async () => {
+        await handleStatusChange('In progress');
+    };
+
     const handleStatusChange = async (newStatus: string) => {
-        if (ticketStatus.toLowerCase() === 'closed') return;
 
         try {
             await ticketService.updateTicket(ticket.id, { status: newStatus });
@@ -471,13 +474,23 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
 
                     {/* Reply CTA */}
                     <div className="pt-4">
-                        <button
-                            onClick={() => setShowEmailModal(true)}
-                            className="flex items-center gap-2 px-6 py-2.5 border border-gray-900 rounded-lg text-[14px] font-bold text-gray-900 hover:bg-gray-50 transition-all active:scale-95"
-                        >
-                            <Mail size={16} />
-                            Reply {activeTab === 'vendor' ? 'to Vendor' : ''}
-                        </button>
+                        {ticketStatus.toLowerCase() === 'closed' ? (
+                            <button
+                                onClick={handleReopenTicket}
+                                className="flex items-center gap-2 px-6 py-2.5 border border-green-600 rounded-lg text-[14px] font-bold text-green-600 hover:bg-green-50 transition-all active:scale-95"
+                            >
+                                <CornerUpLeft size={16} />
+                                Reopen Ticket
+                            </button>
+                        ) : (
+                            <button
+                                onClick={() => setShowEmailModal(true)}
+                                className="flex items-center gap-2 px-6 py-2.5 border border-gray-900 rounded-lg text-[14px] font-bold text-gray-900 hover:bg-gray-50 transition-all active:scale-95"
+                            >
+                                <Mail size={16} />
+                                Reply {activeTab === 'vendor' ? 'to Vendor' : ''}
+                            </button>
+                        )}
                     </div>
                 </div>
 
