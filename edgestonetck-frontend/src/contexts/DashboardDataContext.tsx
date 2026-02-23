@@ -56,19 +56,13 @@ export const DashboardDataProvider: React.FC<{ children: React.ReactNode }> = ({
         return () => clearInterval(interval);
     }, [fetchAll]);
 
-    // Derived counts — must honour localStorage status overrides, since the
-    // backend update endpoint returns 404 and changes are stored client-side only.
-    // This is identical to the normalisation logic in TicketsPage.tsx.
-    const getEffectiveStatus = (t: Ticket): string => {
-        const persisted = localStorage.getItem(`ticket_status_${t.id}`);
-        // Replace any whitespace with '-' to normalise "In Progress" → "in-progress"
-        return (persisted || t.status || '').toLowerCase().replace(/\s+/g, '-');
-    };
+    // Derived counts — computed directly from DB status (ticket.status is the source of truth).
+    const openCount = tickets.filter(t =>
+        (t.status || '').toLowerCase() === 'open'
+    ).length;
 
-    const openCount = tickets.filter(t => getEffectiveStatus(t) === 'open').length;
-
-    const inProgressCount = tickets.filter(
-        t => getEffectiveStatus(t) === 'in-progress'
+    const inProgressCount = tickets.filter(t =>
+        (t.status || '').toLowerCase().replace(/\s+/g, '-') === 'in-progress'
     ).length;
 
     const totalClients = clients.length;

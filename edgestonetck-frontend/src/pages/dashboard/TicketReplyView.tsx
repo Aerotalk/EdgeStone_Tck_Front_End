@@ -69,7 +69,9 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
     });
 
     const [ticketStatus, setTicketStatus] = useState(() => {
-        return localStorage.getItem(`ticket_status_${ticket.id}`) || 'Open';
+        // Always prefer the DB value (ticket.status) — localStorage is only a UI cache
+        // for optimistic updates that haven't been re-fetched yet.
+        return ticket.status || localStorage.getItem(`ticket_status_${ticket.id}`) || 'Open';
     });
     const [showStatusDropdown, setShowStatusDropdown] = useState(false);
     const [closedAt, setClosedAt] = useState(() => {
@@ -100,19 +102,32 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
         }
     }, [ticket]);
 
-    const handleConfirm = () => {
-        localStorage.setItem(`confirmed_circuit_${ticket.id}`, 'true');
-        localStorage.setItem(`confirmed_circuit_id_${ticket.id}`, selectedCircuit);
-        localStorage.setItem(`confirmed_priority_${ticket.id}`, selectedPriority);
+    const handleConfirm = async () => {
+        const newStatus = 'In Progress';
 
-        // Move to In Progress automatically on circuit confirmation
-        const newStatus = 'In progress';
-        localStorage.setItem(`ticket_status_${ticket.id}`, newStatus);
+        // Optimistic UI update — show changes instantly while API call is in-flight
         setTicketStatus(newStatus);
-
         setConfirmedCircuit(selectedCircuit);
         setConfirmedPriority(selectedPriority);
         setShowCircuitModal(false);
+
+        // Persist to localStorage as a UI cache (so it survives within this session)
+        localStorage.setItem(`confirmed_circuit_${ticket.id}`, 'true');
+        localStorage.setItem(`confirmed_circuit_id_${ticket.id}`, selectedCircuit);
+        localStorage.setItem(`confirmed_priority_${ticket.id}`, selectedPriority);
+        localStorage.setItem(`ticket_status_${ticket.id}`, newStatus);
+
+        // Persist to DB — this is what other accounts will see
+        try {
+            await ticketService.updateTicket(ticket.id, {
+                circuitId: selectedCircuit,
+                priority: selectedPriority,
+                status: newStatus,
+            });
+        } catch (error: any) {
+            console.error('Failed to save circuit/priority to DB:', error);
+            // UI already updated — don't block the agent, just log it
+        }
     };
 
     const handleReopenTicket = async () => {

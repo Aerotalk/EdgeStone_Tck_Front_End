@@ -83,15 +83,8 @@ const TicketsPage: React.FC = () => {
     const [selectedTicket, setSelectedTicket] = useState<UITicket | null>(null);
 
     const filteredTickets = tickets.filter(t => {
-        // Status filter
-        // Prefer locally-updated status (from reply view / dropdown) if present,
-        // otherwise fall back to the backend-provided status.
-        const persistedStatus = localStorage.getItem(`ticket_status_${t.id}`);
-        const effectiveStatus = (persistedStatus || t.status || '').toLowerCase();
-
-        const currentStatus = effectiveStatus.replace(' ', '-');
-        // 'In Progress' / 'In progress' -> 'in-progress'
-        // 'Open' -> 'open'
+        // Use DB status as source of truth — normalise "In Progress" → "in-progress"
+        const currentStatus = (t.status || '').toLowerCase().replace(/\s+/g, '-');
 
         if (!currentStatus || currentStatus !== activeTab) return false;
 
