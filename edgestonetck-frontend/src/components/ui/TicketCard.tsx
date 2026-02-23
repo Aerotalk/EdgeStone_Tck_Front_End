@@ -57,31 +57,12 @@ export const TicketCard: React.FC<TicketCardProps> = ({
     };
 
     return (
-        <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow relative">
-            {/* Priority indicator — upper-right corner */}
-            {priority && (
-                <div className="absolute top-4 right-4 flex items-center gap-1.5 bg-gray-50 border border-gray-100 rounded-lg px-2 py-1">
-                    <PriorityBars priority={priority} />
-                    <span
-                        className="text-[11px] font-bold"
-                        style={{
-                            color:
-                                priority === 'High' ? '#EF4444' :
-                                    priority === 'Medium' ? '#F59E0B' :
-                                        '#22C55E',
-                        }}
-                    >
-                        {priority}
-                    </span>
-                </div>
-            )}
-
+        <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center gap-4 mb-4">
                 <div className="w-12 h-12 rounded-full bg-[#E5DCC3] flex items-center justify-center text-[#5C5648] font-bold text-lg">
                     {getInitials(name)}
                 </div>
-                {/* Push name away from priority badge when present */}
-                <h3 className={`text-[17px] font-bold text-gray-900 ${priority ? 'pr-20' : ''}`}>{name}</h3>
+                <h3 className="text-[17px] font-bold text-gray-900">{name}</h3>
             </div>
 
             <div className="mb-4">
@@ -89,6 +70,25 @@ export const TicketCard: React.FC<TicketCardProps> = ({
                     <span className="inline-block bg-[#F5F2F9] text-[#A688C4] text-[12px] font-bold px-2 py-1 rounded-md">
                         #{ticketId}
                     </span>
+
+                    {/* Priority badge — shown only when set */}
+                    {priority && (
+                        <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-100 rounded-lg px-2 py-1">
+                            <PriorityBars priority={priority} />
+                            <span
+                                className="text-[11px] font-bold"
+                                style={{
+                                    color:
+                                        priority === 'High' ? '#EF4444' :
+                                            priority === 'Medium' ? '#F59E0B' :
+                                                '#22C55E',
+                                }}
+                            >
+                                {priority}
+                            </span>
+                        </div>
+                    )}
+
                     <div className="flex items-center gap-1.5 text-[12px] font-bold text-gray-400 uppercase">
                         <Calendar size={14} className="text-gray-300" />
                         {formatDateIST(date, { day: '2-digit', month: 'short', year: 'numeric' })}
