@@ -70,25 +70,9 @@ const MOCK_CIRCUITS: Circuit[] = [
 
 export const circuitService = {
     getAllCircuits: async (): Promise<Circuit[]> => {
-        console.log('🔵 Fetching all circuits...');
-        try {
-            const response = await fetch(`${API_URL}`, {
-                headers: getAuthHeaders(),
-            });
-            console.log('🔵 Fetch circuits response status:', response.status);
-            if (!response.ok) {
-                if (response.status === 401) {
-                    throw new Error('Unauthorized');
-                }
-                throw new Error('API error');
-            }
-            const result = await response.json();
-            console.log(`✅ Successfully fetched ${result.length} circuits`);
-            return result;
-        } catch (err: any) {
-            if (err.message === 'Unauthorized') throw err;
-            console.warn('⚠️ Circuit API unavailable, using mock data for testing');
-            return MOCK_CIRCUITS;
-        }
+        console.log('🔵 Fetching all circuits (DUMMY MODE)...');
+        // Simulate network delay
+        await new Promise(resolve => setTimeout(resolve, 500));
+        return MOCK_CIRCUITS;
     }
 };

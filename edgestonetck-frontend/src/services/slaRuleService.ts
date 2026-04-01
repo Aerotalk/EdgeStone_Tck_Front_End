@@ -148,65 +148,29 @@ let mockRulesStore = [...MOCK_SLA_RULES];
 
 export const slaRuleService = {
     getAllSLARules: async (): Promise<SLARule[]> => {
-        console.log('🔵 Fetching all SLA rules...');
-        try {
-            const response = await fetch(`${API_URL}`, {
-                headers: getAuthHeaders(),
-            });
-            console.log('🔵 Fetch SLA rules response status:', response.status);
-            if (!response.ok) {
-                if (response.status === 401) {
-                    throw new Error('Unauthorized');
-                }
-                throw new Error('API error');
-            }
-            const result = await response.json();
-            console.log(`✅ Successfully fetched ${result.length} SLA rules`);
-            return result;
-        } catch (err: any) {
-            if (err.message === 'Unauthorized') throw err;
-            console.warn('⚠️ SLA Rules API unavailable, using mock data for testing');
-            return mockRulesStore;
-        }
+        console.log('🔵 Fetching all SLA rules (DUMMY MODE)...');
+        await new Promise(resolve => setTimeout(resolve, 500));
+        return mockRulesStore;
     },
 
     createSLARule: async (data: CreateSLARuleData): Promise<SLARule> => {
-        console.log('🔵 Creating SLA rule:', data);
-        try {
-            const response = await fetch(`${API_URL}`, {
-                method: 'POST',
-                headers: getAuthHeaders(),
-                body: JSON.stringify(data),
-            });
-            console.log('🔵 Create SLA rule response status:', response.status);
-            if (!response.ok) {
-                if (response.status === 401) {
-                    throw new Error('Unauthorized');
-                }
-                throw new Error('API error');
-            }
-            const result = await response.json();
-            console.log('✅ SLA rule created successfully:', result);
-            return result;
-        } catch (err: any) {
-            if (err.message === 'Unauthorized') throw err;
-            console.warn('⚠️ SLA Rules API unavailable, saving to mock store for testing');
-            // Simulate save with mock data
-            await new Promise(resolve => setTimeout(resolve, 1200)); // Simulate network delay
-            const newRule: SLARule = {
-                id: `sla-mock-${Date.now()}`,
-                circuitId: data.circuitId,
-                circuitDisplayId: data.circuitDisplayId || data.circuitId,
-                targetType: data.targetType,
-                targetId: data.targetId,
-                targetName: data.targetName || data.targetId,
-                conditions: data.conditions,
-                createdAt: new Date().toISOString(),
-            };
-            mockRulesStore = [...mockRulesStore, newRule];
-            console.log('✅ SLA rule saved to mock store:', newRule);
-            return newRule;
-        }
+        console.log('🔵 Creating SLA rule (DUMMY MODE):', data);
+        await new Promise(resolve => setTimeout(resolve, 800)); // Simulate network delay
+        
+        const newRule: SLARule = {
+            id: `sla-mock-${Date.now()}`,
+            circuitId: data.circuitId,
+            circuitDisplayId: data.circuitDisplayId || data.circuitId,
+            targetType: data.targetType,
+            targetId: data.targetId,
+            targetName: data.targetName || data.targetId,
+            conditions: data.conditions,
+            createdAt: new Date().toISOString(),
+        };
+        
+        mockRulesStore = [...mockRulesStore, newRule];
+        console.log('✅ SLA rule saved to mock store:', newRule);
+        return newRule;
     }
 };
 
