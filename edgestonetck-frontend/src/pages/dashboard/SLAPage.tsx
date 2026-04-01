@@ -6,10 +6,12 @@ import {
     Upload,
     User,
     Building2,
-    Filter
+    Filter,
+    Shield
 } from 'lucide-react';
 
 import { DatePickerDropdown, type FilterType } from '../../components/ui/DatePickerDropdown';
+import { SLARulesModal } from '../../components/ui/SLARulesModal';
 
 interface SLARecord {
     id: string;
@@ -73,6 +75,7 @@ const mockSLAData: SLARecord[] = [
 const SLAPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'Client' | 'Vendor'>('Client');
     const [searchQuery, setSearchQuery] = useState('');
+    const [isSLARulesModalOpen, setIsSLARulesModalOpen] = useState(false);
 
     // Applied states (used for filtering the actual data)
     const [appliedFilter, setAppliedFilter] = useState<FilterType>('all');
@@ -167,6 +170,25 @@ const SLAPage: React.FC = () => {
     return (
         <div className="flex flex-col h-full overflow-hidden bg-[#F9FAFB]">
             <Topbar title="SLA" showSearch={true} searchPlaceholder="Search by ticket id..." onSearch={(q) => setSearchQuery(q)} />
+
+            {/* SLA Rules Button Bar */}
+            <div className="bg-white border-b border-gray-50 flex-shrink-0 z-10">
+                <div className="px-4 sm:px-8 flex items-center h-14">
+                    <button
+                        onClick={() => setIsSLARulesModalOpen(true)}
+                        className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-brand-red to-[#d41c34] hover:from-[#d41c34] hover:to-[#c01830] text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-brand-red/20 active:scale-95"
+                    >
+                        <Shield size={16} strokeWidth={2.5} />
+                        SLA Rules
+                    </button>
+                </div>
+            </div>
+
+            {/* SLA Rules Modal */}
+            <SLARulesModal
+                isOpen={isSLARulesModalOpen}
+                onClose={() => setIsSLARulesModalOpen(false)}
+            />
 
             {/* Custom Sub-Header */}
             <div className="bg-white border-b border-gray-100 flex-shrink-0 z-10">
