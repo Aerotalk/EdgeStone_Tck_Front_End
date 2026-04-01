@@ -7,7 +7,6 @@ import {
     User,
     Building2,
     Filter,
-    Shield
 } from 'lucide-react';
 
 import { DatePickerDropdown, type FilterType } from '../../components/ui/DatePickerDropdown';
