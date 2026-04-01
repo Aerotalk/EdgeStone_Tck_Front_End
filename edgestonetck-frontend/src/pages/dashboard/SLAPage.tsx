@@ -178,7 +178,7 @@ const SLAPage: React.FC = () => {
                         onClick={() => setIsSLARulesModalOpen(true)}
                         className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-brand-red to-[#d41c34] hover:from-[#d41c34] hover:to-[#c01830] text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-brand-red/20 active:scale-95"
                     >
-                        <Shield size={16} strokeWidth={2.5} />
+
                         SLA Rules
                     </button>
                 </div>
