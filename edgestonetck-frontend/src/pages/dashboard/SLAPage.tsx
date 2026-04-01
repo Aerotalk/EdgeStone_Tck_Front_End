@@ -7,6 +7,8 @@ import {
     User,
     Building2,
     Filter,
+    Info,
+    X,
 } from 'lucide-react';
 
 import { DatePickerDropdown, type FilterType } from '../../components/ui/DatePickerDropdown';
@@ -22,6 +24,7 @@ interface SLARecord {
     closeDate: string;
     status: 'Breached' | 'Safe';
     compensation: string;
+    statusReason?: string;
 }
 
 const mockSLAData: SLARecord[] = [
@@ -76,9 +79,37 @@ const SLAPage: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [isSLARulesModalOpen, setIsSLARulesModalOpen] = useState(false);
 
+    // Status modal
+    const [statusModal, setStatusModal] = useState<{ isOpen: boolean; recordId: string | null; newStatus: 'Breached' | 'Safe' | null; reason: string }>({
+        isOpen: false,
+        recordId: null,
+        newStatus: null,
+        reason: ''
+    });
+
+    // Managed Records
+    const [records, setRecords] = useState<SLARecord[]>(mockSLAData);
+
     // Applied states (used for filtering the actual data)
     const [appliedFilter, setAppliedFilter] = useState<FilterType>('all');
     const [appliedCustomRange, setAppliedCustomRange] = useState({ start: '', end: '' });
+
+    const calculateDowntime = (record: SLARecord) => {
+        const startDt = new Date(`${record.displayStartDate} ${record.startTime.replace(' hrs', '')}`);
+        const endDt = new Date(`${record.closeDate} ${record.closedTime.replace(' hrs', '')}`);
+        if (isNaN(startDt.getTime()) || isNaN(endDt.getTime())) return '-';
+        const diffMins = Math.round((endDt.getTime() - startDt.getTime()) / 60000);
+        return `${diffMins} mins`;
+    };
+
+    const handleSaveStatus = () => {
+        if (!statusModal.reason.trim()) {
+            alert("Please provide a reason.");
+            return;
+        }
+        setRecords(prev => prev.map(r => r.id === statusModal.recordId ? { ...r, status: statusModal.newStatus!, statusReason: statusModal.reason } : r));
+        setStatusModal({ isOpen: false, recordId: null, newStatus: null, reason: '' });
+    };
 
     const handleDateApply = (type: FilterType, range: { start: string; end: string }) => {
         setAppliedFilter(type);
@@ -86,7 +117,7 @@ const SLAPage: React.FC = () => {
     };
 
     const filteredData = useMemo(() => {
-        return mockSLAData.filter(item => {
+        return records.filter(item => {
             // Search filter
             if (searchQuery && !item.ticketId.toLowerCase().includes(searchQuery.toLowerCase())) {
                 return false;
@@ -132,7 +163,9 @@ const SLAPage: React.FC = () => {
             'SLA Start Time',
             'SLA Closed Time',
             'SLA Close Date',
+            'Downtime (mins)',
             'SLA Status',
+            'Status Reason',
             'Compensation'
         ];
 
@@ -143,7 +176,9 @@ const SLAPage: React.FC = () => {
             record.startTime,
             record.closedTime,
             record.closeDate,
+            calculateDowntime(record),
             record.status,
+            record.statusReason || '',
             record.compensation
         ]);
 
@@ -269,6 +304,11 @@ const SLAPage: React.FC = () => {
                                     </th>
                                     <th className="px-6 py-4">
                                         <div className="flex items-center gap-2 text-[12px] font-bold text-gray-400 uppercase tracking-wider">
+                                            Downtime
+                                        </div>
+                                    </th>
+                                    <th className="px-6 py-4">
+                                        <div className="flex items-center gap-2 text-[12px] font-bold text-gray-400 uppercase tracking-wider">
                                             SLA Status
                                         </div>
                                     </th>
@@ -319,15 +359,32 @@ const SLAPage: React.FC = () => {
                                                 {record.closeDate}
                                             </div>
                                         </td>
+                                        <td className="px-6 py-4 text-sm font-medium text-gray-600">
+                                            {calculateDowntime(record)}
+                                        </td>
                                         <td className="px-6 py-4">
-                                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-bold shadow-sm ${record.status === 'Breached'
-                                                ? 'bg-red-50 text-red-600'
-                                                : 'bg-green-50 text-green-600'
+                                            <div className="flex items-center gap-2">
+                                                <div className={`relative flex items-center gap-1.5 px-3 py-1 rounded-full shadow-sm text-[12px] font-bold ${
+                                                    record.status === 'Breached' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'
                                                 }`}>
-                                                <span className={`w-1.5 h-1.5 rounded-full ${record.status === 'Breached' ? 'bg-red-500' : 'bg-green-500'
-                                                    }`} />
-                                                {record.status}
-                                            </span>
+                                                    <span className={`w-1.5 h-1.5 rounded-full ${record.status === 'Breached' ? 'bg-red-500' : 'bg-green-500'}`} />
+                                                    <select
+                                                        value={record.status}
+                                                        onChange={(e) => {
+                                                            setStatusModal({ isOpen: true, recordId: record.id, newStatus: e.target.value as 'Safe' | 'Breached', reason: '' });
+                                                        }}
+                                                        className={`bg-transparent cursor-pointer outline-none border-none appearance-none font-bold pr-1`}
+                                                    >
+                                                        <option value="Safe" className="text-green-600">Safe</option>
+                                                        <option value="Breached" className="text-red-600">Breached</option>
+                                                    </select>
+                                                </div>
+                                                {record.statusReason && (
+                                                    <div title={record.statusReason} className="flex items-center justify-center cursor-help text-gray-400 hover:text-gray-600 transition-colors">
+                                                        <Info size={16} />
+                                                    </div>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4 text-sm font-medium text-gray-600">
                                             {record.compensation}
@@ -358,6 +415,50 @@ const SLAPage: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Status Reason Modal */}
+            {statusModal.isOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl relative">
+                        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                            <h3 className="text-lg font-bold text-gray-900">Change Status Reason</h3>
+                            <button 
+                                onClick={() => setStatusModal({ isOpen: false, recordId: null, newStatus: null, reason: '' })}
+                                className="p-1 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-gray-600"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="p-6 text-sm flex flex-col gap-4">
+                            <p className="text-gray-600">
+                                You are changing the status to <span className={`font-bold px-2 py-0.5 rounded text-[12px] ` + (statusModal.newStatus === 'Breached' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600')}>{statusModal.newStatus}</span>. Please provide a reason for this change.
+                            </p>
+                            <textarea
+                                autoFocus
+                                value={statusModal.reason}
+                                onChange={(e) => setStatusModal(prev => ({ ...prev, reason: e.target.value }))}
+                                placeholder="Enter reason for this change..."
+                                className="w-full h-32 p-3 border border-gray-200 rounded-xl resize-none focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-all"
+                            />
+                        </div>
+                        <div className="bg-gray-50 px-6 py-4 flex items-center justify-end gap-3 border-t border-gray-100">
+                            <button
+                                onClick={() => setStatusModal({ isOpen: false, recordId: null, newStatus: null, reason: '' })}
+                                className="px-4 py-2 text-sm font-bold text-gray-600 hover:text-gray-800 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleSaveStatus}
+                                disabled={!statusModal.reason.trim()}
+                                className="px-6 py-2 bg-gradient-to-r from-brand-red to-[#d41c34] hover:from-[#d41c34] hover:to-[#c01830] text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-brand-red/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Save Changes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
