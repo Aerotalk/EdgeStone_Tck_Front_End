@@ -107,7 +107,13 @@ const SLAPage: React.FC = () => {
             alert("Please provide a reason.");
             return;
         }
-        setRecords(prev => prev.map(r => r.id === statusModal.recordId ? { ...r, status: statusModal.newStatus!, statusReason: statusModal.reason } : r));
+        setRecords(prev => prev.map(r => {
+            if (r.id === statusModal.recordId) {
+                const updatedComp = statusModal.newStatus === 'Safe' ? '-' : r.compensation;
+                return { ...r, status: statusModal.newStatus!, statusReason: statusModal.reason, compensation: updatedComp };
+            }
+            return r;
+        }));
         setStatusModal({ isOpen: false, recordId: null, newStatus: null, reason: '' });
     };
 
