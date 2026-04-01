@@ -13,7 +13,8 @@ import {
     Eye,
     ArrowLeft,
     AlertCircle,
-    Zap
+    Zap,
+    Edit2
 } from 'lucide-react';
 import { circuitService } from '../../services/circuitService';
 import { slaRuleService } from '../../services/slaRuleService';
@@ -63,6 +64,7 @@ export const SLARulesModal: React.FC<SLARulesModalProps> = ({ isOpen, onClose })
 
     // Add SLA flow states
     const [addStep, setAddStep] = useState<AddStep>('idle');
+    const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
     const [selectedCircuit, setSelectedCircuit] = useState<Circuit | null>(null);
     const [targetType, setTargetType] = useState<'vendor' | 'customer' | null>(null);
     const [selectedEntityId, setSelectedEntityId] = useState('');
@@ -100,6 +102,7 @@ export const SLARulesModal: React.FC<SLARulesModalProps> = ({ isOpen, onClose })
 
     const startAddFlow = async () => {
         setAddStep('select-circuit');
+        setEditingRuleId(null);
         setSelectedCircuit(null);
         setTargetType(null);
         setSelectedEntityId('');
@@ -133,12 +136,18 @@ export const SLARulesModal: React.FC<SLARulesModalProps> = ({ isOpen, onClose })
 
         try {
             setLoadingEntities(true);
+            
+            // Prevent adding a duplicate SLA rule by filtering out entities that already have one
+            const existingIds = slaRules
+                .filter(r => r.circuitId === selectedCircuit?.id && r.targetType === type)
+                .map(r => r.targetId);
+
             if (type === 'vendor') {
                 const data = await vendorService.getAllVendors();
-                setVendors(data);
+                setVendors(data.filter(v => !existingIds.includes(v.id)));
             } else {
                 const data = await clientService.getAllClients();
-                setClients(data);
+                setClients(data.filter(c => !existingIds.includes(c.id)));
             }
         } catch (err: any) {
             console.error(`Failed to fetch ${type}s:`, err);
@@ -177,14 +186,25 @@ export const SLARulesModal: React.FC<SLARulesModalProps> = ({ isOpen, onClose })
         setError('');
 
         try {
-            await slaRuleService.createSLARule({
-                circuitId: selectedCircuit.id,
-                circuitDisplayId: selectedCircuit.circuitId,
-                targetType,
-                targetId: selectedEntityId,
-                targetName: selectedEntityName,
-                conditions,
-            });
+            if (editingRuleId) {
+                await slaRuleService.updateSLARule(editingRuleId, {
+                    circuitId: selectedCircuit.id,
+                    circuitDisplayId: selectedCircuit.circuitId,
+                    targetType,
+                    targetId: selectedEntityId,
+                    targetName: selectedEntityName,
+                    conditions,
+                });
+            } else {
+                await slaRuleService.createSLARule({
+                    circuitId: selectedCircuit.id,
+                    circuitDisplayId: selectedCircuit.circuitId,
+                    targetType,
+                    targetId: selectedEntityId,
+                    targetName: selectedEntityName,
+                    conditions,
+                });
+            }
             setAddStep('saved');
             // Refresh rules list
             await fetchSLARules();
@@ -207,6 +227,21 @@ export const SLARulesModal: React.FC<SLARulesModalProps> = ({ isOpen, onClose })
         setSelectedEntityName('');
         setConditions([{ ...emptyCondition }]);
         setError('');
+        setEditingRuleId(null);
+    };
+
+    const startEditFlow = (rule: SLARule) => {
+        setEditingRuleId(rule.id);
+        setSelectedCircuit({
+            id: rule.circuitId,
+            circuitId: rule.circuitDisplayId,
+            type: 'Protected', // mock for display
+        } as Circuit);
+        setTargetType(rule.targetType);
+        setSelectedEntityId(rule.targetId);
+        setSelectedEntityName(rule.targetName);
+        setConditions(rule.conditions.map(c => ({ ...c })));
+        setAddStep('define-rules');
     };
 
     const goBack = () => {
@@ -354,8 +389,10 @@ export const SLARulesModal: React.FC<SLARulesModalProps> = ({ isOpen, onClose })
                                     {addStep === 'select-type' && 'Step 2 — Vendor or Customer?'}
                                     {addStep === 'select-entity' && `Step 3 — Select ${targetType}`}
                                     {addStep === 'define-rules' && 'Step 4 — Define SLA conditions'}
-                                    {addStep === 'saving' && 'Saving SLA rule...'}
-                                    {addStep === 'saved' && 'SLA rule saved successfully!'}
+                                    {addStep === 'saving' && editingRuleId && 'Updating SLA rule...'}
+                                    {addStep === 'saving' && !editingRuleId && 'Saving SLA rule...'}
+                                    {addStep === 'saved' && editingRuleId && 'SLA rule updated successfully!'}
+                                    {addStep === 'saved' && !editingRuleId && 'SLA rule saved successfully!'}
                                 </p>
                             </div>
                         </div>
@@ -450,10 +487,19 @@ export const SLARulesModal: React.FC<SLARulesModalProps> = ({ isOpen, onClose })
                                                             {/* Vendor Side Rules */}
                                                             {group.vendorRules.length > 0 && (
                                                                 <div>
-                                                                    <div className="flex items-center gap-2 mb-3">
-                                                                        <Building2 size={15} className="text-blue-500" />
-                                                                        <h4 className="text-[13px] font-bold text-gray-700">Vendor Side SLA</h4>
-                                                                        <span className="text-[11px] font-medium text-gray-400">({group.vendorRules[0]?.targetName})</span>
+                                                                    <div className="flex items-center justify-between mb-3">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <Building2 size={15} className="text-blue-500" />
+                                                                            <h4 className="text-[13px] font-bold text-gray-700">Vendor Side SLA</h4>
+                                                                            <span className="text-[11px] font-medium text-gray-400">({group.vendorRules[0]?.targetName})</span>
+                                                                        </div>
+                                                                        <button 
+                                                                            onClick={() => startEditFlow(group.vendorRules[0])}
+                                                                            className="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-bold text-gray-500 hover:text-brand-red bg-white border border-gray-200 hover:border-brand-red/30 hover:bg-brand-red/5 rounded-lg transition-all"
+                                                                        >
+                                                                            <Edit2 size={12} />
+                                                                            Edit
+                                                                        </button>
                                                                     </div>
                                                                     {group.vendorRules.map(rule => renderConditionTable(rule.conditions))}
                                                                 </div>
@@ -468,7 +514,16 @@ export const SLARulesModal: React.FC<SLARulesModalProps> = ({ isOpen, onClose })
                                                                     </div>
                                                                     {group.customerRules.map(rule => (
                                                                         <div key={rule.id} className="mb-3 last:mb-0">
-                                                                            <p className="text-[11px] font-semibold text-gray-400 mb-1.5 px-1">{rule.targetName}</p>
+                                                                            <div className="flex items-center justify-between mb-1.5 px-1">
+                                                                                <p className="text-[11px] font-semibold text-gray-400">{rule.targetName}</p>
+                                                                                <button 
+                                                                                    onClick={() => startEditFlow(rule)}
+                                                                                    className="flex items-center gap-1.5 px-2 py-1 text-[10px] font-bold text-gray-500 hover:text-brand-red bg-white border border-gray-100 hover:border-brand-red/30 hover:bg-brand-red/5 rounded-md transition-all"
+                                                                                >
+                                                                                    <Edit2 size={12} />
+                                                                                    Edit
+                                                                                </button>
+                                                                            </div>
                                                                             {renderConditionTable(rule.conditions)}
                                                                         </div>
                                                                     ))}
@@ -622,7 +677,9 @@ export const SLARulesModal: React.FC<SLARulesModalProps> = ({ isOpen, onClose })
                                             <div className="absolute top-[62px] left-0 right-0 bg-white border border-gray-100 rounded-2xl shadow-xl z-10 max-h-[260px] overflow-y-auto p-2 sla-slide-enter">
                                                 {targetType === 'vendor' ? (
                                                     vendors.length === 0 ? (
-                                                        <p className="text-sm text-gray-400 text-center py-4">No vendors found</p>
+                                                        <p className="text-sm text-gray-400 text-center py-4">
+                                                            All eligible vendors already have an SLA defined.
+                                                        </p>
                                                     ) : (
                                                         vendors.map(v => (
                                                             <button
@@ -642,7 +699,9 @@ export const SLARulesModal: React.FC<SLARulesModalProps> = ({ isOpen, onClose })
                                                     )
                                                 ) : (
                                                     clients.length === 0 ? (
-                                                        <p className="text-sm text-gray-400 text-center py-4">No customers found</p>
+                                                        <p className="text-sm text-gray-400 text-center py-4">
+                                                            All eligible customers already have an SLA defined.
+                                                        </p>
                                                     ) : (
                                                         clients.map(c => (
                                                             <button

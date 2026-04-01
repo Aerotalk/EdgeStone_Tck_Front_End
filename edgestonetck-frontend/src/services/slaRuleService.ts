@@ -171,6 +171,31 @@ export const slaRuleService = {
         mockRulesStore = [...mockRulesStore, newRule];
         console.log('✅ SLA rule saved to mock store:', newRule);
         return newRule;
+    },
+
+    updateSLARule: async (id: string, data: CreateSLARuleData): Promise<SLARule> => {
+        console.log(`🔵 Updating SLA rule ${id} (DUMMY MODE):`, data);
+        await new Promise(resolve => setTimeout(resolve, 800)); // Simulate network delay
+        
+        let updatedRule: SLARule | null = null;
+        
+        mockRulesStore = mockRulesStore.map(rule => {
+            if (rule.id === id) {
+                updatedRule = {
+                    ...rule,
+                    conditions: data.conditions,
+                };
+                return updatedRule;
+            }
+            return rule;
+        });
+        
+        if (!updatedRule) {
+            throw new Error(`SLA rule with ID ${id} not found`);
+        }
+        
+        console.log('✅ SLA rule updated in mock store:', updatedRule);
+        return updatedRule;
     }
 };
 
