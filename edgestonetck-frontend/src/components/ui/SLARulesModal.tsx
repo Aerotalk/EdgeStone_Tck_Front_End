@@ -574,7 +574,7 @@ export const SLARulesModal: React.FC<SLARulesModalProps> = ({ isOpen, onClose })
                                         </button>
 
                                         {circuitDropdownOpen && (
-                                            <div className="absolute top-[62px] left-0 right-0 bg-white border border-gray-100 rounded-2xl shadow-xl z-10 max-h-[260px] overflow-y-auto p-2 sla-slide-enter">
+                                            <div className="mt-2 bg-white border border-gray-100 rounded-2xl shadow-lg max-h-[260px] overflow-y-auto p-2 sla-slide-enter">
                                                 {circuits.length === 0 ? (
                                                     <p className="text-sm text-gray-400 text-center py-4">No circuits found</p>
                                                 ) : (
@@ -674,7 +674,7 @@ export const SLARulesModal: React.FC<SLARulesModalProps> = ({ isOpen, onClose })
                                         </button>
 
                                         {entityDropdownOpen && (
-                                            <div className="absolute top-[62px] left-0 right-0 bg-white border border-gray-100 rounded-2xl shadow-xl z-10 max-h-[260px] overflow-y-auto p-2 sla-slide-enter">
+                                            <div className="mt-2 bg-white border border-gray-100 rounded-2xl shadow-lg max-h-[260px] overflow-y-auto p-2 sla-slide-enter">
                                                 {targetType === 'vendor' ? (
                                                     vendors.length === 0 ? (
                                                         <p className="text-sm text-gray-400 text-center py-4">
