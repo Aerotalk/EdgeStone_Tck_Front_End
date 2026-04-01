@@ -8,16 +8,16 @@ export interface Circuit {
     customerNames: string[];
 }
 
-const API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/circuits`;
+// const API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/circuits`;
 
-const getAuthHeaders = () => {
-    const userStr = localStorage.getItem('edgestone_user');
-    const user = userStr ? JSON.parse(userStr) : null;
-    return {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${user?.token || ''}`
-    };
-};
+// const getAuthHeaders = () => {
+//     const userStr = localStorage.getItem('edgestone_user');
+//     const user = userStr ? JSON.parse(userStr) : null;
+//     return {
+//         'Content-Type': 'application/json',
+//         'Authorization': `Bearer ${user?.token || ''}`
+//     };
+// };
 
 // ── Mock data for testing (remove when backend is ready) ──
 const MOCK_CIRCUITS: Circuit[] = [
