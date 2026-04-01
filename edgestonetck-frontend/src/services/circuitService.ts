@@ -19,27 +19,76 @@ const getAuthHeaders = () => {
     };
 };
 
+// ── Mock data for testing (remove when backend is ready) ──
+const MOCK_CIRCUITS: Circuit[] = [
+    {
+        id: 'ckt-001',
+        circuitId: 'BA/SNG-TY2/ESPL-003',
+        type: 'Protected',
+        vendorId: 'v-001',
+        vendorName: 'Airtel',
+        customerIds: ['c-001', 'c-002'],
+        customerNames: ['Tata Communications', 'Reliance Jio'],
+    },
+    {
+        id: 'ckt-002',
+        circuitId: 'MU/DEL-BLR/ESPL-017',
+        type: 'Unprotected',
+        vendorId: 'v-002',
+        vendorName: 'Vodafone',
+        customerIds: ['c-003'],
+        customerNames: ['BSNL'],
+    },
+    {
+        id: 'ckt-003',
+        circuitId: 'CH/HYD-PUN/ESPL-042',
+        type: 'Protected',
+        vendorId: 'v-001',
+        vendorName: 'Airtel',
+        customerIds: ['c-001', 'c-004'],
+        customerNames: ['Tata Communications', 'Wipro'],
+    },
+    {
+        id: 'ckt-004',
+        circuitId: 'KO/CCU-MAA/ESPL-089',
+        type: 'Unprotected',
+        vendorId: 'v-003',
+        vendorName: 'Lumen Technologies',
+        customerIds: ['c-002', 'c-005'],
+        customerNames: ['Reliance Jio', 'Infosys'],
+    },
+    {
+        id: 'ckt-005',
+        circuitId: 'DL/GGN-NDA/ESPL-112',
+        type: 'Protected',
+        vendorId: 'v-004',
+        vendorName: 'Telia Carrier',
+        customerIds: ['c-006'],
+        customerNames: ['HCL Technologies'],
+    },
+];
+
 export const circuitService = {
     getAllCircuits: async (): Promise<Circuit[]> => {
         console.log('🔵 Fetching all circuits...');
-        const response = await fetch(`${API_URL}`, {
-            headers: getAuthHeaders(),
-        });
-        console.log('🔵 Fetch circuits response status:', response.status);
-        if (!response.ok) {
-            if (response.status === 401) {
-                throw new Error('Unauthorized');
+        try {
+            const response = await fetch(`${API_URL}`, {
+                headers: getAuthHeaders(),
+            });
+            console.log('🔵 Fetch circuits response status:', response.status);
+            if (!response.ok) {
+                if (response.status === 401) {
+                    throw new Error('Unauthorized');
+                }
+                throw new Error('API error');
             }
-            if (response.status === 404) {
-                console.error('❌ 404 Error: Circuit API endpoint not found.');
-                throw new Error('Circuit API not found - Please restart the backend server');
-            }
-            const error = await response.json().catch(() => ({ message: 'Failed to fetch circuits' }));
-            console.error('❌ Fetch circuits error:', error);
-            throw new Error(error.message);
+            const result = await response.json();
+            console.log(`✅ Successfully fetched ${result.length} circuits`);
+            return result;
+        } catch (err: any) {
+            if (err.message === 'Unauthorized') throw err;
+            console.warn('⚠️ Circuit API unavailable, using mock data for testing');
+            return MOCK_CIRCUITS;
         }
-        const result = await response.json();
-        console.log(`✅ Successfully fetched ${result.length} circuits`);
-        return result;
     }
 };

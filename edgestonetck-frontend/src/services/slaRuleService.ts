@@ -34,8 +34,10 @@ export interface SLARule {
 
 export interface CreateSLARuleData {
     circuitId: string;
+    circuitDisplayId?: string;  // for mock store display
     targetType: 'vendor' | 'customer';
     targetId: string;
+    targetName?: string;        // for mock store display
     conditions: SLARuleCondition[];
 }
 
@@ -50,53 +52,161 @@ const getAuthHeaders = () => {
     };
 };
 
+// ── Mock data for testing (remove when backend is ready) ──
+const MOCK_SLA_RULES: SLARule[] = [
+    // Circuit 1: BA/SNG-TY2/ESPL-003 — Vendor side (Airtel)
+    {
+        id: 'sla-001',
+        circuitId: 'ckt-001',
+        circuitDisplayId: 'BA/SNG-TY2/ESPL-003',
+        targetType: 'vendor',
+        targetId: 'v-001',
+        targetName: 'Airtel',
+        conditions: [
+            { upperLimit: null, upperOperator: null, lowerLimit: 99.5, lowerOperator: '>=', compensation: 0 },
+            { upperLimit: 99.5, upperOperator: '>', lowerLimit: 99.4, lowerOperator: '>=', compensation: 5 },
+            { upperLimit: 99.4, upperOperator: '>', lowerLimit: 99.3, lowerOperator: '>=', compensation: 10 },
+            { upperLimit: 99.3, upperOperator: '>', lowerLimit: 99.2, lowerOperator: '>=', compensation: 15 },
+            { upperLimit: 99.2, upperOperator: '>', lowerLimit: 99.0, lowerOperator: '>=', compensation: 20 },
+            { upperLimit: 99.0, upperOperator: '>', lowerLimit: null, lowerOperator: null, compensation: 30 },
+        ],
+        createdAt: '2026-01-15T10:30:00Z',
+    },
+    // Circuit 1: BA/SNG-TY2/ESPL-003 — Customer side (Tata Communications)
+    {
+        id: 'sla-002',
+        circuitId: 'ckt-001',
+        circuitDisplayId: 'BA/SNG-TY2/ESPL-003',
+        targetType: 'customer',
+        targetId: 'c-001',
+        targetName: 'Tata Communications',
+        conditions: [
+            { upperLimit: null, upperOperator: null, lowerLimit: 99.9, lowerOperator: '>=', compensation: 0 },
+            { upperLimit: 99.9, upperOperator: '>', lowerLimit: 99.8, lowerOperator: '>=', compensation: 5 },
+            { upperLimit: 99.8, upperOperator: '>', lowerLimit: 99.7, lowerOperator: '>=', compensation: 10 },
+            { upperLimit: 99.7, upperOperator: '>', lowerLimit: 99.6, lowerOperator: '>=', compensation: 15 },
+            { upperLimit: 99.6, upperOperator: '>', lowerLimit: 99.5, lowerOperator: '>=', compensation: 20 },
+            { upperLimit: 99.5, upperOperator: '>', lowerLimit: null, lowerOperator: null, compensation: 30 },
+        ],
+        createdAt: '2026-01-15T10:35:00Z',
+    },
+    // Circuit 1: BA/SNG-TY2/ESPL-003 — Customer side (Reliance Jio)
+    {
+        id: 'sla-003',
+        circuitId: 'ckt-001',
+        circuitDisplayId: 'BA/SNG-TY2/ESPL-003',
+        targetType: 'customer',
+        targetId: 'c-002',
+        targetName: 'Reliance Jio',
+        conditions: [
+            { upperLimit: null, upperOperator: null, lowerLimit: 99.95, lowerOperator: '>=', compensation: 0 },
+            { upperLimit: 99.95, upperOperator: '>', lowerLimit: 99.85, lowerOperator: '>=', compensation: 5 },
+            { upperLimit: 99.85, upperOperator: '>', lowerLimit: 99.75, lowerOperator: '>=', compensation: 10 },
+            { upperLimit: 99.75, upperOperator: '>', lowerLimit: 99.65, lowerOperator: '>=', compensation: 15 },
+            { upperLimit: 99.65, upperOperator: '>', lowerLimit: 99.55, lowerOperator: '>=', compensation: 20 },
+            { upperLimit: 99.55, upperOperator: '>', lowerLimit: null, lowerOperator: null, compensation: 30 },
+        ],
+        createdAt: '2026-01-16T09:00:00Z',
+    },
+    // Circuit 2: MU/DEL-BLR/ESPL-017 — Vendor side (Vodafone)
+    {
+        id: 'sla-004',
+        circuitId: 'ckt-002',
+        circuitDisplayId: 'MU/DEL-BLR/ESPL-017',
+        targetType: 'vendor',
+        targetId: 'v-002',
+        targetName: 'Vodafone',
+        conditions: [
+            { upperLimit: null, upperOperator: null, lowerLimit: 99.5, lowerOperator: '>=', compensation: 0 },
+            { upperLimit: 99.5, upperOperator: '>', lowerLimit: 99.4, lowerOperator: '>=', compensation: 4 },
+            { upperLimit: 99.4, upperOperator: '>', lowerLimit: 99.3, lowerOperator: '>=', compensation: 8 },
+            { upperLimit: 99.3, upperOperator: '>', lowerLimit: 99.2, lowerOperator: '>=', compensation: 12 },
+            { upperLimit: 99.2, upperOperator: '>', lowerLimit: null, lowerOperator: null, compensation: 25 },
+        ],
+        createdAt: '2026-02-01T14:00:00Z',
+    },
+    // Circuit 2: MU/DEL-BLR/ESPL-017 — Customer side (BSNL)
+    {
+        id: 'sla-005',
+        circuitId: 'ckt-002',
+        circuitDisplayId: 'MU/DEL-BLR/ESPL-017',
+        targetType: 'customer',
+        targetId: 'c-003',
+        targetName: 'BSNL',
+        conditions: [
+            { upperLimit: null, upperOperator: null, lowerLimit: 99.5, lowerOperator: '>=', compensation: 0 },
+            { upperLimit: 99.5, upperOperator: '>', lowerLimit: 99.0, lowerOperator: '>=', compensation: 10 },
+            { upperLimit: 99.0, upperOperator: '>', lowerLimit: 98.0, lowerOperator: '>=', compensation: 20 },
+            { upperLimit: 98.0, upperOperator: '>', lowerLimit: null, lowerOperator: null, compensation: 30 },
+        ],
+        createdAt: '2026-02-01T14:10:00Z',
+    },
+];
+
+// In-memory store for newly added rules during testing
+let mockRulesStore = [...MOCK_SLA_RULES];
+
 export const slaRuleService = {
     getAllSLARules: async (): Promise<SLARule[]> => {
         console.log('🔵 Fetching all SLA rules...');
-        const response = await fetch(`${API_URL}`, {
-            headers: getAuthHeaders(),
-        });
-        console.log('🔵 Fetch SLA rules response status:', response.status);
-        if (!response.ok) {
-            if (response.status === 401) {
-                throw new Error('Unauthorized');
+        try {
+            const response = await fetch(`${API_URL}`, {
+                headers: getAuthHeaders(),
+            });
+            console.log('🔵 Fetch SLA rules response status:', response.status);
+            if (!response.ok) {
+                if (response.status === 401) {
+                    throw new Error('Unauthorized');
+                }
+                throw new Error('API error');
             }
-            if (response.status === 404) {
-                console.error('❌ 404 Error: SLA Rules API endpoint not found.');
-                throw new Error('SLA Rules API not found - Please restart the backend server');
-            }
-            const error = await response.json().catch(() => ({ message: 'Failed to fetch SLA rules' }));
-            console.error('❌ Fetch SLA rules error:', error);
-            throw new Error(error.message);
+            const result = await response.json();
+            console.log(`✅ Successfully fetched ${result.length} SLA rules`);
+            return result;
+        } catch (err: any) {
+            if (err.message === 'Unauthorized') throw err;
+            console.warn('⚠️ SLA Rules API unavailable, using mock data for testing');
+            return mockRulesStore;
         }
-        const result = await response.json();
-        console.log(`✅ Successfully fetched ${result.length} SLA rules`);
-        return result;
     },
 
     createSLARule: async (data: CreateSLARuleData): Promise<SLARule> => {
         console.log('🔵 Creating SLA rule:', data);
-        const response = await fetch(`${API_URL}`, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify(data),
-        });
-        console.log('🔵 Create SLA rule response status:', response.status);
-        if (!response.ok) {
-            if (response.status === 401) {
-                throw new Error('Unauthorized');
+        try {
+            const response = await fetch(`${API_URL}`, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(data),
+            });
+            console.log('🔵 Create SLA rule response status:', response.status);
+            if (!response.ok) {
+                if (response.status === 401) {
+                    throw new Error('Unauthorized');
+                }
+                throw new Error('API error');
             }
-            if (response.status === 404) {
-                console.error('❌ 404 Error: SLA Rules API endpoint not found.');
-                throw new Error('SLA Rules API not found - Please restart the backend server');
-            }
-            const error = await response.json().catch(() => ({ message: 'Failed to create SLA rule' }));
-            console.error('❌ Create SLA rule error:', error);
-            throw new Error(error.message);
+            const result = await response.json();
+            console.log('✅ SLA rule created successfully:', result);
+            return result;
+        } catch (err: any) {
+            if (err.message === 'Unauthorized') throw err;
+            console.warn('⚠️ SLA Rules API unavailable, saving to mock store for testing');
+            // Simulate save with mock data
+            await new Promise(resolve => setTimeout(resolve, 1200)); // Simulate network delay
+            const newRule: SLARule = {
+                id: `sla-mock-${Date.now()}`,
+                circuitId: data.circuitId,
+                circuitDisplayId: data.circuitDisplayId || data.circuitId,
+                targetType: data.targetType,
+                targetId: data.targetId,
+                targetName: data.targetName || data.targetId,
+                conditions: data.conditions,
+                createdAt: new Date().toISOString(),
+            };
+            mockRulesStore = [...mockRulesStore, newRule];
+            console.log('✅ SLA rule saved to mock store:', newRule);
+            return newRule;
         }
-        const result = await response.json();
-        console.log('✅ SLA rule created successfully:', result);
-        return result;
     }
 };
 
@@ -139,5 +249,5 @@ export const calculateCompensation = (availabilityFactor: number, conditions: SL
             return condition.compensation;
         }
     }
-    return 0; // No matching condition found
+    return 0;
 };

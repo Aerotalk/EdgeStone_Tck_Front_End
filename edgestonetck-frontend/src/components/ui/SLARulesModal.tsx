@@ -179,8 +179,10 @@ export const SLARulesModal: React.FC<SLARulesModalProps> = ({ isOpen, onClose })
         try {
             await slaRuleService.createSLARule({
                 circuitId: selectedCircuit.id,
+                circuitDisplayId: selectedCircuit.circuitId,
                 targetType,
                 targetId: selectedEntityId,
+                targetName: selectedEntityName,
                 conditions,
             });
             setAddStep('saved');
