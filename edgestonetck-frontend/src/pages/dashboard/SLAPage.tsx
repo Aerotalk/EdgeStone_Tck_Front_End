@@ -151,7 +151,7 @@ const SLAPage: React.FC = () => {
 
             return true;
         });
-    }, [appliedFilter, appliedCustomRange, searchQuery]);
+    }, [appliedFilter, appliedCustomRange, searchQuery, records]);
 
     const handleExport = () => {
         if (filteredData.length === 0) return;
@@ -365,11 +365,11 @@ const SLAPage: React.FC = () => {
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-2">
                                                 <div className={`relative flex items-center gap-1.5 px-3 py-1 rounded-full shadow-sm text-[12px] font-bold ${
-                                                    record.status === 'Breached' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'
+                                                    (statusModal.isOpen && statusModal.recordId === record.id ? statusModal.newStatus || record.status : record.status) === 'Breached' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'
                                                 }`}>
-                                                    <span className={`w-1.5 h-1.5 rounded-full ${record.status === 'Breached' ? 'bg-red-500' : 'bg-green-500'}`} />
+                                                    <span className={`w-1.5 h-1.5 rounded-full ${(statusModal.isOpen && statusModal.recordId === record.id ? statusModal.newStatus || record.status : record.status) === 'Breached' ? 'bg-red-500' : 'bg-green-500'}`} />
                                                     <select
-                                                        value={record.status}
+                                                        value={statusModal.isOpen && statusModal.recordId === record.id ? statusModal.newStatus || record.status : record.status}
                                                         onChange={(e) => {
                                                             setStatusModal({ isOpen: true, recordId: record.id, newStatus: e.target.value as 'Safe' | 'Breached', reason: '' });
                                                         }}
@@ -380,8 +380,13 @@ const SLAPage: React.FC = () => {
                                                     </select>
                                                 </div>
                                                 {record.statusReason && (
-                                                    <div title={record.statusReason} className="flex items-center justify-center cursor-help text-gray-400 hover:text-gray-600 transition-colors">
+                                                    <div className="relative group flex items-center justify-center cursor-help text-gray-400 hover:text-gray-600 transition-colors">
                                                         <Info size={16} />
+                                                        {/* Custom Styled Tooltip */}
+                                                        <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-48 p-2.5 bg-gray-900 text-white text-xs font-medium rounded-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all shadow-xl z-50 pointer-events-none text-center">
+                                                            {record.statusReason}
+                                                            <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                                                        </div>
                                                     </div>
                                                 )}
                                             </div>
