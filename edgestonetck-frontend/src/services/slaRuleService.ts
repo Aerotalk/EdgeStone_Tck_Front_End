@@ -41,161 +41,60 @@ export interface CreateSLARuleData {
     conditions: SLARuleCondition[];
 }
 
-// const API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/sla-rules`;
+const API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/sla-rules`;
 
-// const getAuthHeaders = () => {
-//     const userStr = localStorage.getItem('edgestone_user');
-//     const user = userStr ? JSON.parse(userStr) : null;
-//     return {
-//         'Content-Type': 'application/json',
-//         'Authorization': `Bearer ${user?.token || ''}`
-//     };
-// };
-
-// ── Mock data for testing (remove when backend is ready) ──
-const MOCK_SLA_RULES: SLARule[] = [
-    // Circuit 1: BA/SNG-TY2/ESPL-003 — Vendor side (Airtel)
-    {
-        id: 'sla-001',
-        circuitId: 'ckt-001',
-        circuitDisplayId: 'BA/SNG-TY2/ESPL-003',
-        targetType: 'vendor',
-        targetId: 'v-001',
-        targetName: 'Airtel',
-        conditions: [
-            { upperLimit: null, upperOperator: null, lowerLimit: 99.5, lowerOperator: '>=', compensation: 0 },
-            { upperLimit: 99.5, upperOperator: '>', lowerLimit: 99.4, lowerOperator: '>=', compensation: 5 },
-            { upperLimit: 99.4, upperOperator: '>', lowerLimit: 99.3, lowerOperator: '>=', compensation: 10 },
-            { upperLimit: 99.3, upperOperator: '>', lowerLimit: 99.2, lowerOperator: '>=', compensation: 15 },
-            { upperLimit: 99.2, upperOperator: '>', lowerLimit: 99.0, lowerOperator: '>=', compensation: 20 },
-            { upperLimit: 99.0, upperOperator: '>', lowerLimit: null, lowerOperator: null, compensation: 30 },
-        ],
-        createdAt: '2026-01-15T10:30:00Z',
-    },
-    // Circuit 1: BA/SNG-TY2/ESPL-003 — Customer side (Tata Communications)
-    {
-        id: 'sla-002',
-        circuitId: 'ckt-001',
-        circuitDisplayId: 'BA/SNG-TY2/ESPL-003',
-        targetType: 'customer',
-        targetId: 'c-001',
-        targetName: 'Tata Communications',
-        conditions: [
-            { upperLimit: null, upperOperator: null, lowerLimit: 99.9, lowerOperator: '>=', compensation: 0 },
-            { upperLimit: 99.9, upperOperator: '>', lowerLimit: 99.8, lowerOperator: '>=', compensation: 5 },
-            { upperLimit: 99.8, upperOperator: '>', lowerLimit: 99.7, lowerOperator: '>=', compensation: 10 },
-            { upperLimit: 99.7, upperOperator: '>', lowerLimit: 99.6, lowerOperator: '>=', compensation: 15 },
-            { upperLimit: 99.6, upperOperator: '>', lowerLimit: 99.5, lowerOperator: '>=', compensation: 20 },
-            { upperLimit: 99.5, upperOperator: '>', lowerLimit: null, lowerOperator: null, compensation: 30 },
-        ],
-        createdAt: '2026-01-15T10:35:00Z',
-    },
-    // Circuit 1: BA/SNG-TY2/ESPL-003 — Customer side (Reliance Jio)
-    {
-        id: 'sla-003',
-        circuitId: 'ckt-001',
-        circuitDisplayId: 'BA/SNG-TY2/ESPL-003',
-        targetType: 'customer',
-        targetId: 'c-002',
-        targetName: 'Reliance Jio',
-        conditions: [
-            { upperLimit: null, upperOperator: null, lowerLimit: 99.95, lowerOperator: '>=', compensation: 0 },
-            { upperLimit: 99.95, upperOperator: '>', lowerLimit: 99.85, lowerOperator: '>=', compensation: 5 },
-            { upperLimit: 99.85, upperOperator: '>', lowerLimit: 99.75, lowerOperator: '>=', compensation: 10 },
-            { upperLimit: 99.75, upperOperator: '>', lowerLimit: 99.65, lowerOperator: '>=', compensation: 15 },
-            { upperLimit: 99.65, upperOperator: '>', lowerLimit: 99.55, lowerOperator: '>=', compensation: 20 },
-            { upperLimit: 99.55, upperOperator: '>', lowerLimit: null, lowerOperator: null, compensation: 30 },
-        ],
-        createdAt: '2026-01-16T09:00:00Z',
-    },
-    // Circuit 2: MU/DEL-BLR/ESPL-017 — Vendor side (Vodafone)
-    {
-        id: 'sla-004',
-        circuitId: 'ckt-002',
-        circuitDisplayId: 'MU/DEL-BLR/ESPL-017',
-        targetType: 'vendor',
-        targetId: 'v-002',
-        targetName: 'Vodafone',
-        conditions: [
-            { upperLimit: null, upperOperator: null, lowerLimit: 99.5, lowerOperator: '>=', compensation: 0 },
-            { upperLimit: 99.5, upperOperator: '>', lowerLimit: 99.4, lowerOperator: '>=', compensation: 4 },
-            { upperLimit: 99.4, upperOperator: '>', lowerLimit: 99.3, lowerOperator: '>=', compensation: 8 },
-            { upperLimit: 99.3, upperOperator: '>', lowerLimit: 99.2, lowerOperator: '>=', compensation: 12 },
-            { upperLimit: 99.2, upperOperator: '>', lowerLimit: null, lowerOperator: null, compensation: 25 },
-        ],
-        createdAt: '2026-02-01T14:00:00Z',
-    },
-    // Circuit 2: MU/DEL-BLR/ESPL-017 — Customer side (BSNL)
-    {
-        id: 'sla-005',
-        circuitId: 'ckt-002',
-        circuitDisplayId: 'MU/DEL-BLR/ESPL-017',
-        targetType: 'customer',
-        targetId: 'c-003',
-        targetName: 'BSNL',
-        conditions: [
-            { upperLimit: null, upperOperator: null, lowerLimit: 99.5, lowerOperator: '>=', compensation: 0 },
-            { upperLimit: 99.5, upperOperator: '>', lowerLimit: 99.0, lowerOperator: '>=', compensation: 10 },
-            { upperLimit: 99.0, upperOperator: '>', lowerLimit: 98.0, lowerOperator: '>=', compensation: 20 },
-            { upperLimit: 98.0, upperOperator: '>', lowerLimit: null, lowerOperator: null, compensation: 30 },
-        ],
-        createdAt: '2026-02-01T14:10:00Z',
-    },
-];
-
-// In-memory store for newly added rules during testing
-let mockRulesStore = [...MOCK_SLA_RULES];
+const getAuthHeaders = () => {
+    const userStr = localStorage.getItem('edgestone_user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    return {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${user?.token || ''}`
+    };
+};
 
 export const slaRuleService = {
     getAllSLARules: async (): Promise<SLARule[]> => {
-        console.log('🔵 Fetching all SLA rules (DUMMY MODE)...');
-        await new Promise(resolve => setTimeout(resolve, 500));
-        return mockRulesStore;
+        try {
+            const response = await fetch(API_URL, { headers: getAuthHeaders() });
+            if (!response.ok) throw new Error('Failed to fetch SLA rules');
+            const result = await response.json();
+            return result.data;
+        } catch (error) {
+            console.error('Error fetching SLA rules:', error);
+            throw error;
+        }
     },
 
     createSLARule: async (data: CreateSLARuleData): Promise<SLARule> => {
-        console.log('🔵 Creating SLA rule (DUMMY MODE):', data);
-        await new Promise(resolve => setTimeout(resolve, 800)); // Simulate network delay
-        
-        const newRule: SLARule = {
-            id: `sla-mock-${Date.now()}`,
-            circuitId: data.circuitId,
-            circuitDisplayId: data.circuitDisplayId || data.circuitId,
-            targetType: data.targetType,
-            targetId: data.targetId,
-            targetName: data.targetName || data.targetId,
-            conditions: data.conditions,
-            createdAt: new Date().toISOString(),
-        };
-        
-        mockRulesStore = [...mockRulesStore, newRule];
-        console.log('✅ SLA rule saved to mock store:', newRule);
-        return newRule;
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(data)
+            });
+            if (!response.ok) throw new Error('Failed to create SLA rule');
+            const result = await response.json();
+            return result.data;
+        } catch (error) {
+            console.error('Error creating SLA rule:', error);
+            throw error;
+        }
     },
 
     updateSLARule: async (id: string, data: CreateSLARuleData): Promise<SLARule> => {
-        console.log(`🔵 Updating SLA rule ${id} (DUMMY MODE):`, data);
-        await new Promise(resolve => setTimeout(resolve, 800)); // Simulate network delay
-        
-        let updatedRule: SLARule | null = null;
-        
-        mockRulesStore = mockRulesStore.map(rule => {
-            if (rule.id === id) {
-                updatedRule = {
-                    ...rule,
-                    conditions: data.conditions,
-                };
-                return updatedRule;
-            }
-            return rule;
-        });
-        
-        if (!updatedRule) {
-            throw new Error(`SLA rule with ID ${id} not found`);
+        try {
+            const response = await fetch(`${API_URL}/${id}`, {
+                method: 'PUT',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(data)
+            });
+            if (!response.ok) throw new Error('Failed to update SLA rule');
+            const result = await response.json();
+            return result.data;
+        } catch (error) {
+            console.error('Error updating SLA rule:', error);
+            throw error;
         }
-        
-        console.log('✅ SLA rule updated in mock store:', updatedRule);
-        return updatedRule;
     }
 };
 
