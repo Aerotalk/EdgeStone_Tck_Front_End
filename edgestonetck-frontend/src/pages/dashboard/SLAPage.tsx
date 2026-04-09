@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Topbar } from '../../components/ui/Topbar';
 import {
     Calendar,
@@ -14,65 +14,7 @@ import {
 import { DatePickerDropdown, type FilterType } from '../../components/ui/DatePickerDropdown';
 import { SLARulesModal } from '../../components/ui/SLARulesModal';
 
-interface SLARecord {
-    id: string;
-    ticketId: string;
-    startDate: string; // YYYY-MM-DD
-    displayStartDate: string;
-    startTime: string;
-    closedTime: string;
-    closeDate: string;
-    status: 'Breached' | 'Safe';
-    compensation: string;
-    statusReason?: string;
-}
-
-const mockSLAData: SLARecord[] = [
-    {
-        id: '1',
-        ticketId: '#3234',
-        startDate: '2026-01-09',
-        displayStartDate: '09 Jan 2026',
-        startTime: '19:00 hrs',
-        closedTime: '20:00 hrs',
-        closeDate: '09 Jan 2026',
-        status: 'Breached',
-        compensation: '$2,543'
-    },
-    {
-        id: '2',
-        ticketId: '#3245',
-        startDate: '2026-01-08',
-        displayStartDate: '08 Jan 2026',
-        startTime: '10:00 hrs',
-        closedTime: '11:30 hrs',
-        closeDate: '08 Jan 2026',
-        status: 'Safe',
-        compensation: '-'
-    },
-    {
-        id: '3',
-        ticketId: '#3256',
-        startDate: '2026-01-05',
-        displayStartDate: '05 Jan 2026',
-        startTime: '14:00 hrs',
-        closedTime: '18:00 hrs',
-        closeDate: '05 Jan 2026',
-        status: 'Breached',
-        compensation: '$2,543'
-    },
-    {
-        id: '4',
-        ticketId: '#3190',
-        startDate: '2025-12-20',
-        displayStartDate: '20 Dec 2025',
-        startTime: '09:00 hrs',
-        closedTime: '10:00 hrs',
-        closeDate: '20 Dec 2025',
-        status: 'Breached',
-        compensation: '$2,543'
-    }
-];
+import { slaRecordService, type SLARecord } from '../../services/slaRecordService';
 
 const SLAPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'Client' | 'Vendor'>('Client');
@@ -88,7 +30,24 @@ const SLAPage: React.FC = () => {
     });
 
     // Managed Records
-    const [records, setRecords] = useState<SLARecord[]>(mockSLAData);
+    const [records, setRecords] = useState<SLARecord[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    const fetchRecords = async () => {
+        try {
+            setLoading(true);
+            const data = await slaRecordService.getAllSLARecords();
+            setRecords(data);
+        } catch (error) {
+            console.error('Failed to load SLA records:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchRecords();
+    }, []);
 
     // Applied states (used for filtering the actual data)
     const [appliedFilter, setAppliedFilter] = useState<FilterType>('all');
@@ -102,19 +61,27 @@ const SLAPage: React.FC = () => {
         return `${diffMins} mins`;
     };
 
-    const handleSaveStatus = () => {
-        if (!statusModal.reason.trim()) {
+    const handleSaveStatus = async () => {
+        if (!statusModal.reason.trim() || !statusModal.recordId || !statusModal.newStatus) {
             alert("Please provide a reason.");
             return;
         }
-        setRecords(prev => prev.map(r => {
-            if (r.id === statusModal.recordId) {
-                const updatedComp = statusModal.newStatus === 'Safe' ? '-' : r.compensation;
-                return { ...r, status: statusModal.newStatus!, statusReason: statusModal.reason, compensation: updatedComp };
-            }
-            return r;
-        }));
-        setStatusModal({ isOpen: false, recordId: null, newStatus: null, reason: '' });
+
+        try {
+            await slaRecordService.updateSLARecordStatus(statusModal.recordId, statusModal.newStatus, statusModal.reason);
+            // Re-fetch or manually update state
+            setRecords(prev => prev.map(r => {
+                if (r.id === statusModal.recordId) {
+                    const updatedComp = statusModal.newStatus === 'Safe' ? '-' : r.compensation;
+                    return { ...r, status: statusModal.newStatus!, statusReason: statusModal.reason, compensation: updatedComp };
+                }
+                return r;
+            }));
+            setStatusModal({ isOpen: false, recordId: null, newStatus: null, reason: '' });
+        } catch (error) {
+            console.error('Failed to save status', error);
+            alert("Failed to update status. Please try again.");
+        }
     };
 
     const handleDateApply = (type: FilterType, range: { start: string; end: string }) => {
