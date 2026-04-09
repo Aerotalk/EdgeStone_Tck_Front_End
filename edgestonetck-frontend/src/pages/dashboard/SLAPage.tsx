@@ -10,6 +10,7 @@ import {
     Info,
     X,
 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
 import { DatePickerDropdown, type FilterType } from '../../components/ui/DatePickerDropdown';
 import { SLARulesModal } from '../../components/ui/SLARulesModal';
@@ -63,7 +64,7 @@ const SLAPage: React.FC = () => {
 
     const handleSaveStatus = async () => {
         if (!statusModal.reason.trim() || !statusModal.recordId || !statusModal.newStatus) {
-            alert("Please provide a reason.");
+            toast.error("Please provide a reason.");
             return;
         }
 
@@ -78,9 +79,10 @@ const SLAPage: React.FC = () => {
                 return r;
             }));
             setStatusModal({ isOpen: false, recordId: null, newStatus: null, reason: '' });
+            toast.success("Status updated successfully.");
         } catch (error) {
             console.error('Failed to save status', error);
-            alert("Failed to update status. Please try again.");
+            toast.error("Failed to update status. Please try again.");
         }
     };
 

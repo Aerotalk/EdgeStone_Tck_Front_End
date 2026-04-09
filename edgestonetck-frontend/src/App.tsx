@@ -9,10 +9,12 @@ import AssignAgentsPage from './pages/dashboard/AssignAgentsPage'
 import SLAPage from './pages/dashboard/SLAPage'
 import { AuthProvider } from './contexts/AuthContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
+import { Toaster } from 'react-hot-toast'
 
 function App() {
   return (
     <AuthProvider>
+      <Toaster position="top-right" />
       <Router>
         <Routes>
           {/* Auth Routes */}

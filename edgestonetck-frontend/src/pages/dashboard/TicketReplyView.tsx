@@ -14,6 +14,7 @@ import {
     Paperclip,
     Plus
 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { TicketInfoSidebar } from './TicketInfoSidebar';
 
 import { ticketService, type Reply, type Ticket } from '../../services/ticketService';
@@ -156,7 +157,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
             setShowStatusDropdown(false);
         } catch (error: any) {
             console.error('Failed to update status:', error);
-            alert(`Failed to update ticket status: ${error.message}`);
+            toast.error(`Failed to update ticket status: ${error.message}`);
         }
     };
 
@@ -198,7 +199,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
             // Optionally refresh parent or just rely on local update
         } catch (error) {
             console.error('Failed to send reply:', error);
-            alert('Failed to send reply. Please try again.');
+            toast.error('Failed to send reply. Please try again.');
         } finally {
             setIsSending(false);
         }
