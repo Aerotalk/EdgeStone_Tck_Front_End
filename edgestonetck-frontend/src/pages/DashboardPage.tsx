@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { Sidebar } from '../components/ui/Sidebar'
 
 export default function DashboardPage() {

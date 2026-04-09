@@ -32,17 +32,13 @@ const SLAPage: React.FC = () => {
 
     // Managed Records
     const [records, setRecords] = useState<SLARecord[]>([]);
-    const [loading, setLoading] = useState(true);
 
     const fetchRecords = async () => {
         try {
-            setLoading(true);
             const data = await slaRecordService.getAllSLARecords();
             setRecords(data);
         } catch (error) {
             console.error('Failed to load SLA records:', error);
-        } finally {
-            setLoading(false);
         }
     };
 
