@@ -60,8 +60,6 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
         bcc: ''
     });
 
-    const vendorEmail = "partner.noc@airtel.com";
-
     const [confirmedCircuit, setConfirmedCircuit] = useState(() => {
         return localStorage.getItem(`confirmed_circuit_id_${ticket.id}`) || '';
     });
@@ -89,12 +87,30 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
 
     useEffect(() => {
         // Update toEmail when tab or ticket changes
-        setEmailForm(prev => ({
-            ...prev,
-            to: [activeTab === 'client' ? ticket.email : vendorEmail],
-            subject: `RE: ${ticket.header}`
-        }));
-    }, [activeTab, ticket.email, ticket.header]);
+        if (activeTab === 'client') {
+            setEmailForm(prev => ({
+                ...prev,
+                to: [ticket.email],
+                subject: `RE: ${ticket.header}`
+            }));
+        } else if (activeTab === 'vendor') {
+            // Fetch dynamically on vendor tab click
+            ticketService.getVendorEmails(ticket.id).then(emails => {
+                setEmailForm(prev => ({
+                    ...prev,
+                    to: emails,
+                    subject: `RE: ${ticket.header}`
+                }));
+            }).catch(err => {
+                console.error("Failed to fetch vendor emails", err);
+                setEmailForm(prev => ({
+                    ...prev,
+                    to: [],
+                    subject: `RE: ${ticket.header}`
+                }));
+            });
+        }
+    }, [activeTab, ticket.email, ticket.header, ticket.id]);
 
     // Construct replies from ticket prop
     useEffect(() => {
@@ -168,9 +184,12 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
         try {
             setIsSending(true);
             // Send to client or vendor based on the active tab
-            const newReply = activeTab === 'vendor'
-                ? await ticketService.replyToVendor(ticket.id, replyText)
-                : await ticketService.replyToTicket(ticket.id, replyText);
+            let newReply;
+            if (activeTab === 'vendor') {
+                newReply = await ticketService.replyToVendor(ticket.id, { ...emailForm, message: replyText });
+            } else {
+                newReply = await ticketService.replyToTicket(ticket.id, replyText);
+            }
 
             // Update local state
             const updatedReplies = [...replies, newReply];
@@ -406,7 +425,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                                 <span className="text-[15px] font-bold text-gray-900">EdgeStone Support</span>
                                                 <span className="text-[14px] text-gray-400 font-medium">&lt;support@edgestone.in&gt;</span>
                                             </div>
-                                            <p className="text-[13px] text-gray-400 font-medium">To: {vendorEmail}</p>
+                                            <p className="text-[13px] text-gray-400 font-medium">To: {emailForm.to.length > 0 ? emailForm.to.join(', ') : 'Fetching Vendor...'}</p>
                                         </div>
                                         <div className="flex items-center gap-4 text-gray-400">
                                             <span className="text-[13px] font-medium">Vendor Communication Thread</span>
@@ -484,7 +503,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                                     <span className="text-[14px] text-gray-400 font-medium">&lt;support@edgestone.in&gt;</span>
                                                 </div>
                                                 <div className="flex flex-col gap-0.5">
-                                                    <p className="text-[12px] text-gray-400 font-medium">To: {reply.to?.join(', ') || (activeTab === 'client' ? ticket.email : vendorEmail)}</p>
+                                                    <p className="text-[12px] text-gray-400 font-medium">To: {reply.to?.join(', ') || (activeTab === 'client' ? ticket.email : 'Vendor NOC')}</p>
                                                     {reply.cc && reply.cc.length > 0 && (
                                                         <p className="text-[11px] text-gray-400 font-medium">Cc: {reply.cc.join(', ')}</p>
                                                     )}

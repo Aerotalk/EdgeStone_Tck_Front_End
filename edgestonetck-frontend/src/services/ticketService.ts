@@ -78,11 +78,11 @@ export const ticketService = {
         return result.reply;
     },
 
-    replyToVendor: async (id: string, message: string): Promise<Reply> => {
+    replyToVendor: async (id: string, emailData: any): Promise<Reply> => {
         const response = await fetch(`${API_URL}/${id}/vendor-reply`, {
             method: 'POST',
             headers: getAuthHeaders(),
-            body: JSON.stringify({ message }),
+            body: JSON.stringify(emailData),
         });
 
         if (!response.ok) {
@@ -111,5 +111,14 @@ export const ticketService = {
         }
 
         return response.json();
+    },
+
+    getVendorEmails: async (id: string): Promise<string[]> => {
+        const response = await fetch(`${API_URL}/${id}/vendor-emails`, {
+            headers: getAuthHeaders(),
+        });
+        if (!response.ok) return [];
+        const data = await response.json();
+        return data.emails || [];
     }
 };
