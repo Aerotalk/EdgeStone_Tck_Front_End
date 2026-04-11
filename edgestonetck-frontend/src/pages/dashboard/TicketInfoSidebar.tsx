@@ -130,7 +130,7 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
     };
 
     return (
-        <div className="w-92 border-l border-gray-100 bg-white hidden lg:flex flex-col h-full font-sans shrink-0 relative">
+        <div className="w-[340px] border-l border-gray-100 bg-white hidden lg:flex flex-col h-full font-sans shrink-0 relative">
             <div className="flex-1 overflow-y-auto scrollbar-hide">
                 {/* Profile Section */}
                 <div className="p-8 border-b border-gray-50">

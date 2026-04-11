@@ -353,7 +353,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
             {/* Main Content Area */}
             <div className="flex-1 flex overflow-hidden">
                 {/* Left Conversation Area */}
-                <div className="flex-1 flex flex-col p-8 space-y-6 overflow-y-auto bg-gray-50/30 scrollbar-hide">
+                <div className="flex-1 min-w-0 flex flex-col p-8 space-y-6 overflow-y-auto bg-gray-50/30 scrollbar-hide">
 
                     {/* Original Client Message (Always visible but maybe distinct based on user preference) */}
                     {activeTab === 'client' && (
@@ -381,7 +381,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                         </div>
                                     </div>
 
-                                    <div className="text-[14px] text-gray-600 leading-relaxed font-medium space-y-4 whitespace-pre-wrap">
+                                    <div className="text-[14px] text-gray-600 leading-relaxed font-medium space-y-4 whitespace-pre-wrap break-all">
                                         {replies.length > 0 && replies[0].type === 'client'
                                             ? replies[0].text
                                             : 'No message content available'}
@@ -436,7 +436,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                         </div>
                                     </div>
 
-                                    <div className="text-[14px] text-gray-600 leading-relaxed font-medium opacity-80">
+                                    <div className="text-[14px] text-gray-600 leading-relaxed font-medium opacity-80 break-words">
                                         <p>Thank you for reaching out to us. We have received your ticket and our team will get back to you as soon as possible. Please note that this is an automated response and this email box is not be monitored.</p>
                                     </div>
                                     <div className="absolute left-[-17px] top-5 w-4 h-4 bg-white border-l border-b border-gray-100 rotate-45"></div>
@@ -477,7 +477,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                             </div>
                                         </div>
 
-                                        <div className="text-[14px] text-gray-600 leading-relaxed font-medium whitespace-pre-wrap">
+                                        <div className="text-[14px] text-gray-600 leading-relaxed font-medium whitespace-pre-wrap break-words">
                                             {reply.text}
                                         </div>
                                         <div className="absolute left-[-17px] top-5 w-4 h-4 bg-white border-l border-b border-gray-100 rotate-45"></div>
