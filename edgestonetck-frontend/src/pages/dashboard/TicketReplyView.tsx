@@ -167,7 +167,10 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
 
         try {
             setIsSending(true);
-            const newReply = await ticketService.replyToTicket(ticket.id, replyText);
+            // Send to client or vendor based on the active tab
+            const newReply = activeTab === 'vendor'
+                ? await ticketService.replyToVendor(ticket.id, replyText)
+                : await ticketService.replyToTicket(ticket.id, replyText);
 
             // Update local state
             const updatedReplies = [...replies, newReply];
@@ -184,19 +187,17 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
             setShowCc(false);
             setShowEmailModal(false);
 
-            // Auto-move to In Progress if currently Open
-            if (ticketStatus.toLowerCase() === 'open') {
+            // Auto-move to In Progress if currently Open (client replies only)
+            if (activeTab === 'client' && ticketStatus.toLowerCase() === 'open') {
                 try {
                     await ticketService.updateTicket(ticket.id, { status: 'In Progress' });
                     setTicketStatus('In Progress');
                     localStorage.setItem(`ticket_status_${ticket.id}`, 'In Progress');
                 } catch (error) {
                     console.error('Failed to auto-update status to In Progress:', error);
-                    // Silently fail or minimal log as reply was successful
                 }
             }
 
-            // Optionally refresh parent or just rely on local update
         } catch (error) {
             console.error('Failed to send reply:', error);
             toast.error('Failed to send reply. Please try again.');
@@ -393,14 +394,34 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                     )}
 
                     {activeTab === 'vendor' && (
-                        <div className="bg-[#FFF8F0] border border-orange-100 rounded-2xl p-6 mb-4">
-                            <div className="flex items-center gap-3 text-orange-600 mb-2">
-                                <ReplyIcon size={20} className="rotate-180" />
-                                <span className="font-bold text-[15px]">Vendor Support Communication</span>
+                        <div className="flex gap-4 group">
+                            <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold text-sm shadow-sm flex-shrink-0">
+                                ES
                             </div>
-                            <p className="text-[13px] text-orange-500 font-medium tracking-tight">
-                                This section is for coordination with our partner vendors. All emails sent here go to the vendor's NOC team.
-                            </p>
+                            <div className="flex-1">
+                                <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm relative">
+                                    <div className="flex items-start justify-between mb-4">
+                                        <div className="space-y-0.5">
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="text-[15px] font-bold text-gray-900">EdgeStone Support</span>
+                                                <span className="text-[14px] text-gray-400 font-medium">&lt;support@edgestone.in&gt;</span>
+                                            </div>
+                                            <p className="text-[13px] text-gray-400 font-medium">To: {vendorEmail}</p>
+                                        </div>
+                                        <div className="flex items-center gap-4 text-gray-400">
+                                            <span className="text-[13px] font-medium">Vendor Communication Thread</span>
+                                            <div className="flex items-center gap-2.5">
+                                                <button className="hover:text-gray-600" onClick={() => setShowEmailModal(true)}><ReplyIcon size={16} className="-scale-x-100" /></button>
+                                                <button className="hover:text-gray-600"><MoreVertical size={16} /></button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="text-[14px] text-gray-500 leading-relaxed font-medium italic">
+                                        This thread is for coordination with the vendor NOC team. Use the Reply button below to send an email to the vendor.
+                                    </div>
+                                    <div className="absolute left-[-17px] top-5 w-4 h-4 bg-white border-l border-b border-gray-100 rotate-45"></div>
+                                </div>
+                            </div>
                         </div>
                     )}
 

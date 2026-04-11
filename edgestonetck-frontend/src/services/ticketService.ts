@@ -78,6 +78,23 @@ export const ticketService = {
         return result.reply;
     },
 
+    replyToVendor: async (id: string, message: string): Promise<Reply> => {
+        const response = await fetch(`${API_URL}/${id}/vendor-reply`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ message }),
+        });
+
+        if (!response.ok) {
+            if (response.status === 401) throw new Error('Unauthorized');
+            const error = await response.json().catch(() => ({ message: 'Failed to send vendor reply' }));
+            throw new Error(error.message);
+        }
+
+        const result = await response.json();
+        return result.reply;
+    },
+
     updateTicket: async (id: string, data: Partial<Ticket>): Promise<Ticket> => {
         const response = await fetch(`${API_URL}/${id}`, {
             method: 'PATCH',  // Backend route is PATCH /:id (not PUT)
