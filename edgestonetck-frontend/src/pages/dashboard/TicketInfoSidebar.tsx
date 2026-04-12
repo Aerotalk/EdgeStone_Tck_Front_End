@@ -116,8 +116,8 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                     const baseTime = new Date(ticket.receivedAt || ticket.createdAt || new Date());
                     const slaStartTime = new Date(baseTime.getTime() + 60000);
                     
-                    const startDateStr = formatDateIST(slaStartTime, { day: 'numeric', month: 'short', year: 'numeric' });
-                    const startTimeStr = formatTimeIST(slaStartTime) + ' hrs';
+                    // const startDateStr = formatDateIST(slaStartTime, { day: 'numeric', month: 'short', year: 'numeric' });
+                    // const startTimeStr = formatTimeIST(slaStartTime) + ' hrs';
                     
                     // Fire-and-forget SLA Record Creation depending on strictness
                     // slaRecordService.createSLARecord(ticket.id, startDateStr, startTimeStr).catch(() => {});
