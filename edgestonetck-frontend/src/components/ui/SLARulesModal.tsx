@@ -189,7 +189,7 @@ export const SLARulesModal: React.FC<SLARulesModalProps> = ({ isOpen, onClose })
             if (editingRuleId) {
                 await slaRuleService.updateSLARule(editingRuleId, {
                     circuitId: selectedCircuit.id,
-                    circuitDisplayId: selectedCircuit.circuitId,
+                    circuitDisplayId: selectedCircuit.customerCircuitId,
                     targetType,
                     targetId: selectedEntityId,
                     targetName: selectedEntityName,
@@ -198,7 +198,7 @@ export const SLARulesModal: React.FC<SLARulesModalProps> = ({ isOpen, onClose })
             } else {
                 await slaRuleService.createSLARule({
                     circuitId: selectedCircuit.id,
-                    circuitDisplayId: selectedCircuit.circuitId,
+                    circuitDisplayId: selectedCircuit.customerCircuitId,
                     targetType,
                     targetId: selectedEntityId,
                     targetName: selectedEntityName,
@@ -234,8 +234,13 @@ export const SLARulesModal: React.FC<SLARulesModalProps> = ({ isOpen, onClose })
         setEditingRuleId(rule.id);
         setSelectedCircuit({
             id: rule.circuitId,
-            circuitId: rule.circuitDisplayId,
-            type: 'Protected', // mock for display
+            customerCircuitId: rule.circuitDisplayId,
+            supplierCircuitId: null,
+            type: 'PROTECTED', // fallback for display only
+            vendorId: null,
+            vendor: null,
+            clientId: null,
+            client: null,
         } as Circuit);
         setTargetType(rule.targetType);
         setSelectedEntityId(rule.targetId);
@@ -566,7 +571,7 @@ export const SLARulesModal: React.FC<SLARulesModalProps> = ({ isOpen, onClose })
                                         >
                                             <span className={`text-[14px] font-bold truncate ${selectedCircuit ? 'text-gray-900' : 'text-gray-400'}`}>
                                                 {selectedCircuit
-                                                    ? `${selectedCircuit.circuitId} (${selectedCircuit.type})`
+                                                    ? `${selectedCircuit.customerCircuitId} (${selectedCircuit.type === 'PROTECTED' ? 'Protected' : 'Unprotected'})`
                                                     : 'Choose a circuit...'
                                                 }
                                             </span>
@@ -585,14 +590,14 @@ export const SLARulesModal: React.FC<SLARulesModalProps> = ({ isOpen, onClose })
                                                             className="w-full px-3.5 py-3 text-left rounded-xl transition-all flex items-center justify-between mb-0.5 last:mb-0 hover:bg-gray-50 active:bg-gray-100"
                                                         >
                                                             <div>
-                                                                <span className="text-[13px] font-bold text-gray-900 block">{circuit.circuitId}</span>
-                                                                <span className="text-[11px] text-gray-400 font-medium">{circuit.vendorName}</span>
+                                                                <span className="text-[13px] font-bold text-gray-900 block">{circuit.customerCircuitId}</span>
+                                                                <span className="text-[11px] text-gray-400 font-medium">{circuit.vendor?.name ?? '—'}</span>
                                                             </div>
-                                                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${circuit.type === 'Protected'
+                                                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${circuit.type === 'PROTECTED'
                                                                 ? 'bg-green-50 text-green-600'
                                                                 : 'bg-orange-50 text-orange-600'
                                                                 }`}>
-                                                                {circuit.type}
+                                                                {circuit.type === 'PROTECTED' ? 'Protected' : 'Unprotected'}
                                                             </span>
                                                         </button>
                                                     ))
@@ -611,9 +616,9 @@ export const SLARulesModal: React.FC<SLARulesModalProps> = ({ isOpen, onClose })
                                     Define SLA for
                                 </label>
                                 <p className="text-sm text-gray-500 mb-5 px-1">
-                                    Circuit: <span className="font-bold text-gray-800">{selectedCircuit?.circuitId}</span>
-                                    <span className={`ml-2 px-2 py-0.5 rounded-md text-[10px] font-bold ${selectedCircuit?.type === 'Protected' ? 'bg-green-50 text-green-600' : 'bg-orange-50 text-orange-600'}`}>
-                                        {selectedCircuit?.type}
+                                    Circuit: <span className="font-bold text-gray-800">{selectedCircuit?.customerCircuitId}</span>
+                                    <span className={`ml-2 px-2 py-0.5 rounded-md text-[10px] font-bold ${selectedCircuit?.type === 'PROTECTED' ? 'bg-green-50 text-green-600' : 'bg-orange-50 text-orange-600'}`}>
+                                        {selectedCircuit?.type === 'PROTECTED' ? 'Protected' : 'Unprotected'}
                                     </span>
                                 </p>
 
@@ -648,7 +653,7 @@ export const SLARulesModal: React.FC<SLARulesModalProps> = ({ isOpen, onClose })
                                     Select {targetType === 'vendor' ? 'Vendor' : 'Customer'}
                                 </label>
                                 <p className="text-sm text-gray-500 mb-5 px-1">
-                                    Circuit: <span className="font-bold text-gray-800">{selectedCircuit?.circuitId}</span>
+                                    Circuit: <span className="font-bold text-gray-800">{selectedCircuit?.customerCircuitId}</span>
                                     {' → '}
                                     <span className="font-bold text-gray-800 capitalize">{targetType}</span>
                                 </p>
@@ -732,7 +737,7 @@ export const SLARulesModal: React.FC<SLARulesModalProps> = ({ isOpen, onClose })
                             <div className="sla-slide-enter">
                                 {/* Summary breadcrumb */}
                                 <div className="flex items-center gap-2 flex-wrap text-[12px] text-gray-400 font-medium mb-5 px-1">
-                                    <span className="font-bold text-gray-600">{selectedCircuit?.circuitId}</span>
+                                    <span className="font-bold text-gray-600">{selectedCircuit?.customerCircuitId}</span>
                                     <ChevronRight size={12} />
                                     <span className="capitalize font-bold text-gray-600">{targetType}</span>
                                     <ChevronRight size={12} />
