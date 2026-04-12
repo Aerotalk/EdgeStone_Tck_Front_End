@@ -35,6 +35,51 @@ export const slaRecordService = {
         }
     },
 
+    getSLARecordByTicketId: async (ticketId: string): Promise<SLARecord | null> => {
+        try {
+            const response = await fetch(`${API_URL}/ticket/${ticketId}`, { headers: getAuthHeaders() });
+            if (response.status === 404) return null;
+            if (!response.ok) throw new Error('Failed to fetch SLA record by ticket ID');
+            const result = await response.json();
+            return result.data;
+        } catch (error) {
+            console.error('Error fetching SLA record:', error);
+            return null; // Handle without throwing heavily for UI continuity
+        }
+    },
+
+    createSLARecord: async (ticketId: string, startDate: string, startTime: string): Promise<SLARecord> => {
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ ticketId, startDate, startTime })
+            });
+            if (!response.ok) throw new Error('Failed to create SLA record');
+            const result = await response.json();
+            return result.data;
+        } catch (error) {
+            console.error('Error creating SLA record:', error);
+            throw error;
+        }
+    },
+
+    updateSLAClosure: async (ticketId: string, closeDate: string, closedTime: string): Promise<SLARecord> => {
+        try {
+            const response = await fetch(`${API_URL}/ticket/${ticketId}/closure`, {
+                method: 'PATCH',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ closeDate, closedTime })
+            });
+            if (!response.ok) throw new Error('Failed to update SLA record closure');
+            const result = await response.json();
+            return result.data;
+        } catch (error) {
+            console.error('Error updating SLA record closure:', error);
+            throw error;
+        }
+    },
+
     updateSLARecordStatus: async (id: string, status: 'Breached' | 'Safe', reason: string): Promise<SLARecord> => {
         try {
             const response = await fetch(`${API_URL}/${id}/status`, {

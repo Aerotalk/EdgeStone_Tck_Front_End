@@ -318,7 +318,7 @@ const SLAPage: React.FC = () => {
                                                 <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400">
                                                     <Clock size={14} />
                                                 </div>
-                                                {record.closedTime}
+                                                {record.closedTime || '-'}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
@@ -326,43 +326,47 @@ const SLAPage: React.FC = () => {
                                                 <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400">
                                                     <Calendar size={14} />
                                                 </div>
-                                                {record.closeDate}
+                                                {record.closeDate || '-'}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-sm font-medium text-gray-600">
                                             {calculateDowntime(record)}
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="flex items-center gap-2">
-                                                <div className={`relative flex items-center gap-1.5 px-3 py-1 rounded-full shadow-sm text-[12px] font-bold ${
-                                                    (statusModal.isOpen && statusModal.recordId === record.id ? statusModal.newStatus || record.status : record.status) === 'Breached' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'
-                                                }`}>
-                                                    <span className={`w-1.5 h-1.5 rounded-full ${(statusModal.isOpen && statusModal.recordId === record.id ? statusModal.newStatus || record.status : record.status) === 'Breached' ? 'bg-red-500' : 'bg-green-500'}`} />
-                                                    <select
-                                                        value={statusModal.isOpen && statusModal.recordId === record.id ? statusModal.newStatus || record.status : record.status}
-                                                        onChange={(e) => {
-                                                            setStatusModal({ isOpen: true, recordId: record.id, newStatus: e.target.value as 'Safe' | 'Breached', reason: '' });
-                                                        }}
-                                                        className={`bg-transparent cursor-pointer outline-none border-none appearance-none font-bold pr-1`}
-                                                    >
-                                                        <option value="Safe" className="text-green-600">Safe</option>
-                                                        <option value="Breached" className="text-red-600">Breached</option>
-                                                    </select>
-                                                </div>
-                                                {record.statusReason && (
-                                                    <div className="relative group flex items-center justify-center cursor-help text-gray-400 hover:text-gray-600 transition-colors">
-                                                        <Info size={16} />
-                                                        {/* Custom Styled Tooltip */}
-                                                        <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-48 p-2.5 bg-gray-900 text-white text-xs font-medium rounded-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all shadow-xl z-50 pointer-events-none text-center">
-                                                            {record.statusReason}
-                                                            <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
-                                                        </div>
+                                            {record.status ? (
+                                                <div className="flex items-center gap-2">
+                                                    <div className={`relative flex items-center gap-1.5 px-3 py-1 rounded-full shadow-sm text-[12px] font-bold ${
+                                                        (statusModal.isOpen && statusModal.recordId === record.id ? statusModal.newStatus || record.status : record.status) === 'Breached' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'
+                                                    }`}>
+                                                        <span className={`w-1.5 h-1.5 rounded-full ${(statusModal.isOpen && statusModal.recordId === record.id ? statusModal.newStatus || record.status : record.status) === 'Breached' ? 'bg-red-500' : 'bg-green-500'}`} />
+                                                        <select
+                                                            value={statusModal.isOpen && statusModal.recordId === record.id ? statusModal.newStatus || record.status : record.status}
+                                                            onChange={(e) => {
+                                                                setStatusModal({ isOpen: true, recordId: record.id, newStatus: e.target.value as 'Safe' | 'Breached', reason: '' });
+                                                            }}
+                                                            className={`bg-transparent cursor-pointer outline-none border-none appearance-none font-bold pr-1`}
+                                                        >
+                                                            <option value="Safe" className="text-green-600">Safe</option>
+                                                            <option value="Breached" className="text-red-600">Breached</option>
+                                                        </select>
                                                     </div>
-                                                )}
-                                            </div>
+                                                    {record.statusReason && (
+                                                        <div className="relative group flex items-center justify-center cursor-help text-gray-400 hover:text-gray-600 transition-colors">
+                                                            <Info size={16} />
+                                                            {/* Custom Styled Tooltip */}
+                                                            <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-48 p-2.5 bg-gray-900 text-white text-xs font-medium rounded-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all shadow-xl z-50 pointer-events-none text-center">
+                                                                {record.statusReason}
+                                                                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <div className="text-sm font-medium text-gray-400">-</div>
+                                            )}
                                         </td>
                                         <td className="px-6 py-4 text-sm font-medium text-gray-600">
-                                            {record.compensation}
+                                            {record.compensation || '-'}
                                         </td>
                                     </tr>
                                 )) : (

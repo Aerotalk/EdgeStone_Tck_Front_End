@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { ChevronUp, Ticket as TicketIcon, X, Send, Trash2, CheckCircle, Plus, Calendar, Clock } from 'lucide-react';
 import { useParams } from 'react-router-dom';
 import { formatDateIST, formatTimeIST, nowDateIST, nowTimeIST } from '../../utils/dateUtils';
+import { slaRecordService } from '../../services/slaRecordService';
+import { toast } from 'react-hot-toast';
 
 const SUPPORT_AGENTS = [
     { id: 'agent-1', name: 'Soumyajit' },
@@ -95,6 +97,37 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
         };
 
         fetchActivityLogs();
+
+        // Fetch SLA Record from Backend
+        const fetchSLARecord = async () => {
+            try {
+                const record = await slaRecordService.getSLARecordByTicketId(ticket.id);
+                if (record) {
+                    if (record.closeDate) {
+                        setSlaCloseDate(record.closeDate);
+                        localStorage.setItem(`sla_close_date_${ticket.id}`, record.closeDate);
+                    }
+                    if (record.closedTime) {
+                        setSlaCloseTime(record.closedTime);
+                        localStorage.setItem(`sla_close_time_${ticket.id}`, record.closedTime);
+                    }
+                } else {
+                    // Try to initialize a record if it doesn't exist
+                    const baseTime = new Date(ticket.receivedAt || ticket.createdAt || new Date());
+                    const slaStartTime = new Date(baseTime.getTime() + 60000);
+                    
+                    const startDateStr = formatDateIST(slaStartTime, { day: 'numeric', month: 'short', year: 'numeric' });
+                    const startTimeStr = formatTimeIST(slaStartTime) + ' hrs';
+                    
+                    // Fire-and-forget SLA Record Creation depending on strictness
+                    // slaRecordService.createSLARecord(ticket.id, startDateStr, startTimeStr).catch(() => {});
+                }
+            } catch (error) {
+                console.error('Failed to fetch SLA details:', error);
+            }
+        };
+
+        fetchSLARecord();
     }, [ticket.id]);
 
     const handleAddNote = () => {
@@ -117,16 +150,28 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
         localStorage.setItem(`ticket_notes_${ticket.id}`, JSON.stringify(updatedNotes));
     };
 
-    const handleSaveDate = () => {
+    const handleSaveDate = async () => {
         setSlaCloseDate(tempDate);
         localStorage.setItem(`sla_close_date_${ticket.id}`, tempDate);
         setShowDateModal(false);
+        try {
+            await slaRecordService.updateSLAClosure(ticket.id, tempDate, slaCloseTime);
+            toast.success('SLA date updated in records');
+        } catch (error) {
+            console.error('Failed to update SLA close date in backend', error);
+        }
     };
 
-    const handleSaveTime = () => {
+    const handleSaveTime = async () => {
         setSlaCloseTime(tempTime);
         localStorage.setItem(`sla_close_time_${ticket.id}`, tempTime);
         setShowTimeModal(false);
+        try {
+            await slaRecordService.updateSLAClosure(ticket.id, slaCloseDate, tempTime);
+            toast.success('SLA time updated in records');
+        } catch (error) {
+            console.error('Failed to update SLA close time in backend', error);
+        }
     };
 
     return (
