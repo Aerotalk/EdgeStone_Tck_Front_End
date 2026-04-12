@@ -141,6 +141,13 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
         const startDateStr = formatDateIST(slaStart, { day: 'numeric', month: 'short', year: 'numeric' });
         const startTimeStr = formatTimeIST(slaStart) + ' hrs';
 
+        // Immediately map and create the SLA row (runs outside the try-catch to ensure local mocks work)
+        try {
+            await slaRecordService.createSLARecord(ticket.id, ticket.ticketId, startDateStr, startTimeStr);
+        } catch (e) {
+            console.warn('SLA Record map error:', e);
+        }
+
         // Persist to DB — this is what other accounts will see
         try {
             await ticketService.updateTicket(ticket.id, {
@@ -148,8 +155,6 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                 priority: selectedPriority,
                 status: newStatus,
             });
-            // Immediately map and create the SLA row
-            await slaRecordService.createSLARecord(ticket.id, ticket.ticketId, startDateStr, startTimeStr);
         } catch (error: any) {
             console.error('Failed to save circuit/priority to DB:', error);
             // UI already updated — don't block the agent, just log it
