@@ -41,8 +41,11 @@ export const clientService = {
             const error = await response.json().catch(() => ({ message: 'Failed to fetch clients' }));
             throw new Error(error.message);
         }
-        return response.json();
+        // Backend returns { success: true, data: Client[] }
+        const result = await response.json();
+        return result.data ?? result;
     },
+
 
     createClient: async (data: CreateClientData): Promise<Client> => {
         console.log('🔵 Creating client:', data);

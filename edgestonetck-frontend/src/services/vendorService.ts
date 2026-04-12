@@ -41,8 +41,11 @@ export const vendorService = {
             const error = await response.json().catch(() => ({ message: 'Failed to fetch vendors' }));
             throw new Error(error.message);
         }
-        return response.json();
+        // Backend returns { success: true, data: Vendor[] }
+        const result = await response.json();
+        return result.data ?? result;
     },
+
 
     createVendor: async (data: CreateVendorData): Promise<Vendor> => {
         console.log('🔵 Creating vendor:', data);
