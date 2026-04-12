@@ -18,7 +18,7 @@ import { toast } from 'react-hot-toast';
 import { TicketInfoSidebar } from './TicketInfoSidebar';
 
 import { ticketService, type Reply, type Ticket } from '../../services/ticketService';
-import { slaRecordService } from '../../services/slaRecordService';
+import { getAuthHeaders, API_URL_SLA } from '../../types/sla';
 import { formatDateIST, formatTimeIST, nowDateIST, nowTimeIST } from '../../utils/dateUtils';
 
 // ... (keep imports)
@@ -141,9 +141,14 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
         const startDateStr = formatDateIST(slaStart, { day: 'numeric', month: 'short', year: 'numeric' });
         const startTimeStr = formatTimeIST(slaStart) + ' hrs';
 
-        // Immediately map and create the SLA row (runs outside the try-catch to ensure local mocks work)
+        // Immediately map and create the SLA row
         try {
-            await slaRecordService.createSLARecord(ticket.id, ticket.ticketId, startDateStr, startTimeStr);
+            const response = await fetch(API_URL_SLA, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ id: ticket.id, ticketId: ticket.ticketId, startDate: startDateStr, startTime: startTimeStr })
+            });
+            if (!response.ok) throw new Error('API failed gracefully');
         } catch (e) {
             console.warn('SLA Record map error:', e);
         }

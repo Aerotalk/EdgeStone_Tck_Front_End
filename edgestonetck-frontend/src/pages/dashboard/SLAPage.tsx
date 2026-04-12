@@ -15,7 +15,7 @@ import { toast } from 'react-hot-toast';
 import { DatePickerDropdown, type FilterType } from '../../components/ui/DatePickerDropdown';
 import { SLARulesModal } from '../../components/ui/SLARulesModal';
 
-import { slaRecordService, type SLARecord } from '../../services/slaRecordService';
+import { type SLARecord, getAuthHeaders, API_URL_SLA } from '../../types/sla';
 
 const SLAPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'Client' | 'Vendor'>('Client');
@@ -35,8 +35,9 @@ const SLAPage: React.FC = () => {
 
     const fetchRecords = async () => {
         try {
-            const data = await slaRecordService.getAllSLARecords();
-            setRecords(data);
+            const response = await fetch(API_URL_SLA, { headers: getAuthHeaders() }).catch(() => ({ ok: false, json: async () => ({ data: [] }) }));
+            const result = response.ok ? await (response as any).json() : { data: [] };
+            setRecords(result.data || []);
         } catch (error) {
             console.error('Failed to load SLA records:', error);
         }
@@ -65,7 +66,13 @@ const SLAPage: React.FC = () => {
         }
 
         try {
-            await slaRecordService.updateSLARecordStatus(statusModal.recordId, statusModal.newStatus, statusModal.reason);
+            const response = await fetch(`${API_URL_SLA}/${statusModal.recordId}/status`, {
+                method: 'PUT',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ status: statusModal.newStatus, reason: statusModal.reason })
+            });
+            if (!response.ok) throw new Error('Failed to update SLA record status');
+            
             // Re-fetch or manually update state
             setRecords(prev => prev.map(r => {
                 if (r.id === statusModal.recordId) {
