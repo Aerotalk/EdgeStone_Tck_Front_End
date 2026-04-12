@@ -113,8 +113,8 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                     }
                 } else {
                     // Try to initialize a record if it doesn't exist
-                    const baseTime = new Date(ticket.receivedAt || ticket.createdAt || new Date());
-                    const slaStartTime = new Date(baseTime.getTime() + 60000);
+                    // const baseTime = new Date(ticket.receivedAt || ticket.createdAt || new Date());
+                    // const slaStartTime = new Date(baseTime.getTime() + 60000);
                     
                     // const startDateStr = formatDateIST(slaStartTime, { day: 'numeric', month: 'short', year: 'numeric' });
                     // const startTimeStr = formatTimeIST(slaStartTime) + ' hrs';
