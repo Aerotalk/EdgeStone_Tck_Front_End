@@ -18,6 +18,7 @@ import { toast } from 'react-hot-toast';
 import { TicketInfoSidebar } from './TicketInfoSidebar';
 
 import { ticketService, type Reply, type Ticket } from '../../services/ticketService';
+import { slaRecordService } from '../../services/slaRecordService';
 import { formatDateIST, formatTimeIST, nowDateIST, nowTimeIST } from '../../utils/dateUtils';
 
 // ... (keep imports)
@@ -134,6 +135,12 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
         localStorage.setItem(`confirmed_priority_${ticket.id}`, selectedPriority);
         localStorage.setItem(`ticket_status_${ticket.id}`, newStatus);
 
+        // Calculate mapped SLA start details 
+        const baseTime = new Date(ticket.receivedAt || ticket.createdAt || new Date());
+        const slaStart = new Date(baseTime.getTime() + 60000); // starts 1 min after
+        const startDateStr = formatDateIST(slaStart, { day: 'numeric', month: 'short', year: 'numeric' });
+        const startTimeStr = formatTimeIST(slaStart) + ' hrs';
+
         // Persist to DB — this is what other accounts will see
         try {
             await ticketService.updateTicket(ticket.id, {
@@ -141,6 +148,8 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                 priority: selectedPriority,
                 status: newStatus,
             });
+            // Immediately map and create the SLA row
+            await slaRecordService.createSLARecord(ticket.id, ticket.ticketId, startDateStr, startTimeStr);
         } catch (error: any) {
             console.error('Failed to save circuit/priority to DB:', error);
             // UI already updated — don't block the agent, just log it
