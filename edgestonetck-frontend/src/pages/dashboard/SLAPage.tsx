@@ -9,6 +9,12 @@ import {
     Filter,
     Info,
     X,
+    Activity,
+    AlertTriangle,
+    CheckCircle2,
+    Zap,
+    ChevronDown,
+    ChevronUp,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -16,7 +22,158 @@ import { DatePickerDropdown, type FilterType } from '../../components/ui/DatePic
 import { SLARulesModal } from '../../components/ui/SLARulesModal';
 
 import { slaRecordService, type SLARecord } from '../../services/slaRecordService';
+import { slaService, type Sla } from '../../services/slaRuleService';
 import { formatDateIST, formatTimeIST } from '../../utils/dateUtils';
+
+// ─── Circuit Availability Card ─────────────────────────────
+interface CircuitGroup {
+    circuitDisplayId: string;
+    circuitId: string;
+    vendorSlas: Sla[];
+    customerSlas: Sla[];
+}
+
+const AvailabilityRing: React.FC<{ pct: number; breached: boolean }> = ({ pct, breached }) => {
+    const radius = 28;
+    const circ = 2 * Math.PI * radius;
+    const offset = circ - (pct / 100) * circ;
+    const color = breached ? '#EF4444' : pct >= 99.5 ? '#22C55E' : pct >= 99 ? '#F59E0B' : '#EF4444';
+    return (
+        <svg width="72" height="72" className="rotate-[-90deg]">
+            <circle cx="36" cy="36" r={radius} fill="none" stroke="#F3F4F6" strokeWidth="6" />
+            <circle
+                cx="36" cy="36" r={radius} fill="none"
+                stroke={color} strokeWidth="6"
+                strokeDasharray={circ}
+                strokeDashoffset={offset}
+                strokeLinecap="round"
+                style={{ transition: 'stroke-dashoffset 0.8s ease' }}
+            />
+        </svg>
+    );
+};
+
+const CircuitAvailabilityPanel: React.FC = () => {
+    const [groups, setGroups] = useState<CircuitGroup[]>([]);
+    const [expanded, setExpanded] = useState(true);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        slaService.getGroupedSlas().then(data => {
+            setGroups(Object.values(data));
+            setLoading(false);
+        }).catch(() => setLoading(false));
+    }, []);
+
+    if (loading) return (
+        <div className="px-4 sm:px-8 pt-6">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex items-center gap-3 text-gray-400">
+                <Activity size={18} className="animate-pulse" />
+                <span className="text-sm font-medium">Loading circuit availability...</span>
+            </div>
+        </div>
+    );
+
+    if (!groups.length) return null;
+
+    return (
+        <div className="px-4 sm:px-8 pt-6 pb-2">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                {/* Panel header */}
+                <button
+                    className="w-full flex items-center justify-between px-6 py-4 border-b border-gray-50 hover:bg-gray-50/50 transition-colors"
+                    onClick={() => setExpanded(e => !e)}
+                >
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
+                            <Activity size={16} className="text-indigo-500" />
+                        </div>
+                        <div className="text-left">
+                            <p className="text-[14px] font-bold text-gray-900">Circuit Availability Dashboard</p>
+                            <p className="text-[12px] text-gray-400 font-medium">{groups.length} active circuit{groups.length !== 1 ? 's' : ''} tracked</p>
+                        </div>
+                    </div>
+                    {expanded ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+                </button>
+
+                {expanded && (
+                    <div className="p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                        {groups.map(group => {
+                            const allSlas = [...group.vendorSlas, ...group.customerSlas];
+                            return allSlas.map(sla => {
+                                const avail = sla.availabilityFactor ?? 100;
+                                const breached = sla.status === 'BREACHED';
+                                const downtimeHrs = (sla.totalDowntimeMinutes / 60).toFixed(1);
+
+                                return (
+                                    <div key={sla.id} className={`relative rounded-xl border p-5 flex gap-4 items-start transition-all ${breached ? 'border-red-100 bg-red-50/30' : 'border-gray-100 bg-gray-50/30'}`}>
+                                        {/* Ring */}
+                                        <div className="relative flex-shrink-0">
+                                            <AvailabilityRing pct={avail} breached={breached} />
+                                            <div className="absolute inset-0 flex items-center justify-center">
+                                                <span className={`text-[11px] font-black ${breached ? 'text-red-500' : 'text-gray-800'}`}>
+                                                    {avail.toFixed(2)}%
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* Details */}
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-start justify-between gap-2 mb-2">
+                                                <div>
+                                                    <p className="text-[13px] font-black text-gray-900 truncate">{group.circuitDisplayId}</p>
+                                                    <p className="text-[11px] text-gray-400 font-medium mt-0.5">
+                                                        {sla.appliesTo === 'VENDOR' ? sla.vendor?.name ?? 'Vendor SLA' : sla.customer?.name ?? 'Customer SLA'}
+                                                        {' · '}
+                                                        <span className={`font-bold ${sla.appliesTo === 'VENDOR' ? 'text-orange-500' : 'text-indigo-500'}`}>
+                                                            {sla.appliesTo === 'VENDOR' ? 'Vendor' : 'Client'}
+                                                        </span>
+                                                    </p>
+                                                </div>
+                                                {breached ? (
+                                                    <span className="flex-shrink-0 flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-600 rounded-full text-[10px] font-bold">
+                                                        <AlertTriangle size={10} /> BREACHED
+                                                    </span>
+                                                ) : (
+                                                    <span className="flex-shrink-0 flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-600 rounded-full text-[10px] font-bold">
+                                                        <CheckCircle2 size={10} /> SAFE
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div className="bg-white rounded-lg px-3 py-2 border border-gray-100">
+                                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Total Downtime</p>
+                                                    <p className="text-[13px] font-black text-gray-800 mt-0.5">{sla.totalDowntimeMinutes} min</p>
+                                                    <p className="text-[10px] text-gray-400">{downtimeHrs} hrs</p>
+                                                </div>
+                                                <div className="bg-white rounded-lg px-3 py-2 border border-gray-100">
+                                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Compensation</p>
+                                                    <p className={`text-[13px] font-black mt-0.5 ${sla.compensationAmount > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                                        {sla.compensationAmount > 0 ? `${sla.compensationAmount}%` : 'None'}
+                                                    </p>
+                                                    <p className="text-[10px] text-gray-400">of MRC</p>
+                                                </div>
+                                            </div>
+
+                                            {sla.statusReason && (
+                                                <p className="mt-2 text-[10px] text-gray-400 leading-relaxed line-clamp-2">
+                                                    <Zap size={9} className="inline mr-1 text-yellow-400" />
+                                                    {sla.statusReason}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            });
+                        })}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+// ──────────────────────────────────────────────────────────
 
 const SLAPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'Client' | 'Vendor'>('Client');
@@ -152,6 +309,9 @@ const SLAPage: React.FC = () => {
                 isOpen={isSLARulesModalOpen}
                 onClose={() => setIsSLARulesModalOpen(false)}
             />
+
+            {/* Circuit Availability Dashboard */}
+            <CircuitAvailabilityPanel />
 
             {/* Custom Sub-Header */}
             <div className="bg-white border-b border-gray-100 flex-shrink-0 z-10">
