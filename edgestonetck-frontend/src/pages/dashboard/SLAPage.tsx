@@ -62,6 +62,12 @@ const SLAPage: React.FC = () => {
                     displayStartDate: newDisplayStartDate
                 };
             });
+            // Sort by ticketId descending (e.g. #1064 > #1063)
+            adjustedRecords.sort((a, b) => {
+                const idA = parseInt(a.ticketId.replace(/[^0-9]/g, ''), 10) || 0;
+                const idB = parseInt(b.ticketId.replace(/[^0-9]/g, ''), 10) || 0;
+                return idB - idA;
+            });
             
             setRecords(adjustedRecords);
         } catch (error) {
