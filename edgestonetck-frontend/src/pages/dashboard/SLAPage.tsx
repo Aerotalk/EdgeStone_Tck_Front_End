@@ -16,6 +16,7 @@ import { DatePickerDropdown, type FilterType } from '../../components/ui/DatePic
 import { SLARulesModal } from '../../components/ui/SLARulesModal';
 
 import { slaRecordService, type SLARecord } from '../../services/slaRecordService';
+import { formatDateIST, formatTimeIST } from '../../utils/dateUtils';
 
 const SLAPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'Client' | 'Vendor'>('Client');
@@ -45,7 +46,37 @@ const SLAPage: React.FC = () => {
                 customStart: appliedCustomRange.start,
                 customEnd: appliedCustomRange.end
             });
-            setRecords(serverRecords);
+
+            // Adjust the UTC times provided by the backend to IST
+            const adjustedRecords = serverRecords.map(record => {
+                let newStartTime = record.startTime;
+                let newDisplayStartDate = record.displayStartDate;
+                
+                if (record.displayStartDate && record.startTime) {
+                    const startRawStr = `${record.displayStartDate} ${record.startTime.replace(' hrs', '')} UTC`;
+                    const startDt = new Date(startRawStr);
+                    if (!isNaN(startDt.getTime())) {
+                        newStartTime = formatTimeIST(startDt) + ' hrs';
+                        // Keep displayStartDate as "DD MMM YYYY" format 
+                        newDisplayStartDate = formatDateIST(startDt, { day: 'numeric', month: 'short', year: 'numeric' });
+                    }
+                }
+
+                return {
+                    ...record,
+                    startTime: newStartTime,
+                    displayStartDate: newDisplayStartDate
+                };
+            });
+
+            // Sort by ticketId descending (e.g. #1064 > #1063)
+            adjustedRecords.sort((a, b) => {
+                const idA = parseInt(a.ticketId.replace(/[^0-9]/g, ''), 10) || 0;
+                const idB = parseInt(b.ticketId.replace(/[^0-9]/g, ''), 10) || 0;
+                return idB - idA;
+            });
+
+            setRecords(adjustedRecords);
         } catch (error) {
             console.error('Failed to load SLA records:', error);
         }
