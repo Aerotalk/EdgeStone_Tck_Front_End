@@ -16,6 +16,7 @@ import { DatePickerDropdown, type FilterType } from '../../components/ui/DatePic
 import { SLARulesModal } from '../../components/ui/SLARulesModal';
 
 import { type SLARecord, getAuthHeaders, API_URL_SLA } from '../../types/sla';
+import { formatDateIST, formatTimeIST } from '../../utils/dateUtils';
 
 const SLAPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'Client' | 'Vendor'>('Client');
@@ -37,7 +38,32 @@ const SLAPage: React.FC = () => {
         try {
             const response = await fetch(API_URL_SLA, { headers: getAuthHeaders() }).catch(() => ({ ok: false, json: async () => ({ data: [] }) }));
             const result = response.ok ? await (response as any).json() : { data: [] };
-            setRecords(result.data || []);
+            
+            const serverRecords: SLARecord[] = result.data || [];
+            
+            // Adjust the UTC times provided by the backend to IST
+            const adjustedRecords = serverRecords.map(record => {
+                let newStartTime = record.startTime;
+                let newDisplayStartDate = record.displayStartDate;
+                
+                if (record.displayStartDate && record.startTime) {
+                    const startRawStr = `${record.displayStartDate} ${record.startTime.replace(' hrs', '')} UTC`;
+                    const startDt = new Date(startRawStr);
+                    if (!isNaN(startDt.getTime())) {
+                        newStartTime = formatTimeIST(startDt) + ' hrs';
+                        // Keep displayStartDate as "DD MMM YYYY" format 
+                        newDisplayStartDate = formatDateIST(startDt, { day: 'numeric', month: 'short', year: 'numeric' });
+                    }
+                }
+
+                return {
+                    ...record,
+                    startTime: newStartTime,
+                    displayStartDate: newDisplayStartDate
+                };
+            });
+            
+            setRecords(adjustedRecords);
         } catch (error) {
             console.error('Failed to load SLA records:', error);
         }
