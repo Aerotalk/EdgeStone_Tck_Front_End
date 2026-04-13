@@ -11,7 +11,8 @@ import {
     ChevronRight,
     MoreVertical,
     LogOut,
-    X
+    X,
+    Zap
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -34,6 +35,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ agentName, isMobileOpen, onClo
         { icon: Files, label: 'Tickets', path: 'tickets' },
         { icon: UserIcon, label: 'Client', path: 'clients' },
         { icon: Building2, label: 'Vendor', path: 'vendors' },
+        { icon: Zap, label: 'Circuits', path: 'circuits' },
         { icon: UserPlus, label: 'Assign agent', path: 'assign-agents', superAdminOnly: true },
         { icon: FileText, label: 'SLA', path: 'sla' },
     ];

@@ -7,6 +7,7 @@ import ClientsPage from './pages/dashboard/ClientsPage'
 import VendorsPage from './pages/dashboard/VendorsPage'
 import AssignAgentsPage from './pages/dashboard/AssignAgentsPage'
 import SLAPage from './pages/dashboard/SLAPage'
+import CircuitsPage from './pages/dashboard/CircuitsPage'
 import { AuthProvider } from './contexts/AuthContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { Toaster } from 'react-hot-toast'
@@ -27,6 +28,7 @@ function App() {
             <Route path="tickets" element={<TicketsPage />} />
             <Route path="clients" element={<ClientsPage />} />
             <Route path="vendors" element={<VendorsPage />} />
+            <Route path="circuits" element={<CircuitsPage />} />
             <Route path="assign-agents" element={
               <ProtectedRoute requireSuperAdmin={true}>
                 <AssignAgentsPage />
