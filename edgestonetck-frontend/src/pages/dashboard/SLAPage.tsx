@@ -215,10 +215,12 @@ const SLAPage: React.FC = () => {
                         const cleanStartTime = record.startTime.replace(' hrs', '').trim();
                         const cleanEndTime = record.closedTime.replace(' hrs', '').trim();
                         
-                        // Parse dates assuming YYYY-MM-DD and HH:mm formats.
-                        // Replacing '-' with '/' can sometimes help older browsers, but standard 'T' separator is best.
-                        const start = new Date(`${record.startDate}T${cleanStartTime}:00`);
-                        const end = new Date(`${record.closeDate}T${cleanEndTime}:00`);
+                        // Parse dates securely handling both "YYYY-MM-DD" and "DD MMM YYYY" formats
+                        const startStr = record.startDate.includes('-') ? `${record.startDate}T${cleanStartTime}:00` : `${record.startDate} ${cleanStartTime}:00`;
+                        const endStr = record.closeDate.includes('-') ? `${record.closeDate}T${cleanEndTime}:00` : `${record.closeDate} ${cleanEndTime}:00`;
+                        
+                        const start = new Date(startStr);
+                        const end = new Date(endStr);
                         
                         if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
                             const diffMs = end.getTime() - start.getTime();
