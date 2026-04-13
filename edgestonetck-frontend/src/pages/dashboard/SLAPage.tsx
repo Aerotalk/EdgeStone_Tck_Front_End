@@ -102,7 +102,7 @@ const SLAPage: React.FC = () => {
             }
 
             const itemDate = new Date(item.startDate);
-            const today = new Date('2026-01-09'); // Using mock "today"
+            const today = new Date(); // Use actual today
 
             if (appliedFilter === 'all') return true;
 

@@ -53,8 +53,8 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
     const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
 
     // SLA Close states
-    const [slaCloseDate, setSlaCloseDate] = useState(() => localStorage.getItem(`sla_close_date_${ticket.id}`) || '');
-    const [slaCloseTime, setSlaCloseTime] = useState(() => localStorage.getItem(`sla_close_time_${ticket.id}`) || '');
+    const [slaCloseDate, setSlaCloseDate] = useState('');
+    const [slaCloseTime, setSlaCloseTime] = useState('');
 
     // Modal states
     const [showDateModal, setShowDateModal] = useState(false);
@@ -109,11 +109,9 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                 if (record) {
                     if (record.closeDate) {
                         setSlaCloseDate(record.closeDate);
-                        localStorage.setItem(`sla_close_date_${ticket.id}`, record.closeDate);
                     }
                     if (record.closedTime) {
                         setSlaCloseTime(record.closedTime);
-                        localStorage.setItem(`sla_close_time_${ticket.id}`, record.closedTime);
                     }
                 }
             } catch (error) {
@@ -146,7 +144,6 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
 
     const handleSaveDate = async () => {
         setSlaCloseDate(tempDate);
-        localStorage.setItem(`sla_close_date_${ticket.id}`, tempDate);
         setShowDateModal(false);
         try {
             const response = await fetch(`${API_URL_SLA}/ticket/${ticket.id}/closure`, {
@@ -164,7 +161,6 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
 
     const handleSaveTime = async () => {
         setSlaCloseTime(tempTime);
-        localStorage.setItem(`sla_close_time_${ticket.id}`, tempTime);
         setShowTimeModal(false);
         try {
             const response = await fetch(`${API_URL_SLA}/ticket/${ticket.id}/closure`, {
