@@ -64,12 +64,7 @@ const SLAPage: React.FC = () => {
         }
 
         try {
-            const response = await fetch(`${API_URL_SLA}/${statusModal.recordId}/status`, {
-                method: 'PUT',
-                headers: getAuthHeaders(),
-                body: JSON.stringify({ status: statusModal.newStatus, reason: statusModal.reason })
-            });
-            if (!response.ok) throw new Error('Failed to update SLA record status');
+            await slaRecordService.updateSLARecordStatus(statusModal.recordId, statusModal.newStatus, statusModal.reason);
             
             // Re-fetch or manually update state
             setRecords(prev => prev.map(r => {
