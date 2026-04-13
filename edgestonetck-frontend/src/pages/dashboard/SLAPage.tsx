@@ -226,11 +226,9 @@ const SLAPage: React.FC = () => {
                             const diffMs = end.getTime() - start.getTime();
                             if (diffMs >= 0) {
                                 const diffMins = Math.floor(diffMs / 60000);
-                                const hours = Math.floor(diffMins / 60);
-                                const mins = diffMins % 60;
-                                downtimeStr = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+                                downtimeStr = `${diffMins}`;
                             } else {
-                                downtimeStr = '00:00';
+                                downtimeStr = '0';
                             }
                         }
                     } catch (e) {
@@ -413,7 +411,7 @@ const SLAPage: React.FC = () => {
                                     </th>
                                     <th className="px-6 py-4">
                                         <div className="flex items-center gap-2 text-[12px] font-bold text-gray-400 uppercase tracking-wider">
-                                            Downtime
+                                            Downtime (in minutes)
                                         </div>
                                     </th>
                                     <th className="px-6 py-4">
