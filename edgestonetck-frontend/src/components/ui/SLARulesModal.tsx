@@ -71,6 +71,7 @@ export const SLARulesModal: React.FC<SLARulesModalProps> = ({ isOpen, onClose })
     const [selectedEntityId, setSelectedEntityId] = useState('');
     const [selectedEntityName, setSelectedEntityName] = useState('');
     const [conditions, setConditions] = useState<SlaRule[]>([{ ...emptyCondition }]);
+    const [totalPrice, setTotalPrice] = useState<number>(100000);
 
     // Dropdown open states
     const [circuitDropdownOpen, setCircuitDropdownOpen] = useState(false);
@@ -112,6 +113,7 @@ export const SLARulesModal: React.FC<SLARulesModalProps> = ({ isOpen, onClose })
         setSelectedEntityId('');
         setSelectedEntityName('');
         setConditions([{ ...emptyCondition }]);
+        setTotalPrice(100000);
         setError('');
 
         try {
@@ -197,6 +199,7 @@ export const SLARulesModal: React.FC<SLARulesModalProps> = ({ isOpen, onClose })
                     appliesTo,
                     vendorId: targetType === 'vendor' ? selectedEntityId : undefined,
                     customerId: targetType === 'customer' ? selectedEntityId : undefined,
+                    totalPrice,
                     rules: conditions,
                 });
             } else {
@@ -205,6 +208,7 @@ export const SLARulesModal: React.FC<SLARulesModalProps> = ({ isOpen, onClose })
                     appliesTo,
                     vendorId: targetType === 'vendor' ? selectedEntityId : undefined,
                     customerId: targetType === 'customer' ? selectedEntityId : undefined,
+                    totalPrice,
                     rules: conditions,
                 });
             }
@@ -229,6 +233,7 @@ export const SLARulesModal: React.FC<SLARulesModalProps> = ({ isOpen, onClose })
         setSelectedEntityId('');
         setSelectedEntityName('');
         setConditions([{ ...emptyCondition }]);
+        setTotalPrice(100000);
         setError('');
         setEditingRuleId(null);
     };
@@ -240,6 +245,7 @@ export const SLARulesModal: React.FC<SLARulesModalProps> = ({ isOpen, onClose })
         setSelectedEntityId(sla.appliesTo === 'VENDOR' ? sla.vendorId! : sla.customerId!);
         setSelectedEntityName(sla.appliesTo === 'VENDOR' ? (sla.vendor?.name || '') : (sla.customer?.name || ''));
         setConditions(sla.rules.map(r => ({ ...r })));
+        setTotalPrice(sla.totalPrice ?? 100000);
         setAddStep('define-rules');
     };
 
@@ -721,6 +727,21 @@ export const SLARulesModal: React.FC<SLARulesModalProps> = ({ isOpen, onClose })
                                     <span className="capitalize font-bold text-gray-600">{targetType}</span>
                                     <ChevronRight size={12} />
                                     <span className="font-bold text-gray-800">{selectedEntityName}</span>
+                                </div>
+
+                                <div className="mb-5">
+                                    <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2 px-1">
+                                        Total Price
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        placeholder="Enter total price"
+                                        value={totalPrice}
+                                        onChange={e => setTotalPrice(parseFloat(e.target.value) || 0)}
+                                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:outline-none focus:border-brand-red focus:ring-4 focus:ring-brand-red/5 transition-all text-gray-800"
+                                    />
                                 </div>
 
                                 <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3 px-1">

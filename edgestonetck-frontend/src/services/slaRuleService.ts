@@ -24,6 +24,7 @@ export interface Sla {
     status: string;
     statusReason: string | null;
     createdAt: string;
+    totalPrice?: number | null;
 
     // Relations
     circuit: { id: string; customerCircuitId: string; supplierCircuitId: string; type: string };
@@ -37,6 +38,7 @@ export interface CreateSlaData {
     appliesTo: 'VENDOR' | 'CUSTOMER';
     vendorId?: string;
     customerId?: string;
+    totalPrice?: number | null;
     rules: SlaRule[];
 }
 
