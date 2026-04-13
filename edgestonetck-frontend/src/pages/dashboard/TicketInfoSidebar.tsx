@@ -55,6 +55,8 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
     // SLA Close states
     const [slaCloseDate, setSlaCloseDate] = useState('');
     const [slaCloseTime, setSlaCloseTime] = useState('');
+    const [slaCompensation, setSlaCompensation] = useState('-');
+    const [slaStatus, setSlaStatus] = useState('Safe');
 
     // Modal states
     const [showDateModal, setShowDateModal] = useState(false);
@@ -112,6 +114,12 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                     }
                     if (record.closedTime) {
                         setSlaCloseTime(record.closedTime);
+                    }
+                    if (record.compensation) {
+                        setSlaCompensation(record.compensation);
+                    }
+                    if (record.status) {
+                        setSlaStatus(record.status);
                     }
                 }
             } catch (error) {
@@ -254,6 +262,26 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                             <span className={`text-[14px] font-bold ${slaCloseDate ? 'text-gray-900' : 'text-gray-600'}`}>
                                 {slaCloseDate || '-'}
                             </span>
+                        </div>
+
+                        {/* Compensation Row */}
+                        <div className="mt-2 pt-4 border-t border-gray-50">
+                            <div className="flex justify-between items-center text-[14px] mb-1">
+                                <span className="text-gray-400 font-medium">SLA Status</span>
+                                <span className={`text-[13px] font-black px-2 py-0.5 rounded-full ${
+                                    slaStatus === 'Breached' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'
+                                }`}>
+                                    {slaStatus}
+                                </span>
+                            </div>
+                            <div className="flex justify-between items-center text-[14px]">
+                                <span className="text-gray-400 font-medium">Compensation</span>
+                                <span className={`text-[14px] font-black ${
+                                    slaCompensation !== '-' ? 'text-red-600' : 'text-green-600'
+                                }`}>
+                                    {slaCompensation}
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>
