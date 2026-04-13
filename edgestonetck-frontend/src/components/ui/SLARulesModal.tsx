@@ -70,7 +70,7 @@ export const SLARulesModal: React.FC<SLARulesModalProps> = ({ isOpen, onClose })
     const [targetType, setTargetType] = useState<'vendor' | 'customer' | null>(null);
     const [selectedEntityId, setSelectedEntityId] = useState('');
     const [selectedEntityName, setSelectedEntityName] = useState('');
-    const [conditions, setConditions] = useState<SLARuleCondition[]>([{ ...emptyCondition }]);
+    const [conditions, setConditions] = useState<SlaRule[]>([{ ...emptyCondition }]);
 
     // Dropdown open states
     const [circuitDropdownOpen, setCircuitDropdownOpen] = useState(false);

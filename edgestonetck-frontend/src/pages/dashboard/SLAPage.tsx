@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Topbar } from '../../components/ui/Topbar';
 import {
     Calendar,
@@ -16,8 +16,6 @@ import { DatePickerDropdown, type FilterType } from '../../components/ui/DatePic
 import { SLARulesModal } from '../../components/ui/SLARulesModal';
 
 import { slaRecordService, type SLARecord } from '../../services/slaRecordService';
-import { getAuthHeaders, API_URL_SLA } from '../../types/sla';
-import { formatDateIST, formatTimeIST } from '../../utils/dateUtils';
 
 const SLAPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'Client' | 'Vendor'>('Client');
