@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Topbar } from '../../components/ui/Topbar';
 import {
     Calendar,
@@ -16,7 +16,6 @@ import { DatePickerDropdown, type FilterType } from '../../components/ui/DatePic
 import { SLARulesModal } from '../../components/ui/SLARulesModal';
 
 import { slaRecordService, type SLARecord } from '../../services/slaRecordService';
-import { getAuthHeaders, API_URL_SLA } from '../../types/sla';
 import { formatDateIST, formatTimeIST } from '../../utils/dateUtils';
 
 const SLAPage: React.FC = () => {
@@ -47,7 +46,37 @@ const SLAPage: React.FC = () => {
                 customStart: appliedCustomRange.start,
                 customEnd: appliedCustomRange.end
             });
-            setRecords(serverRecords);
+
+            // Adjust the UTC times provided by the backend to IST
+            const adjustedRecords = serverRecords.map(record => {
+                let newStartTime = record.startTime;
+                let newDisplayStartDate = record.displayStartDate;
+                
+                if (record.displayStartDate && record.startTime) {
+                    const startRawStr = `${record.displayStartDate} ${record.startTime.replace(' hrs', '')} UTC`;
+                    const startDt = new Date(startRawStr);
+                    if (!isNaN(startDt.getTime())) {
+                        newStartTime = formatTimeIST(startDt) + ' hrs';
+                        // Keep displayStartDate as "DD MMM YYYY" format 
+                        newDisplayStartDate = formatDateIST(startDt, { day: 'numeric', month: 'short', year: 'numeric' });
+                    }
+                }
+
+                return {
+                    ...record,
+                    startTime: newStartTime,
+                    displayStartDate: newDisplayStartDate
+                };
+            });
+
+            // Sort by ticketId descending (e.g. #1064 > #1063)
+            adjustedRecords.sort((a, b) => {
+                const idA = parseInt(a.ticketId.replace(/[^0-9]/g, ''), 10) || 0;
+                const idB = parseInt(b.ticketId.replace(/[^0-9]/g, ''), 10) || 0;
+                return idB - idA;
+            });
+
+            setRecords(adjustedRecords);
         } catch (error) {
             console.error('Failed to load SLA records:', error);
         }
@@ -66,12 +95,7 @@ const SLAPage: React.FC = () => {
         }
 
         try {
-            const response = await fetch(`${API_URL_SLA}/${statusModal.recordId}/status`, {
-                method: 'PUT',
-                headers: getAuthHeaders(),
-                body: JSON.stringify({ status: statusModal.newStatus, reason: statusModal.reason })
-            });
-            if (!response.ok) throw new Error('Failed to update SLA record status');
+            await slaRecordService.updateSLARecordStatus(statusModal.recordId, statusModal.newStatus, statusModal.reason);
             
             // Re-fetch or manually update state
             setRecords(prev => prev.map(r => {
