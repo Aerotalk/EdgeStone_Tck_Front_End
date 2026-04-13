@@ -20,12 +20,27 @@ export interface SLARecord {
     status: 'Breached' | 'Safe';
     compensation: string;
     statusReason?: string;
+    downtime: string; // Provided straight from backend now
+}
+
+export interface SLARecordFilters {
+    search?: string;
+    filter?: string;
+    customStart?: string;
+    customEnd?: string;
 }
 
 export const slaRecordService = {
-    getAllSLARecords: async (): Promise<SLARecord[]> => {
+    getAllSLARecords: async (filters?: SLARecordFilters): Promise<SLARecord[]> => {
         try {
-            const response = await fetch(API_URL, { headers: getAuthHeaders() });
+            const query = new URLSearchParams();
+            if (filters?.search) query.append('search', filters.search);
+            if (filters?.filter) query.append('filter', filters.filter);
+            if (filters?.customStart) query.append('customStart', filters.customStart);
+            if (filters?.customEnd) query.append('customEnd', filters.customEnd);
+
+            const url = query.toString() ? `${API_URL}?${query.toString()}` : API_URL;
+            const response = await fetch(url, { headers: getAuthHeaders() });
             if (!response.ok) {
                 return [];
             }
@@ -34,6 +49,34 @@ export const slaRecordService = {
         } catch (error) {
             console.error('Error fetching SLA records:', error);
             return [];
+        }
+    },
+
+    exportSLARecords: async (filters?: SLARecordFilters): Promise<void> => {
+        try {
+            const query = new URLSearchParams();
+            if (filters?.search) query.append('search', filters.search);
+            if (filters?.filter) query.append('filter', filters.filter);
+            if (filters?.customStart) query.append('customStart', filters.customStart);
+            if (filters?.customEnd) query.append('customEnd', filters.customEnd);
+
+            const url = query.toString() ? `${API_URL}/export?${query.toString()}` : `${API_URL}/export`;
+            const response = await fetch(url, { headers: getAuthHeaders() });
+            
+            if (!response.ok) throw new Error('Export failed');
+            
+            const blob = await response.blob();
+            const downloadUrl = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.download = `SLA_Report_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(downloadUrl);
+        } catch (error) {
+            console.error('Error exporting SLA records:', error);
+            throw error;
         }
     },
 

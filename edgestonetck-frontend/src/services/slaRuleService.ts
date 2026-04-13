@@ -2,46 +2,45 @@
  * SLA Rule Condition — stored as computable data for calculation.
  * 
  * Each condition defines a range for the availability factor:
- *   upperLimit [upperOperator] Av [lowerOperator] lowerLimit → compensation
- * 
- * Example: 99.5 > Av >= 99.4 → compensation = 5 (% of MRC)
- *   { upperLimit: 99.5, upperOperator: ">", lowerLimit: 99.4, lowerOperator: ">=", compensation: 5 }
- * 
- * Edge cases:
- *   - First row (no breach): Av >= 99.5 → compensation = 0
- *     { upperLimit: null, upperOperator: null, lowerLimit: 99.5, lowerOperator: ">=", compensation: 0 }
- *   - Last row (worst case): 99.0 > Av → compensation = 30
- *     { upperLimit: 99.0, upperOperator: ">", lowerLimit: null, lowerOperator: null, compensation: 30 }
+ *   upperLimit [upperOperator] Av [lowerOperator] lowerLimit → compensationPercentage
  */
-export interface SLARuleCondition {
+export interface SlaRule {
     upperLimit: number | null;
-    upperOperator: string | null;   // ">" | ">=" | "<" | "<="
+    upperOperator: string | null;   // "<" | "<="
     lowerLimit: number | null;
-    lowerOperator: string | null;   // ">" | ">=" | "<" | "<="
-    compensation: number;           // % of allocated MRC
+    lowerOperator: string | null;   // ">" | ">="
+    compensationPercentage: number; // % of MRC
 }
 
-export interface SLARule {
+export interface Sla {
     id: string;
     circuitId: string;
-    circuitDisplayId: string;
-    targetType: 'vendor' | 'customer';
-    targetId: string;
-    targetName: string;
-    conditions: SLARuleCondition[];
+    appliesTo: 'VENDOR' | 'CUSTOMER';
+    vendorId: string | null;
+    customerId: string | null;
+    totalDowntimeMinutes: number;
+    availabilityFactor: number | null;
+    compensationAmount: number;
+    status: string;
+    statusReason: string | null;
     createdAt: string;
+
+    // Relations
+    circuit: { id: string; customerCircuitId: string; supplierCircuitId: string; type: string };
+    vendor?: { id: string; name: string; status: string };
+    customer?: { id: string; name: string; status: string };
+    rules: (SlaRule & { id: string, slaId: string })[];
 }
 
-export interface CreateSLARuleData {
+export interface CreateSlaData {
     circuitId: string;
-    circuitDisplayId?: string;  // for mock store display
-    targetType: 'vendor' | 'customer';
-    targetId: string;
-    targetName?: string;        // for mock store display
-    conditions: SLARuleCondition[];
+    appliesTo: 'VENDOR' | 'CUSTOMER';
+    vendorId?: string;
+    customerId?: string;
+    rules: SlaRule[];
 }
 
-const API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/sla-rules`;
+const API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/sla`;
 
 const getAuthHeaders = () => {
     const userStr = localStorage.getItem('edgestone_user');
@@ -52,90 +51,67 @@ const getAuthHeaders = () => {
     };
 };
 
-export const slaRuleService = {
-    getAllSLARules: async (): Promise<SLARule[]> => {
+export const slaService = {
+    getAllSlas: async (): Promise<Sla[]> => {
         try {
             const response = await fetch(API_URL, { headers: getAuthHeaders() });
-            if (!response.ok) throw new Error('Failed to fetch SLA rules');
+            if (!response.ok) throw new Error('Failed to fetch SLAs');
             const result = await response.json();
             return result.data;
         } catch (error) {
-            console.error('Error fetching SLA rules:', error);
+            console.error('Error fetching SLAs:', error);
             throw error;
         }
     },
 
-    createSLARule: async (data: CreateSLARuleData): Promise<SLARule> => {
+    getGroupedSlas: async (): Promise<Record<string, { circuitDisplayId: string; circuitId: string; vendorSlas: Sla[]; customerSlas: Sla[] }>> => {
+        try {
+            const response = await fetch(`${API_URL}/grouped`, { headers: getAuthHeaders() });
+            if (!response.ok) throw new Error('Failed to fetch grouped SLAs');
+            const result = await response.json();
+            return result.data;
+        } catch (error) {
+            console.error('Error fetching grouped SLAs:', error);
+            throw error;
+        }
+    },
+
+    createSla: async (data: CreateSlaData): Promise<Sla> => {
         try {
             const response = await fetch(API_URL, {
                 method: 'POST',
                 headers: getAuthHeaders(),
                 body: JSON.stringify(data)
             });
-            if (!response.ok) throw new Error('Failed to create SLA rule');
+            if (!response.ok) {
+                const result = await response.json().catch(() => ({}));
+                throw new Error(result.message || 'Failed to create SLA');
+            }
             const result = await response.json();
             return result.data;
         } catch (error) {
-            console.error('Error creating SLA rule:', error);
+            console.error('Error creating SLA:', error);
             throw error;
         }
     },
 
-    updateSLARule: async (id: string, data: CreateSLARuleData): Promise<SLARule> => {
+    updateSla: async (id: string, data: CreateSlaData): Promise<Sla> => {
         try {
             const response = await fetch(`${API_URL}/${id}`, {
                 method: 'PUT',
                 headers: getAuthHeaders(),
                 body: JSON.stringify(data)
             });
-            if (!response.ok) throw new Error('Failed to update SLA rule');
+            if (!response.ok) {
+                const result = await response.json().catch(() => ({}));
+                throw new Error(result.message || 'Failed to update SLA');
+            }
             const result = await response.json();
             return result.data;
         } catch (error) {
-            console.error('Error updating SLA rule:', error);
+            console.error('Error updating SLA:', error);
             throw error;
         }
     }
 };
 
-/**
- * Utility: Evaluate a single condition against an availability factor.
- * Returns true if the availability factor falls within this condition's range.
- */
-export const evaluateCondition = (availabilityFactor: number, condition: SLARuleCondition): boolean => {
-    let upperOk = true;
-    let lowerOk = true;
-
-    if (condition.upperLimit !== null && condition.upperOperator !== null) {
-        switch (condition.upperOperator) {
-            case '>':  upperOk = condition.upperLimit > availabilityFactor; break;
-            case '>=': upperOk = condition.upperLimit >= availabilityFactor; break;
-            case '<':  upperOk = condition.upperLimit < availabilityFactor; break;
-            case '<=': upperOk = condition.upperLimit <= availabilityFactor; break;
-        }
-    }
-
-    if (condition.lowerLimit !== null && condition.lowerOperator !== null) {
-        switch (condition.lowerOperator) {
-            case '>':  lowerOk = availabilityFactor > condition.lowerLimit; break;
-            case '>=': lowerOk = availabilityFactor >= condition.lowerLimit; break;
-            case '<':  lowerOk = availabilityFactor < condition.lowerLimit; break;
-            case '<=': lowerOk = availabilityFactor <= condition.lowerLimit; break;
-        }
-    }
-
-    return upperOk && lowerOk;
-};
-
-/**
- * Utility: Find the matching compensation for a given availability factor.
- * Iterates through conditions and returns the compensation % for the first match.
- */
-export const calculateCompensation = (availabilityFactor: number, conditions: SLARuleCondition[]): number => {
-    for (const condition of conditions) {
-        if (evaluateCondition(availabilityFactor, condition)) {
-            return condition.compensation;
-        }
-    }
-    return 0;
-};

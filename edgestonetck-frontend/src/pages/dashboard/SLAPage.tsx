@@ -15,7 +15,8 @@ import { toast } from 'react-hot-toast';
 import { DatePickerDropdown, type FilterType } from '../../components/ui/DatePickerDropdown';
 import { SLARulesModal } from '../../components/ui/SLARulesModal';
 
-import { type SLARecord, getAuthHeaders, API_URL_SLA } from '../../types/sla';
+import { slaRecordService, type SLARecord } from '../../services/slaRecordService';
+import { getAuthHeaders, API_URL_SLA } from '../../types/sla';
 import { formatDateIST, formatTimeIST } from '../../utils/dateUtils';
 
 const SLAPage: React.FC = () => {
@@ -34,42 +35,19 @@ const SLAPage: React.FC = () => {
     // Managed Records
     const [records, setRecords] = useState<SLARecord[]>([]);
 
+    // Applied states for filtering
+    const [appliedFilter, setAppliedFilter] = useState<FilterType>('all');
+    const [appliedCustomRange, setAppliedCustomRange] = useState({ start: '', end: '' });
+
     const fetchRecords = async () => {
         try {
-            const response = await fetch(API_URL_SLA, { headers: getAuthHeaders() }).catch(() => ({ ok: false, json: async () => ({ data: [] }) }));
-            const result = response.ok ? await (response as any).json() : { data: [] };
-            
-            const serverRecords: SLARecord[] = result.data || [];
-            
-            // Adjust the UTC times provided by the backend to IST
-            const adjustedRecords = serverRecords.map(record => {
-                let newStartTime = record.startTime;
-                let newDisplayStartDate = record.displayStartDate;
-                
-                if (record.displayStartDate && record.startTime) {
-                    const startRawStr = `${record.displayStartDate} ${record.startTime.replace(' hrs', '')} UTC`;
-                    const startDt = new Date(startRawStr);
-                    if (!isNaN(startDt.getTime())) {
-                        newStartTime = formatTimeIST(startDt) + ' hrs';
-                        // Keep displayStartDate as "DD MMM YYYY" format 
-                        newDisplayStartDate = formatDateIST(startDt, { day: 'numeric', month: 'short', year: 'numeric' });
-                    }
-                }
-
-                return {
-                    ...record,
-                    startTime: newStartTime,
-                    displayStartDate: newDisplayStartDate
-                };
+            const serverRecords = await slaRecordService.getAllSLARecords({
+                search: searchQuery,
+                filter: appliedFilter,
+                customStart: appliedCustomRange.start,
+                customEnd: appliedCustomRange.end
             });
-            // Sort by ticketId descending (e.g. #1064 > #1063)
-            adjustedRecords.sort((a, b) => {
-                const idA = parseInt(a.ticketId.replace(/[^0-9]/g, ''), 10) || 0;
-                const idB = parseInt(b.ticketId.replace(/[^0-9]/g, ''), 10) || 0;
-                return idB - idA;
-            });
-            
-            setRecords(adjustedRecords);
+            setRecords(serverRecords);
         } catch (error) {
             console.error('Failed to load SLA records:', error);
         }
@@ -77,19 +55,9 @@ const SLAPage: React.FC = () => {
 
     useEffect(() => {
         fetchRecords();
-    }, []);
+    }, [searchQuery, appliedFilter, appliedCustomRange]);
 
-    // Applied states (used for filtering the actual data)
-    const [appliedFilter, setAppliedFilter] = useState<FilterType>('all');
-    const [appliedCustomRange, setAppliedCustomRange] = useState({ start: '', end: '' });
 
-    const calculateDowntime = (record: SLARecord) => {
-        const startDt = new Date(`${record.displayStartDate} ${record.startTime.replace(' hrs', '')}`);
-        const endDt = new Date(`${record.closeDate} ${record.closedTime.replace(' hrs', '')}`);
-        if (isNaN(startDt.getTime()) || isNaN(endDt.getTime())) return '-';
-        const diffMins = Math.round((endDt.getTime() - startDt.getTime()) / 60000);
-        return `${diffMins} mins`;
-    };
 
     const handleSaveStatus = async () => {
         if (!statusModal.reason.trim() || !statusModal.recordId || !statusModal.newStatus) {
@@ -126,89 +94,17 @@ const SLAPage: React.FC = () => {
         setAppliedCustomRange(range);
     };
 
-    const filteredData = useMemo(() => {
-        return records.filter(item => {
-            // Search filter
-            if (searchQuery && !item.ticketId.toLowerCase().includes(searchQuery.toLowerCase())) {
-                return false;
-            }
-
-            const itemDate = new Date(item.startDate);
-            const today = new Date(); // Use actual today
-
-            if (appliedFilter === 'all') return true;
-
-            if (appliedFilter === 'today') {
-                return item.startDate === '2026-01-09';
-            }
-
-            if (appliedFilter === 'yesterday') {
-                return item.startDate === '2026-01-08';
-            }
-
-            if (appliedFilter === 'last7') {
-                const sevenDaysAgo = new Date(today);
-                sevenDaysAgo.setDate(today.getDate() - 7);
-                return itemDate >= sevenDaysAgo && itemDate <= today;
-            }
-
-            if (appliedFilter === 'custom') {
-                if (!appliedCustomRange.start || !appliedCustomRange.end) return true;
-                const start = new Date(appliedCustomRange.start);
-                const end = new Date(appliedCustomRange.end);
-                return itemDate >= start && itemDate <= end;
-            }
-
-            return true;
-        });
-    }, [appliedFilter, appliedCustomRange, searchQuery, records]);
-
-    const handleExport = () => {
-        if (filteredData.length === 0) return;
-
-        // Define headers
-        const headers = [
-            'Ticket ID',
-            'SLA Start Date',
-            'SLA Start Time',
-            'SLA Closed Time',
-            'SLA Close Date',
-            'Downtime (mins)',
-            'SLA Status',
-            'Status Reason',
-            'Compensation'
-        ];
-
-        // Format data rows
-        const rows = filteredData.map(record => [
-            record.ticketId,
-            record.displayStartDate,
-            record.startTime,
-            record.closedTime,
-            record.closeDate,
-            calculateDowntime(record),
-            record.status,
-            record.statusReason || '',
-            record.compensation
-        ]);
-
-        // Combine into CSV string
-        const csvContent = [
-            headers.join(','),
-            ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
-        ].join('\n');
-
-        // Create blob and download link
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-
-        link.setAttribute('href', url);
-        link.setAttribute('download', `SLA_Report_${activeTab}_${new Date().toISOString().split('T')[0]}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+    const handleExport = async () => {
+        try {
+            await slaRecordService.exportSLARecords({
+                search: searchQuery,
+                filter: appliedFilter,
+                customStart: appliedCustomRange.start,
+                customEnd: appliedCustomRange.end
+            });
+        } catch (error) {
+            toast.error("Failed to export SLA records.");
+        }
     };
 
     return (
@@ -329,7 +225,7 @@ const SLAPage: React.FC = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredData.length > 0 ? filteredData.map((record) => (
+                                {records.length > 0 ? records.map((record) => (
                                     <tr key={record.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
                                         <td className="px-6 py-4">
                                             <a href="#" className="text-sm font-bold text-gray-900 hover:text-brand-red underline decoration-gray-300 underline-offset-4">
@@ -369,7 +265,7 @@ const SLAPage: React.FC = () => {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-sm font-medium text-gray-600">
-                                            {calculateDowntime(record)}
+                                            {record.downtime}
                                         </td>
                                         <td className="px-6 py-4">
                                             {record.status ? (
