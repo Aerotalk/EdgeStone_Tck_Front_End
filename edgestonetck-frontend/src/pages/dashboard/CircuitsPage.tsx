@@ -3,9 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { Topbar } from '../../components/ui/Topbar';
 import { Plus, Check, X, Loader2, Zap } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { circuitService, Circuit } from '../../services/circuitService';
-import { vendorService, Vendor } from '../../services/vendorService';
-import { clientService, Client } from '../../services/clientService';
+import { circuitService } from '../../services/circuitService';
+import type { Circuit } from '../../services/circuitService';
+import { vendorService } from '../../services/vendorService';
+import type { Vendor } from '../../services/vendorService';
+import { clientService } from '../../services/clientService';
+import type { Client } from '../../services/clientService';
 
 const CircuitsPage: React.FC = () => {
     const navigate = useNavigate();
