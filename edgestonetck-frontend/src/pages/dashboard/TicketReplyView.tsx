@@ -12,7 +12,8 @@ import {
     Send,
     Eye,
     Paperclip,
-    Plus
+    Plus,
+    Loader2
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { TicketInfoSidebar } from './TicketInfoSidebar';
@@ -45,6 +46,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [showCc, setShowCc] = useState(false);
     const [isSending, setIsSending] = useState(false);
+    const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
     // Email Modal form states
     const [emailForm, setEmailForm] = useState({
@@ -153,8 +155,9 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
     };
 
     const handleStatusChange = async (newStatus: string) => {
-
+        const toastId = toast.loading('Updating status...');
         try {
+            setIsUpdatingStatus(true);
             await ticketService.updateTicket(ticket.id, { status: newStatus });
 
             setTicketStatus(newStatus);
@@ -172,9 +175,12 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
             }
 
             setShowStatusDropdown(false);
+            toast.success(`Status updated to ${newStatus}`, { id: toastId });
         } catch (error: any) {
             console.error('Failed to update status:', error);
-            toast.error(`Failed to update ticket status: ${error.message}`);
+            toast.error(`Failed to update ticket status: ${error.message}`, { id: toastId });
+        } finally {
+            setIsUpdatingStatus(false);
         }
     };
 
@@ -321,14 +327,24 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
 
                     <div className="relative">
                         <button
-                            onClick={() => ticketStatus.toLowerCase() !== 'closed' && setShowStatusDropdown(!showStatusDropdown)}
+                            onClick={() => !isUpdatingStatus && ticketStatus.toLowerCase() !== 'closed' && setShowStatusDropdown(!showStatusDropdown)}
+                            disabled={isUpdatingStatus}
                             className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] font-bold border transition-all ${ticketStatus.toLowerCase() === 'closed'
                                 ? 'bg-green-100/50 text-green-600 border-green-200/30 cursor-not-allowed'
                                 : 'bg-orange-100/50 text-orange-600 border-orange-200/30 hover:bg-orange-100'
-                                }`}
+                                } ${isUpdatingStatus ? 'opacity-70 cursor-wait' : ''}`}
                         >
-                            {ticketStatus}
-                            {ticketStatus.toLowerCase() !== 'closed' && <ChevronDown size={14} />}
+                            {isUpdatingStatus ? (
+                                <>
+                                    <Loader2 size={14} className="animate-spin" />
+                                    Updating...
+                                </>
+                            ) : (
+                                <>
+                                    {ticketStatus}
+                                    {ticketStatus.toLowerCase() !== 'closed' && <ChevronDown size={14} />}
+                                </>
+                            )}
                         </button>
 
                         {showStatusDropdown && (
