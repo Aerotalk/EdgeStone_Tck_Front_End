@@ -217,7 +217,7 @@ export const SLARulesModal: React.FC<SLARulesModalProps> = ({ isOpen, onClose })
             }, 2000);
         } catch (err: any) {
             console.error('Failed to save SLA rule:', err);
-            setError('Failed to save SLA rule. Please try again.');
+            setError(err.message || 'Failed to save SLA rule. Please try again.');
             setAddStep('define-rules');
         }
     };
