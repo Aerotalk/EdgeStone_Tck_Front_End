@@ -204,25 +204,43 @@ const SLAPage: React.FC = () => {
                 customEnd: appliedCustomRange.end
             });
 
-            // Adjust the UTC times provided by the backend to IST
             const adjustedRecords = serverRecords.map(record => {
                 let newStartTime = record.startTime;
-                let newDisplayStartDate = record.displayStartDate;
+                let newDisplayStartDate = record.displayStartDate || record.startDate;
                 
-                if (record.displayStartDate && record.startTime) {
-                    const startRawStr = `${record.displayStartDate} ${record.startTime.replace(' hrs', '')} UTC`;
-                    const startDt = new Date(startRawStr);
-                    if (!isNaN(startDt.getTime())) {
-                        newStartTime = formatTimeIST(startDt) + ' hrs';
-                        // Keep displayStartDate as "DD MMM YYYY" format 
-                        newDisplayStartDate = formatDateIST(startDt, { day: 'numeric', month: 'short', year: 'numeric' });
+                // Calculate downtime based on start and close dates/times
+                let downtimeStr = record.downtime || '-';
+                if (record.startDate && record.startTime && record.closeDate && record.closedTime) {
+                    try {
+                        const cleanStartTime = record.startTime.replace(' hrs', '').trim();
+                        const cleanEndTime = record.closedTime.replace(' hrs', '').trim();
+                        
+                        // Parse dates assuming YYYY-MM-DD and HH:mm formats.
+                        // Replacing '-' with '/' can sometimes help older browsers, but standard 'T' separator is best.
+                        const start = new Date(`${record.startDate}T${cleanStartTime}:00`);
+                        const end = new Date(`${record.closeDate}T${cleanEndTime}:00`);
+                        
+                        if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+                            const diffMs = end.getTime() - start.getTime();
+                            if (diffMs >= 0) {
+                                const diffMins = Math.floor(diffMs / 60000);
+                                const hours = Math.floor(diffMins / 60);
+                                const mins = diffMins % 60;
+                                downtimeStr = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+                            } else {
+                                downtimeStr = '00:00';
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Error calculating downtime:', e);
                     }
                 }
 
                 return {
                     ...record,
                     startTime: newStartTime,
-                    displayStartDate: newDisplayStartDate
+                    displayStartDate: newDisplayStartDate,
+                    downtime: downtimeStr
                 };
             });
 
