@@ -270,9 +270,6 @@ const CircuitsPage: React.FC = () => {
                                     <div className="flex justify-between items-start">
                                         <div>
                                             <h3 className="font-bold text-gray-900 text-lg break-all">{circuit.customerCircuitId}</h3>
-                                            <p className="text-xs text-gray-400 mt-1">
-                                                ID: {circuit.id.slice(-6)}
-                                            </p>
                                         </div>
                                         <span className={`px-2 py-1 rounded-md text-[10px] font-bold tracking-wide uppercase border ${circuit.type === 'PROTECTED'
                                             ? 'bg-blue-50 text-blue-600 border-blue-100'
@@ -314,7 +311,6 @@ const CircuitsPage: React.FC = () => {
                                                 <td className="px-6 py-4">
                                                     <div className="flex flex-col">
                                                         <span className="text-sm font-bold text-gray-800">{circuit.customerCircuitId}</span>
-                                                        <span className="text-xs text-gray-400">ID: {circuit.id.slice(-8)}</span>
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4">
