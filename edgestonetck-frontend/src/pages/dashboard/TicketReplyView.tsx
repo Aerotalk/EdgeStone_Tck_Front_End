@@ -180,12 +180,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
         }).catch(() => {/* silent — signatures are optional */});
     }, [user?.id]);
 
-    // Helper: basic HTML → plain text for textarea preview only
-    const htmlToPlainText = (html: string): string => {
-        const div = document.createElement('div');
-        div.innerHTML = html;
-        return div.innerText || div.textContent || '';
-    };
+
 
     // Convert plain text body to safe HTML paragraphs
     const plainTextToHtml = (text: string): string => {
