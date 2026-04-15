@@ -587,20 +587,21 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                         </button>
 
                         <div className="p-10 pb-12">
-                            <h3 className="text-[24px] font-bold text-gray-900 mb-8 tracking-tight">Select circuit id</h3>
+                            <h3 className="text-[24px] font-bold text-gray-900 mb-2 tracking-tight">Select circuit id</h3>
+                            <p className="text-[14px] text-gray-500 mb-8 break-words leading-relaxed">{ticket.header}</p>
 
                             <div className="grid grid-cols-2 gap-4 mb-10">
                                 {/* Circuit Dropdown */}
-                                <div className="relative group">
+                                <div className="relative group flex flex-col">
                                     <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2 px-1">Circuit ID</label>
                                     <button
                                         onClick={() => setOpenDropdown(openDropdown === 'circuit' ? null : 'circuit')}
-                                        className={`w-full h-[56px] border rounded-2xl px-4 flex items-center justify-between transition-all active:scale-[0.98] ${openDropdown === 'circuit' ? 'bg-white border-[#0F172A] ring-4 ring-[#0F172A]/5' : 'bg-gray-50/50 border-gray-100 hover:border-gray-200'}`}
+                                        className={`w-full min-h-[56px] py-3 border rounded-2xl px-4 flex items-center justify-between transition-all active:scale-[0.98] ${openDropdown === 'circuit' ? 'bg-white border-[#0F172A] ring-4 ring-[#0F172A]/5' : 'bg-gray-50/50 border-gray-100 hover:border-gray-200'}`}
                                     >
-                                        <span className={`text-[14px] font-bold truncate ${selectedCircuit ? 'text-gray-900' : 'text-gray-400'}`}>
+                                        <span className={`text-[14px] font-bold flex-1 text-left break-all pr-3 ${selectedCircuit ? 'text-gray-900' : 'text-gray-400'}`}>
                                             {selectedCircuit || 'Select id'}
                                         </span>
-                                        <ChevronDown size={18} className={`text-gray-400 transition-transform duration-300 ${openDropdown === 'circuit' ? 'rotate-180 text-gray-900' : ''}`} />
+                                        <ChevronDown size={18} className={`text-gray-400 flex-shrink-0 transition-transform duration-300 ${openDropdown === 'circuit' ? 'rotate-180 text-gray-900' : ''}`} />
                                     </button>
 
                                     {openDropdown === 'circuit' && (
@@ -612,10 +613,10 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                                         <button
                                                             key={opt}
                                                             onClick={() => { setSelectedCircuit(opt); setOpenDropdown(null); }}
-                                                            className={`w-full px-3.5 py-3 text-left text-[13px] font-semibold rounded-xl transition-all flex items-center justify-between mb-0.5 last:mb-0 ${selectedCircuit === opt ? 'bg-gray-50 text-gray-900' : 'text-gray-600 hover:bg-gray-50/80 hover:text-gray-900'}`}
+                                                            className={`w-full px-3.5 py-3 text-left text-[13px] font-semibold rounded-xl transition-all flex items-center justify-between mb-0.5 last:mb-0 gap-2 ${selectedCircuit === opt ? 'bg-gray-50 text-gray-900' : 'text-gray-600 hover:bg-gray-50/80 hover:text-gray-900'}`}
                                                         >
-                                                            <span className="truncate">{opt}</span>
-                                                            {selectedCircuit === opt && <div className="w-1.5 h-1.5 rounded-full bg-gray-900" />}
+                                                            <span className="break-all">{opt}</span>
+                                                            {selectedCircuit === opt && <div className="w-1.5 h-1.5 flex-shrink-0 rounded-full bg-gray-900" />}
                                                         </button>
                                                     ))}
                                                     <div className="my-1.5 border-t border-gray-50" />
