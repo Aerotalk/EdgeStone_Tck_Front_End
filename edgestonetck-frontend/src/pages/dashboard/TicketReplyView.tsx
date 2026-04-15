@@ -21,6 +21,7 @@ import { TicketInfoSidebar } from './TicketInfoSidebar';
 import { ticketService, type Reply, type Ticket } from '../../services/ticketService';
 
 import { formatDateIST, formatTimeIST, nowDateIST, nowTimeIST } from '../../utils/dateUtils';
+import { vendorService } from '../../services/vendorService';
 
 // ... (keep imports)
 
@@ -76,6 +77,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
         return ticket.status || localStorage.getItem(`ticket_status_${ticket.id}`) || 'Open';
     });
     const [showStatusDropdown, setShowStatusDropdown] = useState(false);
+    const [vendorName, setVendorName] = useState<string>('');
     const [closedAt, setClosedAt] = useState(() => {
         return localStorage.getItem(`ticket_closed_at_${ticket.id}`) || '';
     });
@@ -104,6 +106,20 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                     to: emails,
                     subject: `RE: ${ticket.header}`
                 }));
+                
+                // Try to find the vendor name associated with these emails
+                if (emails.length > 0) {
+                    vendorService.getAllVendors().then(vendors => {
+                        const matchedVendor = vendors.find(v => v.emails.some(e => emails.includes(e)));
+                        if (matchedVendor) {
+                            setVendorName(matchedVendor.name);
+                        } else {
+                            setVendorName('EdgeStone Vendor');
+                        }
+                    }).catch(() => setVendorName('EdgeStone Vendor'));
+                } else {
+                    setVendorName('EdgeStone Vendor');
+                }
             }).catch(err => {
                 console.error("Failed to fetch vendor emails", err);
                 setEmailForm(prev => ({
@@ -111,6 +127,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                     to: [],
                     subject: `RE: ${ticket.header}`
                 }));
+                setVendorName('EdgeStone Vendor');
             });
         }
     }, [activeTab, ticket.email, ticket.header, ticket.id]);
@@ -432,17 +449,17 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                     {activeTab === 'vendor' && (
                         <div className="flex gap-4 group">
                             <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold text-sm shadow-sm flex-shrink-0">
-                                ES
+                                {vendorName ? vendorName.slice(0, 2).toUpperCase() : 'VN'}
                             </div>
                             <div className="flex-1">
                                 <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm relative">
                                     <div className="flex items-start justify-between mb-4">
                                         <div className="space-y-0.5">
                                             <div className="flex items-center gap-1.5">
-                                                <span className="text-[15px] font-bold text-gray-900">EdgeStone Support</span>
-                                                <span className="text-[14px] text-gray-400 font-medium">&lt;support@edgestone.in&gt;</span>
+                                                <span className="text-[15px] font-bold text-gray-900">{vendorName || 'EdgeStone Vendor'}</span>
+                                                <span className="text-[14px] text-gray-400 font-medium">&lt;{emailForm.to.length > 0 ? emailForm.to[0] : 'vendor@example.com'}&gt;</span>
                                             </div>
-                                            <p className="text-[13px] text-gray-400 font-medium">To: {emailForm.to.length > 0 ? emailForm.to.join(', ') : 'Fetching Vendor...'}</p>
+                                            <p className="text-[13px] text-gray-400 font-medium">To: support@edgestone.in</p>
                                         </div>
                                         <div className="flex items-center gap-4 text-gray-400">
                                             <span className="text-[13px] font-medium">Vendor Communication Thread</span>
@@ -573,6 +590,9 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                     circuit={confirmedCircuit}
                     status={ticketStatus}
                     closedAt={closedAt}
+                    activeTab={activeTab}
+                    vendorEmail={emailForm.to.length > 0 ? emailForm.to.join(', ') : ''}
+                    vendorName={vendorName}
                 />
             </div>
 

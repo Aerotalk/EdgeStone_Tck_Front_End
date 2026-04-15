@@ -33,6 +33,9 @@ interface TicketInfoSidebarProps {
     circuit?: string;
     status?: string;
     closedAt?: string;
+    activeTab?: string;
+    vendorEmail?: string;
+    vendorName?: string;
 }
 
 interface ActivityLog {
@@ -45,7 +48,7 @@ interface ActivityLog {
     createdAt?: string; // ISO timestamp — use this for IST formatting when available
 }
 
-export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, priority, circuit, status, closedAt }) => {
+export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, priority, circuit, status, closedAt, activeTab, vendorEmail, vendorName }) => {
     const { id } = useParams();
     const [isNotesOpen, setIsNotesOpen] = useState(false);
     const [notes, setNotes] = useState<Note[]>([]);
@@ -190,16 +193,23 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                 {/* Profile Section */}
                 <div className="p-8 border-b border-gray-50">
                     <div className="flex items-center gap-4 mb-10">
-                        <div className="w-16 h-16 rounded-full bg-[#E5DCC3] flex items-center justify-center text-[#5C5648] font-bold text-2xl shadow-sm">
-                            {ticket.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                        <div className="w-16 h-16 rounded-full bg-[#E5DCC3] flex items-center justify-center text-[#5C5648] font-bold text-2xl shadow-sm flex-shrink-0">
+                            {activeTab === 'vendor' ? (vendorName ? vendorName.slice(0, 2).toUpperCase() : 'VN') : ticket.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                         </div>
-                        <h3 className="text-[20px] font-bold text-gray-900 leading-tight">{ticket.name}</h3>
+                        <div className="flex flex-col min-w-0">
+                            <h3 className="text-[20px] font-bold text-gray-900 leading-tight truncate">
+                                {activeTab === 'vendor' ? (vendorName || 'EdgeStone Vendor') : ticket.name}
+                            </h3>
+                            <p className="text-[13px] text-gray-500 font-medium mt-0.5 truncate">
+                                {activeTab === 'vendor' ? (vendorEmail || 'Fetching vendor...') : ticket.email}
+                            </p>
+                        </div>
                     </div>
 
                     <div className="space-y-5">
                         <div className="flex justify-between items-center text-[14px]">
                             <span className="text-gray-400 font-medium">Profile</span>
-                            <span className="text-gray-600 font-bold">Customer</span>
+                            <span className="text-gray-600 font-bold">{activeTab === 'vendor' ? 'Vendor' : 'Customer'}</span>
                         </div>
                         <div className="flex justify-between items-center text-[14px]">
                             <span className="text-gray-400 font-medium">Date</span>
