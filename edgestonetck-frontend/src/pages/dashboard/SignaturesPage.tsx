@@ -427,28 +427,13 @@ const SignaturesPage: React.FC = () => {
         }
     };
 
-    // ─── Convert image to base64 entirely in the browser ───────────────────────
-    // No network call needed — FileReader converts the file locally.
-    // This eliminates all multer/CORS/fetch issues.
+    // ─── Upload image via backend ───────────────────────
     const handleImageUpload = useCallback(async (file: File): Promise<string> => {
-        return new Promise((resolve, reject) => {
-            // Validate size client-side (5MB)
-            if (file.size > 5 * 1024 * 1024) {
-                reject(new Error('Image must be smaller than 5MB'));
-                return;
-            }
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const result = e.target?.result;
-                if (typeof result === 'string') {
-                    resolve(result); // "data:image/png;base64,..."
-                } else {
-                    reject(new Error('Failed to read image file'));
-                }
-            };
-            reader.onerror = () => reject(new Error('Failed to read image file'));
-            reader.readAsDataURL(file);
-        });
+        // Validate size client-side (5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            throw new Error('Image must be smaller than 5MB');
+        }
+        return await signatureService.uploadImage(file);
     }, []);
 
 
