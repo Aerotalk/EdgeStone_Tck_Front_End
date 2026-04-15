@@ -1,41 +1,266 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Topbar } from '../../components/ui/Topbar';
-import { Plus, Check, X, Loader2, Zap } from 'lucide-react';
+import { Plus, Check, X, Loader2, Zap, Pencil } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { circuitService } from '../../services/circuitService';
-import type { Circuit } from '../../services/circuitService';
+import type { Circuit, CreateCircuitData, UpdateCircuitData } from '../../services/circuitService';
 import { vendorService } from '../../services/vendorService';
 import type { Vendor } from '../../services/vendorService';
 import { clientService } from '../../services/clientService';
 import type { Client } from '../../services/clientService';
 
-const CircuitsPage: React.FC = () => {
-    const navigate = useNavigate();
-    const { isSuperAdmin } = useAuth();
-    
-    const [circuits, setCircuits] = useState<Circuit[]>([]);
-    const [vendors, setVendors] = useState<Vendor[]>([]);
-    const [clients, setClients] = useState<Client[]>([]);
-    const [loading, setLoading] = useState(true);
-    
-    const [showSuccess, setShowSuccess] = useState(false);
-    const [successMessage, setSuccessMessage] = useState('Circuit Added Successfully');
-    
-    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    const [submitting, setSubmitting] = useState(false);
-    
-    // Add form data
-    const [customerCircuitId, setCustomerCircuitId] = useState('');
-    const [selectedVendorId, setSelectedVendorId] = useState('');
-    const [selectedClientId, setSelectedClientId] = useState('');
-    const [circuitType, setCircuitType] = useState<'PROTECTED' | 'UNPROTECTED'>('UNPROTECTED');
+// ─── Blank form state helpers ─────────────────────────────────────────────────
+const blankForm = (): CreateCircuitData => ({
+    customerCircuitId: '',
+    supplierCircuitId: '',
+    type: 'UNPROTECTED',
+    vendorId: '',
+    clientId: '',
+    poNumber: '',
+    serviceDescription: '',
+    contractTermMonths: undefined,
+    contractType: '',
+    mrc: undefined,
+    supplierPoNumber: '',
+    supplierServiceDescription: '',
+    supplierContractTermMonths: undefined,
+    supplierContractType: '',
+    billingStartDate: '',
+    supplierMrc: undefined,
+});
 
+const circuitToForm = (c: Circuit): CreateCircuitData => ({
+    customerCircuitId:          c.customerCircuitId,
+    supplierCircuitId:          c.supplierCircuitId ?? '',
+    type:                       c.type,
+    vendorId:                   c.vendorId ?? '',
+    clientId:                   c.clientId ?? '',
+    poNumber:                   c.poNumber ?? '',
+    serviceDescription:         c.serviceDescription ?? '',
+    contractTermMonths:         c.contractTermMonths ?? undefined,
+    contractType:               c.contractType ?? '',
+    mrc:                        c.mrc,
+    supplierPoNumber:           c.supplierPoNumber ?? '',
+    supplierServiceDescription: c.supplierServiceDescription ?? '',
+    supplierContractTermMonths: c.supplierContractTermMonths ?? undefined,
+    supplierContractType:       c.supplierContractType ?? '',
+    billingStartDate:           c.billingStartDate ?? '',
+    supplierMrc:                c.supplierMrc,
+});
+
+// ─── Reusable labeled input ───────────────────────────────────────────────────
+const Field: React.FC<{
+    label: string;
+    children: React.ReactNode;
+}> = ({ label, children }) => (
+    <div>
+        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">{label}</label>
+        {children}
+    </div>
+);
+
+const inputCls = "w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-brand-red focus:ring-4 focus:ring-brand-red/5 transition-all";
+const selectCls = "w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-brand-red focus:ring-4 focus:ring-brand-red/5 transition-all appearance-none";
+
+// ─── Circuit Form Modal (shared for Add & Edit) ───────────────────────────────
+interface CircuitFormModalProps {
+    mode: 'add' | 'edit';
+    form: CreateCircuitData;
+    onChange: (key: keyof CreateCircuitData, value: any) => void;
+    onSubmit: (e: React.FormEvent) => void;
+    onClose: () => void;
+    submitting: boolean;
+    vendors: Vendor[];
+    clients: Client[];
+}
+
+const CircuitFormModal: React.FC<CircuitFormModalProps> = ({
+    mode, form, onChange, onSubmit, onClose, submitting, vendors, clients
+}) => (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px]">
+        <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
+            {/* Header */}
+            <div className="flex items-center justify-between px-8 py-5 border-b border-gray-100">
+                <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                    {mode === 'add' ? <Zap size={18} className="text-brand-red" /> : <Pencil size={18} className="text-brand-red" />}
+                    {mode === 'add' ? 'Add New Circuit' : 'Edit Circuit'}
+                </h2>
+                <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                    <X size={18} className="text-gray-400" />
+                </button>
+            </div>
+
+            {/* Scrollable body */}
+            <form onSubmit={onSubmit} className="overflow-y-auto flex-1">
+                <div className="px-8 py-6 space-y-6">
+
+                    {/* ── Section: Circuit IDs ─────────────────────────── */}
+                    <div>
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Circuit Identifiers</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <Field label="Customer Circuit ID *">
+                                <input
+                                    required
+                                    type="text"
+                                    value={form.customerCircuitId}
+                                    onChange={e => onChange('customerCircuitId', e.target.value)}
+                                    placeholder="e.g. N1/LON-MUM/ESPL-006"
+                                    className={inputCls}
+                                />
+                            </Field>
+                            <Field label="Supplier Circuit ID">
+                                <input
+                                    type="text"
+                                    value={form.supplierCircuitId ?? ''}
+                                    onChange={e => onChange('supplierCircuitId', e.target.value)}
+                                    placeholder="Auto-generated if blank"
+                                    className={inputCls}
+                                />
+                            </Field>
+                        </div>
+                    </div>
+
+                    {/* ── Section: Circuit Type ────────────────────────── */}
+                    <div>
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Circuit Type</p>
+                        <div className="flex gap-6">
+                            {(['UNPROTECTED', 'PROTECTED'] as const).map(t => (
+                                <label key={t} className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="radio"
+                                        name="circuitType"
+                                        value={t}
+                                        checked={form.type === t}
+                                        onChange={() => onChange('type', t)}
+                                        className="w-4 h-4 text-brand-red focus:ring-brand-red border-gray-300"
+                                    />
+                                    <span className="text-sm text-gray-700 font-medium capitalize">{t.charAt(0) + t.slice(1).toLowerCase()}</span>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* ── Section: Associations ────────────────────────── */}
+                    <div>
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Associations</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <Field label="Vendor">
+                                <select value={form.vendorId ?? ''} onChange={e => onChange('vendorId', e.target.value)} className={selectCls}>
+                                    <option value="">Select a Vendor</option>
+                                    {vendors.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+                                </select>
+                            </Field>
+                            <Field label="Client">
+                                <select value={form.clientId ?? ''} onChange={e => onChange('clientId', e.target.value)} className={selectCls}>
+                                    <option value="">Select a Client</option>
+                                    {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                </select>
+                            </Field>
+                        </div>
+                    </div>
+
+                    {/* ── Section: Customer Contract Details ───────────── */}
+                    <div>
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Customer Contract</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <Field label="PO Number">
+                                <input type="text" value={form.poNumber ?? ''} onChange={e => onChange('poNumber', e.target.value)} placeholder="PO-XXXXX" className={inputCls} />
+                            </Field>
+                            <Field label="Contract Type">
+                                <input type="text" value={form.contractType ?? ''} onChange={e => onChange('contractType', e.target.value)} placeholder="e.g. Annual" className={inputCls} />
+                            </Field>
+                            <Field label="Contract Term (Months)">
+                                <input type="number" min={1} value={form.contractTermMonths ?? ''} onChange={e => onChange('contractTermMonths', e.target.value ? Number(e.target.value) : null)} placeholder="12" className={inputCls} />
+                            </Field>
+                            <Field label="MRC (Monthly Recurring Charge)">
+                                <input type="number" min={0} step="0.01" value={form.mrc ?? ''} onChange={e => onChange('mrc', e.target.value ? Number(e.target.value) : null)} placeholder="1000.00" className={inputCls} />
+                            </Field>
+                            <Field label="Service Description">
+                                <input type="text" value={form.serviceDescription ?? ''} onChange={e => onChange('serviceDescription', e.target.value)} placeholder="Service description" className={`${inputCls} sm:col-span-2`} />
+                            </Field>
+                        </div>
+                    </div>
+
+                    {/* ── Section: Supplier Contract Details ───────────── */}
+                    <div>
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Supplier Contract</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <Field label="Supplier PO Number">
+                                <input type="text" value={form.supplierPoNumber ?? ''} onChange={e => onChange('supplierPoNumber', e.target.value)} placeholder="SUP-PO-XXXXX" className={inputCls} />
+                            </Field>
+                            <Field label="Supplier Contract Type">
+                                <input type="text" value={form.supplierContractType ?? ''} onChange={e => onChange('supplierContractType', e.target.value)} placeholder="e.g. Annual" className={inputCls} />
+                            </Field>
+                            <Field label="Supplier Contract Term (Months)">
+                                <input type="number" min={1} value={form.supplierContractTermMonths ?? ''} onChange={e => onChange('supplierContractTermMonths', e.target.value ? Number(e.target.value) : null)} placeholder="12" className={inputCls} />
+                            </Field>
+                            <Field label="Supplier MRC">
+                                <input type="number" min={0} step="0.01" value={form.supplierMrc ?? ''} onChange={e => onChange('supplierMrc', e.target.value ? Number(e.target.value) : null)} placeholder="800.00" className={inputCls} />
+                            </Field>
+                            <Field label="Billing Start Date">
+                                <input type="date" value={form.billingStartDate ?? ''} onChange={e => onChange('billingStartDate', e.target.value)} className={inputCls} />
+                            </Field>
+                            <Field label="Supplier Service Description">
+                                <input type="text" value={form.supplierServiceDescription ?? ''} onChange={e => onChange('supplierServiceDescription', e.target.value)} placeholder="Supplier service description" className={inputCls} />
+                            </Field>
+                        </div>
+                    </div>
+
+                </div>
+
+                {/* Footer */}
+                <div className="px-8 py-5 border-t border-gray-100 flex gap-3 bg-gray-50/50">
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="flex-1 py-2.5 border border-gray-200 text-gray-600 font-bold rounded-xl hover:bg-gray-100 transition-all text-sm"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="submit"
+                        disabled={!form.customerCircuitId || submitting}
+                        className={`flex-1 py-2.5 bg-brand-red text-white font-bold rounded-xl hover:bg-brand-red-hover shadow-lg shadow-brand-red/20 transition-all text-sm flex items-center justify-center gap-2 ${(!form.customerCircuitId || submitting) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                        {submitting
+                            ? <><Loader2 className="w-4 h-4 animate-spin" />{mode === 'add' ? 'Adding...' : 'Saving...'}</>
+                            : mode === 'add' ? 'Add Circuit' : 'Save Changes'
+                        }
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+);
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
+const CircuitsPage: React.FC = () => {
+    const navigate   = useNavigate();
+    const { isSuperAdmin } = useAuth();
+
+    const [circuits,  setCircuits]  = useState<Circuit[]>([]);
+    const [vendors,   setVendors]   = useState<Vendor[]>([]);
+    const [clients,   setClients]   = useState<Client[]>([]);
+    const [loading,   setLoading]   = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
 
-    useEffect(() => {
-        fetchData();
-    }, []);
+    // ── Success toast ──────────────────────────────────────────────────────
+    const [showSuccess,    setShowSuccess]    = useState(false);
+    const [successMessage, setSuccessMessage] = useState('');
+
+    // ── Add modal ──────────────────────────────────────────────────────────
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [addForm,        setAddForm]        = useState<CreateCircuitData>(blankForm());
+    const [addSubmitting,  setAddSubmitting]  = useState(false);
+
+    // ── Edit modal ─────────────────────────────────────────────────────────
+    const [editCircuit,    setEditCircuit]    = useState<Circuit | null>(null);
+    const [editForm,       setEditForm]       = useState<CreateCircuitData>(blankForm());
+    const [editSubmitting, setEditSubmitting] = useState(false);
+
+    // ─────────────────────────────────────────────────────────────────────
+    useEffect(() => { fetchData(); }, []);
 
     const fetchData = async () => {
         try {
@@ -43,7 +268,7 @@ const CircuitsPage: React.FC = () => {
             const [circuitsData, vendorsData, clientsData] = await Promise.all([
                 circuitService.getAllCircuits(),
                 vendorService.getAllVendors(),
-                clientService.getAllClients()
+                clientService.getAllClients(),
             ]);
             setCircuits(circuitsData);
             setVendors(vendorsData);
@@ -59,70 +284,97 @@ const CircuitsPage: React.FC = () => {
         }
     };
 
-    const filteredCircuits = circuits.filter(circuit => {
-        const query = searchQuery.toLowerCase();
-        return (
-            circuit.customerCircuitId.toLowerCase().includes(query) ||
-            circuit.vendor?.name?.toLowerCase().includes(query) ||
-            circuit.client?.name?.toLowerCase().includes(query)
-        );
-    });
+    const toast = (msg: string) => {
+        setSuccessMessage(msg);
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 2000);
+    };
 
-    const handleAddCircuit = async (e: React.FormEvent) => {
+    // ── Add handlers ───────────────────────────────────────────────────────
+    const handleAddChange = (key: keyof CreateCircuitData, value: any) =>
+        setAddForm(prev => ({ ...prev, [key]: value }));
+
+    const handleAddSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!customerCircuitId) return;
-
         try {
-            setSubmitting(true);
-            await circuitService.createCircuit({
-                customerCircuitId,
-                vendorId: selectedVendorId || null,
-                clientId: selectedClientId || null,
-                type: circuitType
-            });
+            setAddSubmitting(true);
+            await circuitService.createCircuit(addForm);
             await fetchData();
             setIsAddModalOpen(false);
-            
-            // reset form
-            setCustomerCircuitId('');
-            setSelectedVendorId('');
-            setSelectedClientId('');
-            setCircuitType('UNPROTECTED');
-
-            setSuccessMessage('Circuit Added Successfully');
-            setShowSuccess(true);
-            setTimeout(() => setShowSuccess(false), 2000);
+            setAddForm(blankForm());
+            toast('Circuit Added Successfully');
         } catch (error: any) {
             console.error('Failed to create circuit:', error);
-            if (error.message === 'Unauthorized') {
-                localStorage.removeItem('edgestone_user');
-                navigate('/login');
-            }
+            if (error.message === 'Unauthorized') { localStorage.removeItem('edgestone_user'); navigate('/login'); }
+            else alert(error.message || 'Failed to create circuit');
         } finally {
-            setSubmitting(false);
+            setAddSubmitting(false);
         }
     };
 
+    // ── Edit handlers ──────────────────────────────────────────────────────
+    const openEdit = (circuit: Circuit) => {
+        setEditCircuit(circuit);
+        setEditForm(circuitToForm(circuit));
+    };
+
+    const handleEditChange = (key: keyof CreateCircuitData, value: any) =>
+        setEditForm(prev => ({ ...prev, [key]: value }));
+
+    const handleEditSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editCircuit) return;
+        try {
+            setEditSubmitting(true);
+            const payload: UpdateCircuitData = { ...editForm };
+            await circuitService.updateCircuit(editCircuit.id, payload);
+            await fetchData();
+            setEditCircuit(null);
+            toast('Circuit Updated Successfully');
+        } catch (error: any) {
+            console.error('Failed to update circuit:', error);
+            if (error.message === 'Unauthorized') { localStorage.removeItem('edgestone_user'); navigate('/login'); }
+            else alert(error.message || 'Failed to update circuit');
+        } finally {
+            setEditSubmitting(false);
+        }
+    };
+
+    // ── Filter ─────────────────────────────────────────────────────────────
+    const filteredCircuits = circuits.filter(c => {
+        const q = searchQuery.toLowerCase();
+        return (
+            c.customerCircuitId.toLowerCase().includes(q) ||
+            (c.vendor?.name?.toLowerCase().includes(q) ?? false) ||
+            (c.client?.name?.toLowerCase().includes(q) ?? false)
+        );
+    });
+
+    const typeBadge = (type: string) =>
+        type === 'PROTECTED'
+            ? 'bg-blue-50 text-blue-600 border-blue-100'
+            : 'bg-orange-50 text-orange-600 border-orange-100';
+
+    // ─────────────────────────────────────────────────────────────────────────
     return (
         <div className="flex flex-col h-full overflow-hidden bg-[#F9FAFB] relative transition-all duration-500">
             <style>{`
                 @keyframes gradual-fade {
-                    0% { opacity: 0; transform: translate(-50%, -15px); }
-                    15% { opacity: 1; transform: translate(-50%, 0); }
-                    85% { opacity: 1; transform: translate(-50%, 0); }
+                    0%   { opacity: 0; transform: translate(-50%, -15px); }
+                    15%  { opacity: 1; transform: translate(-50%, 0); }
+                    85%  { opacity: 1; transform: translate(-50%, 0); }
                     100% { opacity: 0; transform: translate(-50%, -15px); }
                 }
-                .animate-gradual {
-                    animation: gradual-fade 2s ease-in-out forwards;
-                }
+                .animate-gradual { animation: gradual-fade 2s ease-in-out forwards; }
             `}</style>
 
             <Topbar
                 title="Circuits"
                 searchPlaceholder="Search circuits by ID, vendor or client..."
-                onSearch={(query) => setSearchQuery(query)}
+                onSearch={setSearchQuery}
             />
 
+            {/* Toast */}
             {showSuccess && (
                 <div className="absolute top-[72px] left-1/2 -translate-x-[50%] z-50 animate-gradual">
                     <div className="bg-white px-8 py-3 rounded-2xl shadow-[0_20px_50px_-12px_rgba(0,0,0,0.15)] border border-gray-100 flex items-center gap-4">
@@ -134,114 +386,32 @@ const CircuitsPage: React.FC = () => {
                 </div>
             )}
 
+            {/* Add Modal */}
             {isAddModalOpen && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px]">
-                    <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl p-8 animate-in fade-in zoom-in-95 duration-200">
-                        <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                                <Zap size={20} className="text-brand-red" />
-                                Add New Circuit
-                            </h2>
-                            <button onClick={() => setIsAddModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                                <X size={20} className="text-gray-400" />
-                            </button>
-                        </div>
+                <CircuitFormModal
+                    mode="add"
+                    form={addForm}
+                    onChange={handleAddChange}
+                    onSubmit={handleAddSubmit}
+                    onClose={() => { setIsAddModalOpen(false); setAddForm(blankForm()); }}
+                    submitting={addSubmitting}
+                    vendors={vendors}
+                    clients={clients}
+                />
+            )}
 
-                        <form onSubmit={handleAddCircuit} className="space-y-5">
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-600 mb-1.5">Circuit ID</label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={customerCircuitId}
-                                    onChange={e => setCustomerCircuitId(e.target.value)}
-                                    placeholder="Enter Circuit ID"
-                                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-brand-red focus:ring-4 focus:ring-brand-red/5 transition-all outline-none"
-                                />
-                            </div>
-                            
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-600 mb-1.5">Vendor Name</label>
-                                <select
-                                    value={selectedVendorId}
-                                    onChange={e => setSelectedVendorId(e.target.value)}
-                                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-brand-red focus:ring-4 focus:ring-brand-red/5 transition-all outline-none"
-                                >
-                                    <option value="">Select a Vendor (Optional)</option>
-                                    {vendors.map(v => (
-                                        <option key={v.id} value={v.id}>{v.name}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-600 mb-1.5">Client Name</label>
-                                <select
-                                    value={selectedClientId}
-                                    onChange={e => setSelectedClientId(e.target.value)}
-                                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-brand-red focus:ring-4 focus:ring-brand-red/5 transition-all outline-none"
-                                >
-                                    <option value="">Select a Client (Optional)</option>
-                                    {clients.map(c => (
-                                        <option key={c.id} value={c.id}>{c.name}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-600 mb-1.5">Circuit Type</label>
-                                <div className="flex gap-4">
-                                    <label className="flex items-center gap-2 cursor-pointer">
-                                        <input
-                                            type="radio"
-                                            name="circuitType"
-                                            value="UNPROTECTED"
-                                            checked={circuitType === 'UNPROTECTED'}
-                                            onChange={() => setCircuitType('UNPROTECTED')}
-                                            className="w-4 h-4 text-brand-red focus:ring-brand-red border-gray-300"
-                                        />
-                                        <span className="text-sm text-gray-700 font-medium">Unprotected</span>
-                                    </label>
-                                    <label className="flex items-center gap-2 cursor-pointer">
-                                        <input
-                                            type="radio"
-                                            name="circuitType"
-                                            value="PROTECTED"
-                                            checked={circuitType === 'PROTECTED'}
-                                            onChange={() => setCircuitType('PROTECTED')}
-                                            className="w-4 h-4 text-brand-red focus:ring-brand-red border-gray-300"
-                                        />
-                                        <span className="text-sm text-gray-700 font-medium">Protected</span>
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div className="pt-4 flex gap-3">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsAddModalOpen(false)}
-                                    className="flex-1 py-2.5 border border-gray-200 text-gray-600 font-bold rounded-xl hover:bg-gray-50 transition-all font-sans"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={!customerCircuitId || submitting}
-                                    className={`flex-1 py-2.5 bg-brand-red text-white font-bold rounded-xl hover:bg-brand-red-hover shadow-lg shadow-brand-red/20 transition-all font-sans flex items-center justify-center gap-2 ${!customerCircuitId ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                >
-                                    {submitting ? (
-                                        <>
-                                            <Loader2 className="w-5 h-5 animate-spin" />
-                                            Adding...
-                                        </>
-                                    ) : (
-                                        "Add Circuit"
-                                    )}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
+            {/* Edit Modal */}
+            {editCircuit && (
+                <CircuitFormModal
+                    mode="edit"
+                    form={editForm}
+                    onChange={handleEditChange}
+                    onSubmit={handleEditSubmit}
+                    onClose={() => setEditCircuit(null)}
+                    submitting={editSubmitting}
+                    vendors={vendors}
+                    clients={clients}
+                />
             )}
 
             <div className="px-4 sm:px-8 pt-4 sm:pt-6 pb-8 flex-1 overflow-auto relative">
@@ -271,14 +441,21 @@ const CircuitsPage: React.FC = () => {
                                         <div>
                                             <h3 className="font-bold text-gray-900 text-lg break-all">{circuit.customerCircuitId}</h3>
                                         </div>
-                                        <span className={`px-2 py-1 rounded-md text-[10px] font-bold tracking-wide uppercase border ${circuit.type === 'PROTECTED'
-                                            ? 'bg-blue-50 text-blue-600 border-blue-100'
-                                            : 'bg-orange-50 text-orange-600 border-orange-100'
-                                            }`}>
-                                            {circuit.type}
-                                        </span>
+                                        <div className="flex items-center gap-2">
+                                            <span className={`px-2 py-1 rounded-md text-[10px] font-bold tracking-wide uppercase border ${typeBadge(circuit.type)}`}>
+                                                {circuit.type}
+                                            </span>
+                                            {isSuperAdmin() && (
+                                                <button
+                                                    onClick={() => openEdit(circuit)}
+                                                    className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                                                    title="Edit circuit"
+                                                >
+                                                    <Pencil size={14} className="text-gray-400" />
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
-
                                     <div className="flex flex-col gap-2 pt-2 border-t border-gray-50">
                                         <div className="flex justify-between items-center text-sm">
                                             <span className="text-gray-500 font-medium">Vendor:</span>
@@ -288,6 +465,12 @@ const CircuitsPage: React.FC = () => {
                                             <span className="text-gray-500 font-medium">Client:</span>
                                             <span className="font-bold text-gray-800">{circuit.client?.name || '—'}</span>
                                         </div>
+                                        {circuit.mrc > 0 && (
+                                            <div className="flex justify-between items-center text-sm">
+                                                <span className="text-gray-500 font-medium">MRC:</span>
+                                                <span className="font-bold text-gray-800">${circuit.mrc.toLocaleString()}</span>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             ))}
@@ -303,44 +486,50 @@ const CircuitsPage: React.FC = () => {
                                             <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Type</th>
                                             <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Vendor</th>
                                             <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Client</th>
+                                            <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">MRC</th>
+                                            {isSuperAdmin() && (
+                                                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider w-16"></th>
+                                            )}
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {filteredCircuits.map((circuit) => (
-                                            <tr key={circuit.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
+                                            <tr key={circuit.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors group">
                                                 <td className="px-6 py-4">
-                                                    <div className="flex flex-col">
-                                                        <span className="text-sm font-bold text-gray-800">{circuit.customerCircuitId}</span>
-                                                    </div>
+                                                    <span className="text-sm font-bold text-gray-800">{circuit.customerCircuitId}</span>
+                                                    {circuit.supplierCircuitId && (
+                                                        <p className="text-xs text-gray-400 font-medium mt-0.5">{circuit.supplierCircuitId}</p>
+                                                    )}
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <span className={`inline-block px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wide uppercase border ${circuit.type === 'PROTECTED'
-                                                        ? 'bg-blue-50 text-blue-600 border-blue-100'
-                                                        : 'bg-orange-50 text-orange-600 border-orange-100'
-                                                        }`}>
+                                                    <span className={`inline-block px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wide uppercase border ${typeBadge(circuit.type)}`}>
                                                         {circuit.type}
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 text-sm font-semibold text-gray-700">
-                                                    {circuit.vendor?.name ? (
-                                                        <span className="flex items-center gap-2">
-                                                            <div className="w-2 h-2 rounded-full bg-indigo-400"></div>
-                                                            {circuit.vendor.name}
-                                                        </span>
-                                                    ) : (
-                                                        <span className="text-gray-400 font-normal italic">None</span>
-                                                    )}
+                                                    {circuit.vendor?.name
+                                                        ? <span className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-indigo-400" />{circuit.vendor.name}</span>
+                                                        : <span className="text-gray-400 font-normal italic">None</span>}
                                                 </td>
                                                 <td className="px-6 py-4 text-sm font-semibold text-gray-700">
-                                                    {circuit.client?.name ? (
-                                                        <span className="flex items-center gap-2">
-                                                            <div className="w-2 h-2 rounded-full bg-emerald-400"></div>
-                                                            {circuit.client.name}
-                                                        </span>
-                                                    ) : (
-                                                        <span className="text-gray-400 font-normal italic">None</span>
-                                                    )}
+                                                    {circuit.client?.name
+                                                        ? <span className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-emerald-400" />{circuit.client.name}</span>
+                                                        : <span className="text-gray-400 font-normal italic">None</span>}
                                                 </td>
+                                                <td className="px-6 py-4 text-sm text-gray-600">
+                                                    {circuit.mrc ? `$${circuit.mrc.toLocaleString()}` : '—'}
+                                                </td>
+                                                {isSuperAdmin() && (
+                                                    <td className="px-6 py-4">
+                                                        <button
+                                                            onClick={() => openEdit(circuit)}
+                                                            className="p-2 opacity-0 group-hover:opacity-100 hover:bg-gray-100 rounded-lg transition-all"
+                                                            title="Edit circuit"
+                                                        >
+                                                            <Pencil size={14} className="text-gray-500" />
+                                                        </button>
+                                                    </td>
+                                                )}
                                             </tr>
                                         ))}
                                     </tbody>
