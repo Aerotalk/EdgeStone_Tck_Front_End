@@ -59,14 +59,16 @@ const SLAPage: React.FC = () => {
                 let newStartTime = record.startTime;
                 let newDisplayStartDate = record.displayStartDate || record.startDate;
                 let downtimeStr = record.downtime || '-';
+                
+                let finalCloseDate = record.closeDate || '';
 
                 try {
                     const cleanStartTime = record.startTime?.replace(' hrs', '').trim();
                     const cleanEndTime = record.closedTime?.replace(' hrs', '').trim();
 
-                    // Overwrite DB placeholder unset dates (e.g., 2000-01-01) with empty states
-                    if (record.closeDate && (record.closeDate.includes('2000') || record.closeDate === '1970-01-01')) {
-                        record.closeDate = '';
+                    // Overwrite DB placeholder unset dates
+                    if (finalCloseDate && (finalCloseDate.includes('2000') || finalCloseDate.includes('1970'))) {
+                        finalCloseDate = '';
                         finalClosedTime = '-';
                         downtimeStr = '-';
                     }
@@ -82,8 +84,8 @@ const SLAPage: React.FC = () => {
                             newDisplayStartDate = formatDateIST(start, { day: 'numeric', month: 'short', year: 'numeric' });
                         }
 
-                        if (record.closeDate && cleanEndTime && !isNaN(start.getTime())) {
-                            const endStr = record.closeDate.includes('-') ? `${record.closeDate}T${cleanEndTime}:00` : `${record.closeDate} ${cleanEndTime}:00`;
+                        if (finalCloseDate && cleanEndTime && !isNaN(start.getTime())) {
+                            const endStr = finalCloseDate.includes('-') ? `${finalCloseDate}T${cleanEndTime}:00` : `${finalCloseDate} ${cleanEndTime}:00`;
                             const end = new Date(endStr);
 
                             if (!isNaN(end.getTime())) {
@@ -95,7 +97,7 @@ const SLAPage: React.FC = () => {
                                 }
                                 
                                 // Format closeDate to match displayStartDate style
-                                record.closeDate = formatDateIST(end, { day: 'numeric', month: 'short', year: 'numeric' });
+                                finalCloseDate = formatDateIST(end, { day: 'numeric', month: 'short', year: 'numeric' });
                             }
                         }
                     }
@@ -107,6 +109,7 @@ const SLAPage: React.FC = () => {
                     ...record,
                     startTime: newStartTime,
                     displayStartDate: newDisplayStartDate,
+                    closeDate: finalCloseDate || '',
                     closedTime: finalClosedTime,
                     downtime: downtimeStr
                 };
@@ -330,7 +333,7 @@ const SLAPage: React.FC = () => {
                                                 <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400">
                                                     <Calendar size={14} />
                                                 </div>
-                                                {record.closeDate || '-'}
+                                                {(record.closeDate && !record.closeDate.includes('2000') && !record.closeDate.includes('1970')) ? record.closeDate : '-'}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-sm font-medium text-gray-600">
