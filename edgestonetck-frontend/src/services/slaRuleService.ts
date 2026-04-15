@@ -27,7 +27,7 @@ export interface Sla {
     totalPrice?: number | null;
 
     // Relations
-    circuit: { id: string; customerCircuitId: string; supplierCircuitId: string; type: string };
+    circuit: { id: string; customerCircuitId: string; supplierCircuitId: string; type: string; mrc?: number; supplierMrc?: number; };
     vendor?: { id: string; name: string; status: string };
     customer?: { id: string; name: string; status: string };
     rules: (SlaRule & { id: string, slaId: string })[];

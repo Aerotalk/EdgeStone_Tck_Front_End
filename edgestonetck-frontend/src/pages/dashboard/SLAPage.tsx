@@ -149,10 +149,19 @@ const CircuitAvailabilityPanel: React.FC = () => {
                                                 </div>
                                                 <div className="bg-white rounded-lg px-3 py-2 border border-gray-100">
                                                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Compensation</p>
-                                                    <p className={`text-[13px] font-black mt-0.5 ${sla.compensationAmount > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                                                        {sla.compensationAmount > 0 ? `${sla.compensationAmount}%` : 'None'}
-                                                    </p>
-                                                    <p className="text-[10px] text-gray-400">of MRC</p>
+                                                    {sla.compensationAmount > 0 ? (
+                                                        <>
+                                                            <p className="text-[13px] font-black mt-0.5 text-red-600">
+                                                                ${((sla.compensationAmount * (sla.circuit?.mrc ?? 0)) / 100).toFixed(2)}
+                                                            </p>
+                                                            <p className="text-[10px] text-gray-400">{sla.compensationAmount}% of MRC</p>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <p className="text-[13px] font-black mt-0.5 text-green-600">None</p>
+                                                            <p className="text-[10px] text-gray-400">of MRC</p>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </div>
 
