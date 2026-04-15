@@ -427,13 +427,44 @@ const SignaturesPage: React.FC = () => {
         }
     };
 
-    // ─── Upload image via backend ───────────────────────
+    // ─── External Public Image Upload (ImgBB) ───────────────────────
+    // We upload to a public image host so that the image URL is accessible 
+    // by email clients (like Gmail), because local backend uploads or 
+    // base64 data URIs are stripped by email systems.
     const handleImageUpload = useCallback(async (file: File): Promise<string> => {
-        // Validate size client-side (5MB)
         if (file.size > 5 * 1024 * 1024) {
             throw new Error('Image must be smaller than 5MB');
         }
-        return await signatureService.uploadImage(file);
+        
+        try {
+            const formData = new FormData();
+            formData.append('image', file);
+            
+            // Using a standard public/free API key for ImgBB client uploads
+            const apiKey = '8ab75421ccecda2f5b61e2cbacdbab8f';
+            const res = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await res.json();
+            if (data && data.success && data.data && data.data.url) {
+                return data.data.url; // Returns a live HTTPS public URL
+            }
+            throw new Error('ImgBB upload response invalid');
+        } catch (error) {
+            console.error('External upload failed, falling back to data URL:', error);
+            // Fallback to local Data URI if external host is blocked
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    if (typeof e.target?.result === 'string') resolve(e.target.result);
+                    else reject(new Error('Failed to read image fallback'));
+                };
+                reader.onerror = () => reject(new Error('Failed to read image fallback'));
+                reader.readAsDataURL(file);
+            });
+        }
     }, []);
 
 
