@@ -174,8 +174,6 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
             if (defaultReply) {
                 setActiveSignatureId(defaultReply.id);
                 setSignatureHtml(defaultReply.content); // Store real HTML
-                // Show a clean preview line in the textarea — NOT stripped HTML
-                setReplyText(`\n\n-- \n${defaultReply.name}`);
             }
         }).catch(() => {/* silent — signatures are optional */});
     }, [user?.id]);
@@ -194,20 +192,9 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
         setActiveSignatureId(sig?.id || null);
         if (!sig) {
             setSignatureHtml(''); // Clear stored HTML
-            // Remove preview from textarea (everything after \n\n-- \n)
-            setReplyText(prev => {
-                const idx = prev.indexOf('\n\n-- \n');
-                return idx !== -1 ? prev.substring(0, idx) : prev;
-            });
             return;
         }
         setSignatureHtml(sig.content); // Store RAW HTML
-        // Show name as preview in textarea — clean and readable
-        setReplyText(prev => {
-            const idx = prev.indexOf('\n\n-- \n');
-            const bodyOnly = idx !== -1 ? prev.substring(0, idx) : prev;
-            return `${bodyOnly}\n\n-- \n${sig.name}`;
-        });
     };
 
     const handleConfirm = async () => {
@@ -274,11 +261,10 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
 
 
     const handleSendReply = async () => {
-        if (!replyText.trim()) return;
+        if (!replyText.trim() && !signatureHtml) return;
 
-        // ── Build the plain-text body (strip signature preview line) ──
-        const sigSepIdx = replyText.indexOf('\n\n-- \n');
-        const plainBody = sigSepIdx !== -1 ? replyText.substring(0, sigSepIdx).trim() : replyText.trim();
+        // ── Build the plain-text body ──
+        const plainBody = replyText.trim();
 
         // ── Build the full HTML email body ────────────────────────────
         // Message body → convert newlines to <br> tags, escape HTML
@@ -925,14 +911,22 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                             </div>
 
                             {/* Message Area */}
-                            <div className="relative group">
+                            <div className="relative group flex flex-col bg-white border border-gray-100 rounded-[24px] focus-within:border-gray-900/10 focus-within:ring-4 focus-within:ring-gray-900/5 transition-all shadow-inner overflow-hidden min-h-[200px]">
                                 <textarea
                                     value={replyText}
                                     onChange={(e) => setReplyText(e.target.value)}
                                     placeholder="Type your message here..."
-                                    className="w-full min-h-[200px] p-6 bg-white border border-gray-100 rounded-[24px] text-[15px] font-medium text-gray-700 placeholder:text-gray-300 focus:outline-none focus:border-gray-900/10 focus:ring-4 focus:ring-gray-900/5 transition-all resize-none shadow-inner"
+                                    className="w-full min-h-[120px] flex-1 p-6 text-[15px] font-medium text-gray-700 placeholder:text-gray-300 focus:outline-none resize-none bg-transparent"
                                     autoFocus
                                 />
+                                
+                                {signatureHtml && (
+                                    <div 
+                                        className="px-6 pb-16 pt-0 text-[14px] text-gray-600"
+                                        dangerouslySetInnerHTML={{ __html: signatureHtml }}
+                                    />
+                                )}
+                                
                                 <input
                                     type="file"
                                     ref={fileInputRef}
@@ -940,16 +934,16 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                     className="hidden"
                                     multiple
                                 />
-                                <div className="absolute bottom-4 left-6 flex items-center gap-3">
+                                <div className="absolute bottom-4 left-6 flex items-center gap-3 bg-white/80 backdrop-blur-sm rounded-lg px-2 py-1">
                                     <button
                                         onClick={() => fileInputRef.current?.click()}
-                                        className="p-2 text-gray-400 hover:text-orange-500 hover:bg-orange-50 rounded-lg transition-all flex items-center gap-2"
+                                        className="p-1.5 text-gray-400 hover:text-orange-500 hover:bg-orange-50 rounded-lg transition-all flex items-center gap-2"
                                         title="Attach files"
                                     >
                                         <Paperclip size={18} />
                                         {attachments.length > 0 && <span className="text-[11px] font-bold">{attachments.length} files</span>}
                                     </button>
-                                    <button className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all">
+                                    <button className="p-1.5 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all">
                                         <Eye size={18} />
                                     </button>
                                 </div>
