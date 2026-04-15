@@ -22,6 +22,7 @@ import { ticketService, type Reply, type Ticket } from '../../services/ticketSer
 
 import { formatDateIST, formatTimeIST, nowDateIST, nowTimeIST } from '../../utils/dateUtils';
 import { vendorService } from '../../services/vendorService';
+import { circuitService } from '../../services/circuitService';
 
 // ... (keep imports)
 
@@ -99,6 +100,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                 subject: `RE: ${ticket.header}`
             }));
         } else if (activeTab === 'vendor') {
+            const currentCircuitStr = confirmedCircuit || ticket.circuitId;
             // Fetch dynamically on vendor tab click
             ticketService.getVendorEmails(ticket.id).then(emails => {
                 setEmailForm(prev => ({
@@ -107,12 +109,12 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                     subject: `RE: ${ticket.header}`
                 }));
                 
-                // Try to find the vendor name associated with these emails
-                if (emails.length > 0) {
-                    vendorService.getAllVendors().then(vendors => {
-                        const matchedVendor = vendors.find(v => v.emails.some(e => emails.includes(e)));
-                        if (matchedVendor) {
-                            setVendorName(matchedVendor.name);
+                // Fetch the vendor name associated specifically with the connected circuit
+                if (currentCircuitStr) {
+                    circuitService.getAllCircuits().then(circuits => {
+                        const matchedCircuit = circuits.find(c => c.customerCircuitId === currentCircuitStr);
+                        if (matchedCircuit && matchedCircuit.vendor) {
+                            setVendorName(matchedCircuit.vendor.name);
                         } else {
                             setVendorName('EdgeStone Vendor');
                         }
@@ -130,7 +132,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                 setVendorName('EdgeStone Vendor');
             });
         }
-    }, [activeTab, ticket.email, ticket.header, ticket.id]);
+    }, [activeTab, ticket.email, ticket.header, ticket.id, confirmedCircuit, ticket.circuitId]);
 
     // Construct replies from ticket prop
     useEffect(() => {
