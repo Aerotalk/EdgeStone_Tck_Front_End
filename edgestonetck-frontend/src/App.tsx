@@ -8,6 +8,7 @@ import VendorsPage from './pages/dashboard/VendorsPage'
 import AssignAgentsPage from './pages/dashboard/AssignAgentsPage'
 import SLAPage from './pages/dashboard/SLAPage'
 import CircuitsPage from './pages/dashboard/CircuitsPage'
+import SignaturesPage from './pages/dashboard/SignaturesPage'
 import { AuthProvider } from './contexts/AuthContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { Toaster } from 'react-hot-toast'
@@ -35,6 +36,7 @@ function App() {
               </ProtectedRoute>
             } />
             <Route path="sla" element={<SLAPage />} />
+            <Route path="signatures" element={<SignaturesPage />} />
           </Route>
 
           {/* Default Route */}

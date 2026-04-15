@@ -13,16 +13,20 @@ import {
     Eye,
     Paperclip,
     Plus,
-    Loader2
+    Loader2,
+    PenLine
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { TicketInfoSidebar } from './TicketInfoSidebar';
 
 import { ticketService, type Reply, type Ticket } from '../../services/ticketService';
+import { signatureService, type Signature } from '../../services/signatureService';
 
 import { formatDateIST, formatTimeIST, nowDateIST, nowTimeIST } from '../../utils/dateUtils';
 import { vendorService } from '../../services/vendorService';
 import { circuitService } from '../../services/circuitService';
+import { useAuth } from '../../contexts/AuthContext';
+import { useNavigate, useParams } from 'react-router-dom';
 
 // ... (keep imports)
 
@@ -49,6 +53,14 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
     const [showCc, setShowCc] = useState(false);
     const [isSending, setIsSending] = useState(false);
     const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+
+    // Signature state
+    const { user } = useAuth();
+    const navigate = useNavigate();
+    const { id: dashboardId } = useParams<{ id: string }>();
+    const [signatures, setSignatures] = useState<Signature[]>([]);
+    const [activeSignatureId, setActiveSignatureId] = useState<string | null>(null);
+    const [showSigDropdown, setShowSigDropdown] = useState(false);
 
     // Email Modal form states
     const [emailForm, setEmailForm] = useState({
@@ -150,6 +162,44 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
             setReplies(ticket.replies);
         }
     }, [ticket]);
+
+    // Load signatures and auto-insert default reply signature
+    useEffect(() => {
+        if (!user?.id) return;
+        signatureService.getSignatures(user.id).then(sigs => {
+            setSignatures(sigs);
+            // Auto-select default for replies
+            const defaultReply = sigs.find(s => s.defaultFor === 'reply' || s.defaultFor === 'both');
+            if (defaultReply) {
+                setActiveSignatureId(defaultReply.id);
+                setReplyText(`\n\n-- \n${htmlToPlainText(defaultReply.content)}`);
+            }
+        }).catch(() => {/* silent — signatures are optional */});
+    }, [user?.id]);
+
+    // Helper: very basic HTML → plain text for textarea fallback
+    const htmlToPlainText = (html: string): string => {
+        const div = document.createElement('div');
+        div.innerHTML = html;
+        return div.innerText || div.textContent || '';
+    };
+
+    const applySignature = (sig: Signature | null) => {
+        setActiveSignatureId(sig?.id || null);
+        if (!sig) {
+            // Remove existing signature block (after last \n\n-- \n)
+            setReplyText(prev => {
+                const idx = prev.indexOf('\n\n-- \n');
+                return idx !== -1 ? prev.substring(0, idx) : prev;
+            });
+            return;
+        }
+        setReplyText(prev => {
+            const idx = prev.indexOf('\n\n-- \n');
+            const bodyOnly = idx !== -1 ? prev.substring(0, idx) : prev;
+            return `${bodyOnly}\n\n-- \n${htmlToPlainText(sig.content)}`;
+        });
+    };
 
     const handleConfirm = async () => {
         const newStatus = 'In Progress';
@@ -897,8 +947,70 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
 
                         {/* Modal Footer */}
                         <div className="px-10 py-8 bg-gray-50/50 border-t border-gray-50 flex items-center justify-between">
-                            <div className="flex items-center gap-2">
+                            {/* Left: Signatures Dropdown — exactly like Outlook toolbar */}
+                            <div className="relative">
+                                <button
+                                    id="signature-picker-btn"
+                                    onClick={() => setShowSigDropdown(v => !v)}
+                                    className="flex items-center gap-2 px-3 py-2 text-[13px] font-semibold text-gray-600 hover:text-gray-900 hover:bg-white border border-transparent hover:border-gray-200 rounded-xl transition-all"
+                                    title="Insert signature"
+                                >
+                                    <PenLine size={15} />
+                                    <span className="max-w-[140px] truncate">
+                                        {activeSignatureId
+                                            ? (signatures.find(s => s.id === activeSignatureId)?.name || 'Signature')
+                                            : 'Signatures'}
+                                    </span>
+                                    <ChevronDown size={13} className="text-gray-400 flex-shrink-0" />
+                                </button>
+
+                                {showSigDropdown && (
+                                    <>
+                                        <div className="fixed inset-0 z-[220]" onClick={() => setShowSigDropdown(false)} />
+                                        <div className="absolute left-0 bottom-full mb-2 bg-white border border-gray-100 rounded-2xl shadow-[0_20px_60px_-8px_rgba(15,23,42,0.2)] z-[230] min-w-[220px] py-1.5 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                                            {/* Signature list */}
+                                            {signatures.length > 0 ? (
+                                                <>
+                                                    {signatures.map(sig => (
+                                                        <button
+                                                            key={sig.id}
+                                                            onClick={() => { applySignature(sig); setShowSigDropdown(false); }}
+                                                            className="w-full text-left px-4 py-2.5 text-[13px] font-semibold text-gray-700 hover:bg-gray-50 transition-all flex items-center justify-between gap-3"
+                                                        >
+                                                            <span className="truncate">{sig.name}</span>
+                                                            {activeSignatureId === sig.id && (
+                                                                <div className="w-1.5 h-1.5 rounded-full bg-orange-500 flex-shrink-0" />
+                                                            )}
+                                                        </button>
+                                                    ))}
+                                                    <button
+                                                        onClick={() => { applySignature(null); setShowSigDropdown(false); }}
+                                                        className="w-full text-left px-4 py-2.5 text-[13px] font-semibold text-gray-400 hover:bg-gray-50 transition-all"
+                                                    >
+                                                        (No signature)
+                                                    </button>
+                                                    <div className="h-px bg-gray-100 mx-3 my-1" />
+                                                </>
+                                            ) : (
+                                                <p className="px-4 py-2 text-[12px] text-gray-400">No signatures yet</p>
+                                            )}
+                                            {/* Signatures settings link */}
+                                            <button
+                                                onClick={() => {
+                                                    setShowSigDropdown(false);
+                                                    setShowEmailModal(false);
+                                                    navigate(`/dashboard/${dashboardId}/signatures`);
+                                                }}
+                                                className="w-full text-left px-4 py-2.5 text-[13px] font-bold text-orange-500 hover:bg-orange-50 transition-all flex items-center gap-2"
+                                            >
+                                                <PenLine size={13} />
+                                                Signatures...
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
                             </div>
+
                             <div className="flex items-center gap-4">
                                 <button
                                     onClick={() => setShowEmailModal(false)}
@@ -916,6 +1028,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                 </button>
                             </div>
                         </div>
+
                     </div>
                 </div>
             )}
