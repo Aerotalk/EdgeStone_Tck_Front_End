@@ -99,7 +99,6 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                 subject: `RE: ${ticket.header}`
             }));
         } else if (activeTab === 'vendor') {
-            const currentCircuitStr = confirmedCircuit || ticket.circuitId;
             // Fetch dynamically on vendor tab click
             ticketService.getVendorEmails(ticket.id).then(emails => {
                 setEmailForm(prev => ({
@@ -109,18 +108,20 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                 }));
                 
                 // Fetch the vendor name associated specifically with the connected circuit
-                if (currentCircuitStr) {
-                    circuitService.getAllCircuits().then(circuits => {
-                        const matchedCircuit = circuits.find(c => c.customerCircuitId === currentCircuitStr);
-                        if (matchedCircuit && matchedCircuit.vendor) {
-                            setVendorName(matchedCircuit.vendor.name);
-                        } else {
-                            setVendorName('EdgeStone Vendor');
-                        }
-                    }).catch(() => setVendorName('EdgeStone Vendor'));
-                } else {
-                    setVendorName('EdgeStone Vendor');
-                }
+                circuitService.getAllCircuits().then(circuits => {
+                    const matchedCircuit = circuits.find(c => 
+                        (confirmedCircuit && c.customerCircuitId === confirmedCircuit) ||
+                        c.customerCircuitId === ticket.header ||
+                        c.customerCircuitId === ticket.circuitId ||
+                        c.id === ticket.circuitId
+                    );
+                    
+                    if (matchedCircuit && matchedCircuit.vendor) {
+                        setVendorName(matchedCircuit.vendor.name);
+                    } else {
+                        setVendorName('EdgeStone Vendor');
+                    }
+                }).catch(() => setVendorName('EdgeStone Vendor'));
             }).catch(err => {
                 console.error("Failed to fetch vendor emails", err);
                 setEmailForm(prev => ({
