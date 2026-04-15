@@ -64,6 +64,13 @@ const SLAPage: React.FC = () => {
                     const cleanStartTime = record.startTime?.replace(' hrs', '').trim();
                     const cleanEndTime = record.closedTime?.replace(' hrs', '').trim();
 
+                    // Overwrite DB placeholder unset dates (e.g., 2000-01-01) with empty states
+                    if (record.closeDate && (record.closeDate.includes('2000') || record.closeDate === '1970-01-01')) {
+                        record.closeDate = '';
+                        finalClosedTime = '-';
+                        downtimeStr = '-';
+                    }
+
                     if (record.startDate && cleanStartTime) {
                         const startStrISO = record.startDate.includes('-') ? `${record.startDate}T${cleanStartTime}:00Z` : `${record.startDate} ${cleanStartTime}:00Z`;
                         const start = new Date(startStrISO);

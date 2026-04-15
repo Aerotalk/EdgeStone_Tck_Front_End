@@ -21,6 +21,7 @@ import { TicketInfoSidebar } from './TicketInfoSidebar';
 import { ticketService, type Reply, type Ticket } from '../../services/ticketService';
 
 import { formatDateIST, formatTimeIST, nowDateIST, nowTimeIST } from '../../utils/dateUtils';
+import { vendorService } from '../../services/vendorService';
 import { circuitService } from '../../services/circuitService';
 
 // ... (keep imports)
@@ -118,6 +119,15 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                     
                     if (matchedCircuit && matchedCircuit.vendor) {
                         setVendorName(matchedCircuit.vendor.name);
+                        
+                        // Override the dummy ticketService email with the actual vendor's mapped email
+                        vendorService.getAllVendors().then(vendors => {
+                            const fullVendor = vendors.find(v => v.id === matchedCircuit.vendor!.id || v.name === matchedCircuit.vendor!.name);
+                            if (fullVendor && fullVendor.emails && fullVendor.emails.length > 0) {
+                                setEmailForm(prev => ({ ...prev, to: fullVendor.emails }));
+                            }
+                        }).catch(console.error);
+
                     } else {
                         setVendorName('EdgeStone Vendor');
                     }
