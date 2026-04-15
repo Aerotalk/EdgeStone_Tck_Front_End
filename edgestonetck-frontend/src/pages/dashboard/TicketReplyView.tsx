@@ -60,6 +60,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
     const { id: dashboardId } = useParams<{ id: string }>();
     const [signatures, setSignatures] = useState<Signature[]>([]);
     const [activeSignatureId, setActiveSignatureId] = useState<string | null>(null);
+    const [signatureHtml, setSignatureHtml] = useState<string>(''); // Raw HTML — never stripped
     const [showSigDropdown, setShowSigDropdown] = useState(false);
 
     // Email Modal form states
@@ -172,32 +173,45 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
             const defaultReply = sigs.find(s => s.defaultFor === 'reply' || s.defaultFor === 'both');
             if (defaultReply) {
                 setActiveSignatureId(defaultReply.id);
-                setReplyText(`\n\n-- \n${htmlToPlainText(defaultReply.content)}`);
+                setSignatureHtml(defaultReply.content); // Store real HTML
+                // Show a clean preview line in the textarea — NOT stripped HTML
+                setReplyText(`\n\n-- \n${defaultReply.name}`);
             }
         }).catch(() => {/* silent — signatures are optional */});
     }, [user?.id]);
 
-    // Helper: very basic HTML → plain text for textarea fallback
+    // Helper: basic HTML → plain text for textarea preview only
     const htmlToPlainText = (html: string): string => {
         const div = document.createElement('div');
         div.innerHTML = html;
         return div.innerText || div.textContent || '';
     };
 
+    // Convert plain text body to safe HTML paragraphs
+    const plainTextToHtml = (text: string): string => {
+        return text
+            .split('\n')
+            .map(line => line.trim() === '' ? '<br>' : `<span>${line.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>`)
+            .join('<br>');
+    };
+
     const applySignature = (sig: Signature | null) => {
         setActiveSignatureId(sig?.id || null);
         if (!sig) {
-            // Remove existing signature block (after last \n\n-- \n)
+            setSignatureHtml(''); // Clear stored HTML
+            // Remove preview from textarea (everything after \n\n-- \n)
             setReplyText(prev => {
                 const idx = prev.indexOf('\n\n-- \n');
                 return idx !== -1 ? prev.substring(0, idx) : prev;
             });
             return;
         }
+        setSignatureHtml(sig.content); // Store RAW HTML
+        // Show name as preview in textarea — clean and readable
         setReplyText(prev => {
             const idx = prev.indexOf('\n\n-- \n');
             const bodyOnly = idx !== -1 ? prev.substring(0, idx) : prev;
-            return `${bodyOnly}\n\n-- \n${htmlToPlainText(sig.content)}`;
+            return `${bodyOnly}\n\n-- \n${sig.name}`;
         });
     };
 
@@ -267,14 +281,30 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
     const handleSendReply = async () => {
         if (!replyText.trim()) return;
 
+        // ── Build the plain-text body (strip signature preview line) ──
+        const sigSepIdx = replyText.indexOf('\n\n-- \n');
+        const plainBody = sigSepIdx !== -1 ? replyText.substring(0, sigSepIdx).trim() : replyText.trim();
+
+        // ── Build the full HTML email body ────────────────────────────
+        // Message body → convert newlines to <br> tags, escape HTML
+        const htmlBody = plainTextToHtml(plainBody);
+        const htmlSignature = signatureHtml
+            ? `<br><br><div style="border-top:1px solid #e0e0e0;margin-top:16px;padding-top:12px;">${signatureHtml}</div>`
+            : '';
+        const fullHtmlContent = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#333;line-height:1.6;">${htmlBody}${htmlSignature}</div>`;
+
         try {
             setIsSending(true);
             // Send to client or vendor based on the active tab
             let newReply;
             if (activeTab === 'vendor') {
-                newReply = await ticketService.replyToVendor(ticket.id, { ...emailForm, message: replyText });
+                newReply = await ticketService.replyToVendor(ticket.id, {
+                    ...emailForm,
+                    message: plainBody,
+                    htmlContent: fullHtmlContent,
+                });
             } else {
-                newReply = await ticketService.replyToTicket(ticket.id, replyText);
+                newReply = await ticketService.replyToTicket(ticket.id, plainBody, fullHtmlContent);
             }
 
             // Update local state
