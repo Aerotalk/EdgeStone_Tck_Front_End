@@ -21,7 +21,6 @@ import { TicketInfoSidebar } from './TicketInfoSidebar';
 import { ticketService, type Reply, type Ticket } from '../../services/ticketService';
 
 import { formatDateIST, formatTimeIST, nowDateIST, nowTimeIST } from '../../utils/dateUtils';
-import { vendorService } from '../../services/vendorService';
 import { circuitService } from '../../services/circuitService';
 
 // ... (keep imports)
