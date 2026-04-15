@@ -16,6 +16,7 @@ import { DatePickerDropdown, type FilterType } from '../../components/ui/DatePic
 import { SLARulesModal } from '../../components/ui/SLARulesModal';
 
 import { slaRecordService, type SLARecord } from '../../services/slaRecordService';
+import { formatDateIST, formatTimeIST } from '../../utils/dateUtils';
 
 
 
@@ -50,41 +51,56 @@ const SLAPage: React.FC = () => {
             });
 
             const adjustedRecords = serverRecords.map(record => {
+                let finalClosedTime = record.closedTime || '';
+                if (finalClosedTime && !finalClosedTime.includes('hrs')) {
+                    finalClosedTime = `${finalClosedTime} hrs`;
+                }
+
                 let newStartTime = record.startTime;
                 let newDisplayStartDate = record.displayStartDate || record.startDate;
-                
-                // Calculate downtime based on start and close dates/times
                 let downtimeStr = record.downtime || '-';
-                if (record.startDate && record.startTime && record.closeDate && record.closedTime) {
-                    try {
-                        const cleanStartTime = record.startTime.replace(' hrs', '').trim();
-                        const cleanEndTime = record.closedTime.replace(' hrs', '').trim();
-                        
-                        // Parse dates securely handling both "YYYY-MM-DD" and "DD MMM YYYY" formats
-                        const startStr = record.startDate.includes('-') ? `${record.startDate}T${cleanStartTime}:00` : `${record.startDate} ${cleanStartTime}:00`;
-                        const endStr = record.closeDate.includes('-') ? `${record.closeDate}T${cleanEndTime}:00` : `${record.closeDate} ${cleanEndTime}:00`;
-                        
-                        const start = new Date(startStr);
-                        const end = new Date(endStr);
-                        
-                        if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
-                            const diffMs = end.getTime() - start.getTime();
-                            if (diffMs >= 0) {
-                                const diffMins = Math.floor(diffMs / 60000);
-                                downtimeStr = `${diffMins}`;
-                            } else {
-                                downtimeStr = '0';
+
+                try {
+                    const cleanStartTime = record.startTime?.replace(' hrs', '').trim();
+                    const cleanEndTime = record.closedTime?.replace(' hrs', '').trim();
+
+                    if (record.startDate && cleanStartTime) {
+                        const startStrISO = record.startDate.includes('-') ? `${record.startDate}T${cleanStartTime}:00Z` : `${record.startDate} ${cleanStartTime}:00Z`;
+                        const start = new Date(startStrISO);
+
+                        if (!isNaN(start.getTime())) {
+                            start.setMinutes(start.getMinutes() - 1);
+                            
+                            newStartTime = `${formatTimeIST(start)} hrs`;
+                            newDisplayStartDate = formatDateIST(start, { day: 'numeric', month: 'short', year: 'numeric' });
+                        }
+
+                        if (record.closeDate && cleanEndTime && !isNaN(start.getTime())) {
+                            const endStr = record.closeDate.includes('-') ? `${record.closeDate}T${cleanEndTime}:00` : `${record.closeDate} ${cleanEndTime}:00`;
+                            const end = new Date(endStr);
+
+                            if (!isNaN(end.getTime())) {
+                                const diffMs = end.getTime() - start.getTime();
+                                if (diffMs >= 0) {
+                                    downtimeStr = `${Math.floor(diffMs / 60000)}`;
+                                } else {
+                                    downtimeStr = '0';
+                                }
+                                
+                                // Format closeDate to match displayStartDate style
+                                record.closeDate = formatDateIST(end, { day: 'numeric', month: 'short', year: 'numeric' });
                             }
                         }
-                    } catch (e) {
-                        console.error('Error calculating downtime:', e);
                     }
+                } catch (e) {
+                    console.error('Error processing SLA times:', e);
                 }
 
                 return {
                     ...record,
                     startTime: newStartTime,
                     displayStartDate: newDisplayStartDate,
+                    closedTime: finalClosedTime,
                     downtime: downtimeStr
                 };
             });

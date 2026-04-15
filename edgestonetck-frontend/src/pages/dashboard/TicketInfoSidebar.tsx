@@ -231,8 +231,7 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                             <span className="text-gray-400 font-medium">SLA starts at</span>
                             <span className="text-gray-600 font-bold">{(() => {
                                 const baseTime = new Date(ticket.receivedAt || ticket.createdAt || new Date());
-                                const slaStartTime = new Date(baseTime.getTime() + 60000);
-                                return formatTimeIST(slaStartTime) + ' hrs';
+                                return formatTimeIST(baseTime) + ' hrs';
                             })()}</span>
                         </div>
                         <div className="flex justify-between items-center text-[14px]">
