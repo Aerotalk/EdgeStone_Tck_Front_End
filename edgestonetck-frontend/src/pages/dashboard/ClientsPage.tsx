@@ -9,7 +9,7 @@ import { useDashboardData } from '../../contexts/DashboardDataContext';
 
 const ClientsPage: React.FC = () => {
     const navigate = useNavigate();
-    const { isSuperAdmin, isSupportCrew } = useAuth();
+    const { isSupportCrew } = useAuth();
     const { refresh: refreshDashboard } = useDashboardData();
     const [clients, setClients] = useState<Client[]>([]);
     const [loading, setLoading] = useState(true);

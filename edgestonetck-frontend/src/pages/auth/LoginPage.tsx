@@ -49,7 +49,7 @@ export default function LoginPage() {
                 console.log('Is SuperAdmin (Access):', data.access?.superAdmin);
 
                 // Determine role based on access rights or direct role property
-                const userRole = (data.access?.superAdmin || data.isSuperAdmin) ? 'super_admin' : (data.role === 'super_admin' ? 'super_admin' : 'agent');
+                const userRole: any = (data.access?.superAdmin || data.isSuperAdmin) ? 'Super admin' : (data.role === 'Super admin' || data.role === 'super_admin' ? 'Super admin' : data.role || 'agent');
                 console.log('Determined Role:', userRole);
 
                 // Store user data in AuthContext
@@ -65,7 +65,7 @@ export default function LoginPage() {
                 setIsLoading(false)
                 // Redirect after a short delay
                 setTimeout(() => {
-                    if (userRole === 'super_admin') {
+                    if (userRole === 'Super admin') {
                         navigate(`/dashboard/${data.id}/assign-agents`)
                     } else {
                         navigate(`/dashboard/${data.id}`)
