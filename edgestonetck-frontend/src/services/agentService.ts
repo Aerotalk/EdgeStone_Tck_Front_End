@@ -5,7 +5,7 @@ export interface Agent {
     createdOn: string;
     emails: string[];
     status: 'Active' | 'In-Active';
-    isSuperAdmin: boolean;
+    role: 'Super admin' | 'Manager' | 'Support crew';
 }
 
 export interface CreateAgentData {
@@ -14,7 +14,7 @@ export interface CreateAgentData {
     password?: string;
     status: 'Active' | 'In-Active';
     emails?: string[];
-    isSuperAdmin?: boolean;
+    role: 'Super admin' | 'Manager' | 'Support crew';
 }
 
 export interface UpdateAgentData {
@@ -23,7 +23,7 @@ export interface UpdateAgentData {
     password?: string;
     status?: 'Active' | 'In-Active';
     emails?: string[];
-    isSuperAdmin?: boolean;
+    role?: 'Super admin' | 'Manager' | 'Support crew';
 }
 
 const API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/agents`;

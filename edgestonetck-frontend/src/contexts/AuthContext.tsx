@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-export type UserRole = 'super_admin' | 'agent';
+export type UserRole = 'Super admin' | 'Manager' | 'Support crew' | 'agent';
 
 export interface User {
     id: string;
@@ -16,6 +16,8 @@ interface AuthContextType {
     login: (user: User) => void;
     logout: () => void;
     isSuperAdmin: () => boolean;
+    isManager: () => boolean;
+    isSupportCrew: () => boolean;
     isAgent: () => boolean;
     getCurrentUser: () => User | null;
 }
@@ -51,7 +53,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const isSuperAdmin = (): boolean => {
-        return user?.role === 'super_admin';
+        // Fallback or explicit check
+        return user?.role === 'Super admin' || user?.role === 'super_admin' as any;
+    };
+
+    const isManager = (): boolean => {
+        return user?.role === 'Manager';
+    };
+
+    const isSupportCrew = (): boolean => {
+        return user?.role === 'Support crew';
     };
 
     const isAgent = (): boolean => {
@@ -63,7 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     return (
-        <AuthContext.Provider value={{ user, isLoading, login, logout, isSuperAdmin, isAgent, getCurrentUser }}>
+        <AuthContext.Provider value={{ user, isLoading, login, logout, isSuperAdmin, isManager, isSupportCrew, isAgent, getCurrentUser }}>
             {children}
         </AuthContext.Provider>
     );

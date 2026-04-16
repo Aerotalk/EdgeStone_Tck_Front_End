@@ -22,7 +22,7 @@ const AssignAgentsPage: React.FC = () => {
         email: '',
         password: '',
         status: 'Active',
-        isSuperAdmin: false
+        role: 'Support crew'
     });
     const [submitting, setSubmitting] = useState(false);
 
@@ -114,7 +114,7 @@ const AssignAgentsPage: React.FC = () => {
                 email: '',
                 password: '',
                 status: 'Active',
-                isSuperAdmin: false
+                role: 'Support crew'
             });
             setShowPassword(false);
 
@@ -142,12 +142,7 @@ const AssignAgentsPage: React.FC = () => {
         }
     };
 
-    const toggleSuperAdmin = () => {
-        setNewAgentData(prev => ({
-            ...prev,
-            isSuperAdmin: !prev.isSuperAdmin
-        }));
-    };
+
 
     return (
         <div className="flex flex-col h-full overflow-hidden bg-[#F9FAFB] relative transition-all duration-500">
@@ -268,18 +263,22 @@ const AssignAgentsPage: React.FC = () => {
                                 </div>
                             </div>
 
-                            {/* Assign Access Section */}
                             <div className="pt-4 border-t border-gray-50">
                                 <h3 className="text-[15px] font-black text-gray-900 mb-6 uppercase tracking-wider">Assign access</h3>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-[14px] font-bold text-gray-500">Super Admin</span>
-                                    <button
-                                        type="button"
-                                        onClick={toggleSuperAdmin}
-                                        className={`w-12 h-6 flex items-center ${newAgentData.isSuperAdmin ? 'bg-red-100' : 'bg-gray-100'} rounded-full p-1 transition-all duration-300`}
-                                    >
-                                        <div className={`w-4 h-4 rounded-full shadow-sm transition-transform duration-300 ${newAgentData.isSuperAdmin ? 'translate-x-6 bg-red-500' : 'translate-x-0 bg-gray-400'}`} />
-                                    </button>
+                                <div className="space-y-2">
+                                    <label className="block text-[13px] font-bold text-gray-400 uppercase tracking-wider">Role</label>
+                                    <div className="relative">
+                                        <select
+                                            value={newAgentData.role}
+                                            onChange={e => setNewAgentData(prev => ({ ...prev, role: e.target.value as any }))}
+                                            className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl focus:outline-none focus:border-brand-red focus:ring-4 focus:ring-brand-red/5 transition-all appearance-none text-[15px] font-bold text-gray-700"
+                                        >
+                                            <option value="Super admin">Super admin</option>
+                                            <option value="Manager">Manager</option>
+                                            <option value="Support crew">Support crew</option>
+                                        </select>
+                                        <ChevronLeft size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 -rotate-90 pointer-events-none" />
+                                    </div>
                                 </div>
                             </div>
 
@@ -363,6 +362,18 @@ const AssignAgentsPage: React.FC = () => {
                                                         <option value="In-Active">In-Active</option>
                                                     </select>
                                                 </div>
+                                                <div className="flex-1">
+                                                    <label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Role</label>
+                                                    <select
+                                                        value={editFormData.role}
+                                                        onChange={(e) => handleInputChange('role', e.target.value)}
+                                                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-brand-red text-sm bg-white"
+                                                    >
+                                                        <option value="Super admin">Super admin</option>
+                                                        <option value="Manager">Manager</option>
+                                                        <option value="Support crew">Support crew</option>
+                                                    </select>
+                                                </div>
                                             </div>
                                             <div className="flex gap-3 pt-2">
                                                 <button
@@ -430,6 +441,7 @@ const AssignAgentsPage: React.FC = () => {
                                             <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Created on</th>
                                             <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Email</th>
                                             <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
+                                            <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Role</th>
                                             <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Actions</th>
                                         </tr>
                                     </thead>
@@ -484,6 +496,23 @@ const AssignAgentsPage: React.FC = () => {
                                                             <span className={`w-1.5 h-1.5 rounded-full ${agent.status === 'Active' ? 'bg-green-500' : 'bg-red-500'
                                                                 }`} />
                                                             {agent.status}
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-5">
+                                                    {editingId === agent.id ? (
+                                                        <select
+                                                            value={editFormData.role}
+                                                            onChange={(e) => handleInputChange('role', e.target.value)}
+                                                            className="w-full px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:border-brand-red focus:ring-4 focus:ring-brand-red/5 text-sm bg-white"
+                                                        >
+                                                            <option value="Super admin">Super admin</option>
+                                                            <option value="Manager">Manager</option>
+                                                            <option value="Support crew">Support crew</option>
+                                                        </select>
+                                                    ) : (
+                                                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-600">
+                                                            {agent.role || 'Support crew'}
                                                         </span>
                                                     )}
                                                 </td>

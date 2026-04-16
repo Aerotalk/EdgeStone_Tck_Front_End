@@ -9,7 +9,7 @@ import { useDashboardData } from '../../contexts/DashboardDataContext';
 
 const VendorsPage: React.FC = () => {
     const navigate = useNavigate();
-    const { isSuperAdmin } = useAuth();
+    const { isSuperAdmin, isSupportCrew } = useAuth();
     const { refresh: refreshDashboard } = useDashboardData();
     const [vendors, setVendors] = useState<Vendor[]>([]);
     const [loading, setLoading] = useState(true);
@@ -313,7 +313,7 @@ const VendorsPage: React.FC = () => {
             )}
 
             <div className="px-4 sm:px-8 pt-4 sm:pt-6 pb-8 flex-1 overflow-auto relative">
-                {isSuperAdmin() && (
+                {!isSupportCrew() && (
                     <div className="mb-6">
                         <button
                             onClick={() => setIsAddModalOpen(true)}
@@ -455,13 +455,15 @@ const VendorsPage: React.FC = () => {
                                                 )}
                                             </div>
 
-                                            <button
-                                                onClick={() => handleEditClick(vendor)}
-                                                className="w-full py-2.5 flex items-center justify-center gap-2 text-sm font-bold text-gray-600 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-                                            >
-                                                <Edit3 size={16} />
-                                                Edit Vendor
-                                            </button>
+                                            {!isSupportCrew() && (
+                                                <button
+                                                    onClick={() => handleEditClick(vendor)}
+                                                    className="w-full py-2.5 flex items-center justify-center gap-2 text-sm font-bold text-gray-600 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                                                >
+                                                    <Edit3 size={16} />
+                                                    Edit Vendor
+                                                </button>
+                                            )}
                                         </>
                                     )}
                                 </div>
@@ -599,12 +601,14 @@ const VendorsPage: React.FC = () => {
                                                                 </button>
                                                             </>
                                                         ) : (
-                                                            <button onClick={() => handleEditClick(vendor)} className="flex items-center gap-2 text-sm font-bold text-gray-400 hover:text-brand-red transition-all group">
-                                                                <span className="opacity-0 group-hover:opacity-100 transition-opacity">Edit</span>
-                                                                <div className="p-2 group-hover:bg-brand-red/5 rounded-lg transition-colors">
-                                                                    <Edit3 size={18} />
-                                                                </div>
-                                                            </button>
+                                                            !isSupportCrew() && (
+                                                                <button onClick={() => handleEditClick(vendor)} className="flex items-center gap-2 text-sm font-bold text-gray-400 hover:text-brand-red transition-all group">
+                                                                    <span className="opacity-0 group-hover:opacity-100 transition-opacity">Edit</span>
+                                                                    <div className="p-2 group-hover:bg-brand-red/5 rounded-lg transition-colors">
+                                                                        <Edit3 size={18} />
+                                                                    </div>
+                                                                </button>
+                                                            )
                                                         )}
                                                     </div>
                                                 </td>
