@@ -27,7 +27,7 @@ import { formatDateIST, formatTimeIST, nowDateIST, nowTimeIST } from '../../util
 import { vendorService } from '../../services/vendorService';
 import { circuitService } from '../../services/circuitService';
 import { useAuth } from '../../contexts/AuthContext';
-import { useNavigate, useParams } from 'react-router-dom';
+
 
 // ... (keep imports)
 
@@ -57,8 +57,6 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
 
     // Signature state
     const { user } = useAuth();
-    const navigate = useNavigate();
-    const { id: dashboardId } = useParams<{ id: string }>();
     const [signatures, setSignatures] = useState<Signature[]>([]);
     const [activeSignatureId, setActiveSignatureId] = useState<string | null>(null);
     const [signatureHtml, setSignatureHtml] = useState<string>(''); // Raw HTML — never stripped

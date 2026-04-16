@@ -12,8 +12,7 @@ import {
     MoreVertical,
     LogOut,
     X,
-    Zap,
-    Mail
+    Zap
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
