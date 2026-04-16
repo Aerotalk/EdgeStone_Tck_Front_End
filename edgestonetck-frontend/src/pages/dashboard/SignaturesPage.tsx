@@ -457,7 +457,7 @@ const SignaturesPage: React.FC = () => {
                 </div>
                 <button
                     onClick={openCreate}
-                    className="flex items-center gap-2 px-6 py-3 bg-orange-500 text-white text-[14px] font-bold rounded-xl hover:bg-orange-600 transition-all active:scale-[0.98] shadow-[0_12px_24px_-8px_rgba(249,115,22,0.3)] flex-shrink-0 ml-8"
+                    className="flex items-center gap-2 px-6 py-3 bg-orange-500 text-white text-[14px] font-bold rounded-xl hover:bg-orange-600 transition-all active:scale-[0.98] shadow-[0_12px_24px_-8px_rgba(249,115,22,0.3)] flex-shrink-0 ml-8 mr-10 cursor-pointer relative z-10"
                 >
                     <Plus size={16} strokeWidth={2.5} />
                     New Signature
