@@ -14,7 +14,6 @@ import {
     Image as ImageIcon,
     Link,
     Loader2,
-    Check,
     ChevronDown,
     Type,
 } from 'lucide-react';
