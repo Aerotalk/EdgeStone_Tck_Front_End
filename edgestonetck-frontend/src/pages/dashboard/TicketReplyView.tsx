@@ -21,6 +21,7 @@ import { TicketInfoSidebar } from './TicketInfoSidebar';
 
 import { ticketService, type Reply, type Ticket } from '../../services/ticketService';
 import { signatureService, type Signature } from '../../services/signatureService';
+import SignaturesPage from './SignaturesPage';
 
 import { formatDateIST, formatTimeIST, nowDateIST, nowTimeIST } from '../../utils/dateUtils';
 import { vendorService } from '../../services/vendorService';
@@ -62,6 +63,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
     const [activeSignatureId, setActiveSignatureId] = useState<string | null>(null);
     const [signatureHtml, setSignatureHtml] = useState<string>(''); // Raw HTML — never stripped
     const [showSigDropdown, setShowSigDropdown] = useState(false);
+    const [showSignatureModal, setShowSignatureModal] = useState(false);
 
     // Email Modal form states
     const [emailForm, setEmailForm] = useState({
@@ -1017,8 +1019,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                             <button
                                                 onClick={() => {
                                                     setShowSigDropdown(false);
-                                                    setShowEmailModal(false);
-                                                    navigate(`/dashboard/${dashboardId}/signatures`);
+                                                    setShowSignatureModal(true);
                                                 }}
                                                 className="w-full text-left px-4 py-2.5 text-[13px] font-bold text-orange-500 hover:bg-orange-50 transition-all flex items-center gap-2"
                                             >
@@ -1048,6 +1049,29 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                             </div>
                         </div>
 
+                    </div>
+                </div>
+            )}
+
+            {/* Signature Management Modal */}
+            {showSignatureModal && (
+                <div className="fixed inset-0 z-[250] flex items-center justify-center bg-[#0F172A]/20 backdrop-blur-[6px] animate-in fade-in duration-500">
+                    <div className="bg-white rounded-[32px] w-full max-w-[900px] h-[85vh] shadow-[0_32px_128px_-12px_rgba(15,23,42,0.25)] border border-gray-100/50 animate-in zoom-in-95 duration-300 relative overflow-hidden flex flex-col">
+                        <button
+                            onClick={() => {
+                                setShowSignatureModal(false);
+                                // Refresh signatures when closing modal
+                                if (user?.id) {
+                                    signatureService.getSignatures(user.id).then(sigs => {
+                                        setSignatures(sigs);
+                                    }).catch(() => {});
+                                }
+                            }}
+                            className="absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-full transition-all z-10"
+                        >
+                            <X size={20} />
+                        </button>
+                        <SignaturesPage />
                     </div>
                 </div>
             )}
