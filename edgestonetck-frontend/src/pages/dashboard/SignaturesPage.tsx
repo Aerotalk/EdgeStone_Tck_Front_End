@@ -37,8 +37,8 @@ const ToolbarButton: React.FC<ToolbarButtonProps> = ({ onClick, title, active, c
         type="button"
         onMouseDown={(e) => { e.preventDefault(); onClick(); }}
         title={title}
-        className={`w-7 h-7 flex items-center justify-center rounded text-[13px] transition-all select-none
-            ${active ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'}`}
+        className={`w-8 h-8 flex items-center justify-center rounded-lg text-[14px] transition-all select-none
+            ${active ? 'bg-orange-100 text-orange-600' : 'text-gray-400 hover:bg-gray-100 hover:text-gray-900'}`}
     >
         {children}
     </button>
@@ -69,7 +69,7 @@ const SignatureEditor: React.FC<SignatureEditorProps> = ({ initialContent, onCha
         if (editorRef.current && initialContent !== editorRef.current.innerHTML) {
             editorRef.current.innerHTML = initialContent;
         }
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [initialContent]);
 
     const saveSelection = () => {
         const sel = window.getSelection();
@@ -122,12 +122,10 @@ const SignatureEditor: React.FC<SignatureEditorProps> = ({ initialContent, onCha
     const setFontSizeCmd = (size: string) => {
         setFontSize(size);
         setShowFontMenu(false);
-        // execCommand fontSize only supports 1-7; use styleWithCSS instead
         restoreSelection();
         editorRef.current?.focus();
         document.execCommand('styleWithCSS', false, 'true');
         document.execCommand('fontSize', false, '7');
-        // Find the inserted font elements and replace size attr with inline style
         const editor = editorRef.current;
         if (editor) {
             const fontEls = editor.querySelectorAll('font[size="7"]');
@@ -147,75 +145,75 @@ const SignatureEditor: React.FC<SignatureEditorProps> = ({ initialContent, onCha
     };
 
     return (
-        <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
+        <div className="border border-gray-100 rounded-2xl overflow-hidden bg-white ring-4 ring-gray-900/5 focus-within:border-gray-300 transition-all">
             {/* Toolbar */}
-            <div className="flex items-center flex-wrap gap-0.5 px-2 py-1.5 bg-[#f3f2f1] border-b border-gray-200">
+            <div className="flex items-center flex-wrap gap-1 px-3 py-2 bg-gray-50 border-b border-gray-100">
                 {/* Font Family */}
                 <div className="relative">
                     <button
                         type="button"
                         onMouseDown={(e) => { e.preventDefault(); saveSelection(); setShowFontFamilyMenu(v => !v); setShowFontMenu(false); }}
-                        className="flex items-center gap-1 px-2 py-1 rounded text-[12px] text-gray-700 hover:bg-gray-200 transition-all min-w-[100px]"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-bold text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-all min-w-[120px]"
                     >
-                        <Type size={12} />
+                        <Type size={14} />
                         <span className="truncate max-w-[80px]">{fontFamily}</span>
-                        <ChevronDown size={10} className="flex-shrink-0 text-gray-400" />
+                        <ChevronDown size={14} className="flex-shrink-0 text-gray-400" />
                     </button>
                     {showFontFamilyMenu && (
-                        <div className="absolute left-0 top-full mt-0.5 bg-white border border-gray-200 rounded-lg shadow-xl z-[300] py-1 min-w-[160px] max-h-48 overflow-y-auto">
+                        <div className="absolute left-0 top-full mt-2 bg-white border border-gray-100 rounded-xl shadow-[0_20px_60px_-12px_rgba(15,23,42,0.15)] z-[300] py-1.5 min-w-[180px] max-h-56 overflow-y-auto animate-in slide-in-from-top-2">
                             {FONT_FAMILIES.map(f => (
                                 <button key={f} type="button" onMouseDown={(e) => { e.preventDefault(); setFontFamilyCmd(f); }}
-                                    className={`w-full text-left px-3 py-1.5 text-[13px] hover:bg-blue-50 transition-all ${fontFamily === f ? 'text-blue-700 font-bold' : 'text-gray-700'}`}
+                                    className={`w-full text-left px-4 py-2 text-[14px] hover:bg-gray-50 transition-all ${fontFamily === f ? 'text-gray-900 font-bold' : 'text-gray-600'}`}
                                     style={{ fontFamily: f }}>{f}</button>
                             ))}
                         </div>
                     )}
                 </div>
 
-                <div className="w-px h-5 bg-gray-300 mx-0.5" />
+                <div className="w-px h-5 bg-gray-200 mx-1" />
 
                 {/* Font Size */}
                 <div className="relative">
                     <button
                         type="button"
                         onMouseDown={(e) => { e.preventDefault(); saveSelection(); setShowFontMenu(v => !v); setShowFontFamilyMenu(false); }}
-                        className="flex items-center gap-1 px-2 py-1 rounded text-[12px] text-gray-700 hover:bg-gray-200 transition-all w-16"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-bold text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-all w-[72px]"
                     >
                         <span>{fontSize}</span>
-                        <ChevronDown size={10} className="text-gray-400 flex-shrink-0" />
+                        <ChevronDown size={14} className="text-gray-400 flex-shrink-0" />
                     </button>
                     {showFontMenu && (
-                        <div className="absolute left-0 top-full mt-0.5 bg-white border border-gray-200 rounded-lg shadow-xl z-[300] py-1 max-h-48 overflow-y-auto w-20">
+                        <div className="absolute left-0 top-full mt-2 bg-white border border-gray-100 rounded-xl shadow-[0_20px_60px_-12px_rgba(15,23,42,0.15)] z-[300] py-1.5 max-h-56 overflow-y-auto w-24 animate-in slide-in-from-top-2">
                             {FONT_SIZES.map(s => (
                                 <button key={s} type="button" onMouseDown={(e) => { e.preventDefault(); setFontSizeCmd(s); }}
-                                    className={`w-full text-left px-3 py-1 text-[13px] hover:bg-blue-50 transition-all ${fontSize === s ? 'text-blue-700 font-bold' : 'text-gray-700'}`}>{s}</button>
+                                    className={`w-full text-left px-4 py-2 text-[14px] hover:bg-gray-50 transition-all ${fontSize === s ? 'text-gray-900 font-bold' : 'text-gray-600'}`}>{s}</button>
                             ))}
                         </div>
                     )}
                 </div>
 
-                <div className="w-px h-5 bg-gray-300 mx-0.5" />
+                <div className="w-px h-5 bg-gray-200 mx-1" />
 
-                <ToolbarButton onClick={() => execAndFocus('bold')} title="Bold (Ctrl+B)"><Bold size={13} strokeWidth={2.5} /></ToolbarButton>
-                <ToolbarButton onClick={() => execAndFocus('italic')} title="Italic (Ctrl+I)"><Italic size={13} /></ToolbarButton>
-                <ToolbarButton onClick={() => execAndFocus('underline')} title="Underline (Ctrl+U)"><Underline size={13} /></ToolbarButton>
+                <ToolbarButton onClick={() => execAndFocus('bold')} title="Bold (Ctrl+B)"><Bold size={15} strokeWidth={2.5} /></ToolbarButton>
+                <ToolbarButton onClick={() => execAndFocus('italic')} title="Italic (Ctrl+I)"><Italic size={15} /></ToolbarButton>
+                <ToolbarButton onClick={() => execAndFocus('underline')} title="Underline (Ctrl+U)"><Underline size={15} /></ToolbarButton>
 
-                <div className="w-px h-5 bg-gray-300 mx-0.5" />
+                <div className="w-px h-5 bg-gray-200 mx-1" />
 
-                <ToolbarButton onClick={() => execAndFocus('justifyLeft')} title="Align Left"><AlignLeft size={13} /></ToolbarButton>
-                <ToolbarButton onClick={() => execAndFocus('justifyCenter')} title="Center"><AlignCenter size={13} /></ToolbarButton>
-                <ToolbarButton onClick={() => execAndFocus('justifyRight')} title="Align Right"><AlignRight size={13} /></ToolbarButton>
+                <ToolbarButton onClick={() => execAndFocus('justifyLeft')} title="Align Left"><AlignLeft size={15} /></ToolbarButton>
+                <ToolbarButton onClick={() => execAndFocus('justifyCenter')} title="Center"><AlignCenter size={15} /></ToolbarButton>
+                <ToolbarButton onClick={() => execAndFocus('justifyRight')} title="Align Right"><AlignRight size={15} /></ToolbarButton>
 
-                <div className="w-px h-5 bg-gray-300 mx-0.5" />
+                <div className="w-px h-5 bg-gray-200 mx-1" />
 
                 {/* Font Color */}
-                <label title="Font Color" className="relative w-7 h-7 flex items-center justify-center rounded hover:bg-gray-100 cursor-pointer transition-all">
-                    <span className="text-[12px] font-bold text-gray-700" style={{ textDecoration: 'underline', textDecorationColor: '#e53e3e', textDecorationThickness: '2px' }}>A</span>
+                <label title="Font Color" className="relative w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 cursor-pointer transition-all">
+                    <span className="text-[14px] font-bold text-gray-700" style={{ textDecoration: 'underline', textDecorationColor: '#F97316', textDecorationThickness: '2px' }}>A</span>
                     <input type="color" className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                         onChange={(e) => execAndFocus('foreColor', e.target.value)} title="Font Color" />
                 </label>
 
-                <div className="w-px h-5 bg-gray-300 mx-0.5" />
+                <div className="w-px h-5 bg-gray-200 mx-1" />
 
                 {/* Image Upload */}
                 <ToolbarButton
@@ -223,9 +221,9 @@ const SignatureEditor: React.FC<SignatureEditorProps> = ({ initialContent, onCha
                     title="Insert Image"
                     active={uploadingImg}
                 >
-                    {uploadingImg ? <Loader2 size={13} className="animate-spin" /> : <ImageIcon size={13} />}
+                    {uploadingImg ? <Loader2 size={15} className="animate-spin" /> : <ImageIcon size={15} />}
                 </ToolbarButton>
-                <ToolbarButton onClick={handleLink} title="Insert Link"><Link size={13} /></ToolbarButton>
+                <ToolbarButton onClick={handleLink} title="Insert Link"><Link size={15} /></ToolbarButton>
 
                 <input ref={imgInputRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml" className="hidden" onChange={handleImageSelect} />
             </div>
@@ -240,7 +238,7 @@ const SignatureEditor: React.FC<SignatureEditorProps> = ({ initialContent, onCha
                 onKeyUp={handleInput}
                 onMouseUp={saveSelection}
                 onKeyDown={saveSelection}
-                className="min-h-[180px] p-4 text-[13px] text-gray-800 leading-relaxed focus:outline-none"
+                className="min-h-[220px] p-6 text-[14px] text-gray-800 leading-relaxed focus:outline-none"
                 style={{ fontFamily: 'Arial' }}
                 data-placeholder="Type your signature here..."
             />
@@ -261,31 +259,31 @@ const DefaultDropdown: React.FC<DefaultDropdownProps> = ({ label, value, options
     const selected = options.find(o => o.value === value);
 
     return (
-        <div className="flex items-center gap-4">
-            <span className="text-[13px] text-[#323130] w-48 flex-shrink-0">{label}</span>
+        <div className="flex flex-col gap-2">
+            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider pl-1">{label}</span>
             <div className="relative">
                 <button
                     type="button"
                     onClick={() => setOpen(v => !v)}
-                    className="flex items-center justify-between gap-2 min-w-[220px] h-[30px] px-3 bg-white border border-[#8a8886] rounded text-[13px] text-[#323130] hover:border-[#106ebe] transition-all"
+                    className={`w-full min-h-[52px] border rounded-2xl px-4 flex items-center justify-between transition-all active:scale-[0.98] ${open ? 'bg-white border-[#0F172A] ring-4 ring-[#0F172A]/5' : 'bg-gray-50/50 border-gray-100 hover:border-gray-200'}`}
                 >
-                    <span className="truncate">{selected?.label || '(No signature)'}</span>
-                    <ChevronDown size={12} className="flex-shrink-0 text-gray-500" />
+                    <span className={`text-[14px] font-bold truncate ${selected ? 'text-gray-900' : 'text-gray-400'}`}>{selected?.label || '(No signature)'}</span>
+                    <ChevronDown size={16} className={`flex-shrink-0 transition-transform duration-300 ${open ? 'rotate-180 text-gray-900' : 'text-gray-400'}`} />
                 </button>
                 {open && (
                     <>
                         <div className="fixed inset-0 z-[200]" onClick={() => setOpen(false)} />
-                        <div className="absolute left-0 top-full mt-1 bg-white border border-[#8a8886] rounded shadow-lg z-[210] min-w-[220px] py-1 max-h-48 overflow-y-auto">
+                        <div className="absolute left-0 top-full mt-2 w-full bg-white border border-gray-100 rounded-2xl shadow-[0_20px_60px_-12px_rgba(15,23,42,0.15)] z-[210] overflow-hidden py-1.5 animate-in slide-in-from-top-2 duration-200">
                             {options.map(opt => (
                                 <button
                                     key={opt.value}
                                     type="button"
                                     onClick={() => { onChange(opt.value); setOpen(false); }}
-                                    className={`w-full text-left px-3 py-1.5 text-[13px] hover:bg-[#deecf9] transition-all flex items-center justify-between
-                                        ${opt.value === value ? 'bg-[#deecf9] text-[#106ebe]' : 'text-[#323130]'}`}
+                                    className={`w-full text-left px-4 py-3 text-[13px] font-semibold transition-all flex items-center justify-between
+                                        ${opt.value === value ? 'bg-gray-50 text-gray-900' : 'text-gray-500 hover:bg-gray-50/80 hover:text-gray-900'}`}
                                 >
                                     {opt.label}
-                                    {opt.value === value && <Check size={12} className="text-[#106ebe]" />}
+                                    {opt.value === value && <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />}
                                 </button>
                             ))}
                         </div>
@@ -310,26 +308,21 @@ const SignaturesPage: React.FC = () => {
     const [openMoreId, setOpenMoreId] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
 
-    // Modal form state
     const [formName, setFormName] = useState('');
     const [formContent, setFormContent] = useState('');
     const [formDefaultFor, setFormDefaultFor] = useState<'new' | 'reply' | 'both' | null>(null);
 
-    // Default for new messages / replies (derived from signatures)
     const getDefault = (type: 'new' | 'reply') =>
         signatures.find(s => s.defaultFor === type || s.defaultFor === 'both')?.id || '';
 
     const handleSetDefault = async (type: 'new' | 'reply', sigId: string) => {
         const current = signatures.find(s => s.id === sigId);
         if (!current) {
-            // Setting to "no signature" — clear existing default
             const toUpdate = signatures.find(s => s.defaultFor === type || s.defaultFor === 'both');
             if (toUpdate) {
                 try {
                     const updated = await signatureService.updateSignature(toUpdate.id, {
-                        defaultFor: toUpdate.defaultFor === 'both'
-                            ? (type === 'new' ? 'reply' : 'new')
-                            : null
+                        defaultFor: toUpdate.defaultFor === 'both' ? (type === 'new' ? 'reply' : 'new') : null
                     });
                     setSignatures(prev => prev.map(s => s.id === updated.id ? updated : s));
                 } catch { toast.error('Failed to update default'); }
@@ -341,20 +334,17 @@ const SignaturesPage: React.FC = () => {
             if (current.defaultFor === null) return type;
             if (current.defaultFor === type) return type;
             if (current.defaultFor === 'both') return 'both';
-            // e.g. current is 'new', setting 'reply' → 'both'
             return 'both';
         })();
 
         try {
             const updated = await signatureService.setDefault(current.id, newDefaultFor);
-            // Re-fetch to get updated state after server-side conflict resolution
             const all = await signatureService.getSignatures(agentId);
             setSignatures(all);
-            (_updated => {})(updated);
+            (_updated => {})(updated); 
         } catch { toast.error('Failed to set default'); }
     };
 
-    // Fetch signatures on mount
     useEffect(() => {
         if (!agentId) return;
         setLoading(true);
@@ -363,10 +353,6 @@ const SignaturesPage: React.FC = () => {
             .catch(() => toast.error('Failed to load signatures'))
             .finally(() => setLoading(false));
     }, [agentId]);
-
-    useEffect(() => {
-        document.title = 'Signatures — EdgeStone';
-    }, []);
 
     const openCreate = () => {
         setEditingSignature(null);
@@ -427,34 +413,21 @@ const SignaturesPage: React.FC = () => {
         }
     };
 
-    // ─── External Public Image Upload (ImgBB) ───────────────────────
-    // We upload to a public image host so that the image URL is accessible 
-    // by email clients (like Gmail), because local backend uploads or 
-    // base64 data URIs are stripped by email systems.
     const handleImageUpload = useCallback(async (file: File): Promise<string> => {
-        if (file.size > 5 * 1024 * 1024) {
-            throw new Error('Image must be smaller than 5MB');
-        }
-        
+        if (file.size > 5 * 1024 * 1024) throw new Error('Image must be smaller than 5MB');
         try {
             const formData = new FormData();
             formData.append('image', file);
-            
-            // Using a standard public/free API key for ImgBB client uploads
             const apiKey = '8ab75421ccecda2f5b61e2cbacdbab8f';
             const res = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
                 method: 'POST',
                 body: formData
             });
-            
             const data = await res.json();
-            if (data && data.success && data.data && data.data.url) {
-                return data.data.url; // Returns a live HTTPS public URL
-            }
+            if (data && data.success && data.data && data.data.url) return data.data.url;
             throw new Error('ImgBB upload response invalid');
         } catch (error) {
             console.error('External upload failed, falling back to data URL:', error);
-            // Fallback to local Data URI if external host is blocked
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = (e) => {
@@ -467,50 +440,48 @@ const SignaturesPage: React.FC = () => {
         }
     }, []);
 
-
     const sigOptions = [
         { value: '', label: '(No signature)' },
         ...signatures.map(s => ({ value: s.id, label: s.name })),
     ];
 
     return (
-        <div className="h-full flex flex-col bg-white font-[Segoe_UI,_Arial,_sans-serif]">
-            {/* Page Header — matches Outlook Settings top bar */}
-            <div className="px-8 pt-8 pb-4 border-b border-[#edebe9]">
-                <div className="flex items-start justify-between max-w-4xl">
-                    <div>
-                        <h1 className="text-[28px] font-semibold text-[#323130] mb-2">Signatures</h1>
-                        <p className="text-[13px] text-[#605e5c] max-w-[500px] leading-relaxed">
-                            You can add and modify signatures that can be added to your emails.
-                            You can also choose which signature to add by default to your new emails and replies.
-                        </p>
-                    </div>
-                    <button
-                        onClick={openCreate}
-                        id="add-signature-btn"
-                        className="flex items-center gap-2 px-4 h-[32px] bg-[#0f6cbd] text-white text-[13px] font-semibold rounded hover:bg-[#115ea3] transition-all active:scale-[0.98] flex-shrink-0 ml-8 mt-1"
-                    >
-                        <Plus size={14} strokeWidth={2.5} />
-                        Add signature
-                    </button>
+        <div className="h-full flex flex-col bg-white font-sans">
+            {/* Header Area */}
+            <div className="px-10 py-8 border-b border-gray-50 flex items-start justify-between">
+                <div>
+                    <h1 className="text-[24px] font-bold text-gray-900 tracking-tight mb-2">Signatures</h1>
+                    <p className="text-[14px] text-gray-500 max-w-[500px] leading-relaxed font-medium">
+                        Manage your custom email signatures. 
+                        You can add new designs or choose your defaults for outgoing messages.
+                    </p>
                 </div>
+                <button
+                    onClick={openCreate}
+                    className="flex items-center gap-2 px-6 py-3 bg-orange-500 text-white text-[14px] font-bold rounded-xl hover:bg-orange-600 transition-all active:scale-[0.98] shadow-[0_12px_24px_-8px_rgba(249,115,22,0.3)] flex-shrink-0 ml-8"
+                >
+                    <Plus size={16} strokeWidth={2.5} />
+                    New Signature
+                </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-8 py-6 max-w-4xl">
-                {/* Divider */}
-                <div className="h-px bg-[#edebe9] mb-6" />
-
-                {/* Account Selector */}
-                <div className="mb-6">
-                    <p className="text-[14px] font-semibold text-[#323130] mb-2">The signatures for</p>
-                    <div className="flex items-center gap-2 min-w-[340px] h-[30px] px-3 bg-white border border-[#8a8886] rounded text-[13px] text-[#323130] w-[340px]">
-                        <span className="flex-1 truncate">{agentEmail}</span>
-                        <ChevronDown size={12} className="flex-shrink-0 text-gray-500" />
+            <div className="flex-1 overflow-y-auto px-10 py-8">
+                {/* Account Settings */}
+                <div className="mb-10 animate-in slide-in-from-bottom-2 duration-300">
+                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">Account Profile</p>
+                    <div className="flex items-center gap-3 px-4 py-3 bg-gray-50/80 border border-gray-100 rounded-2xl w-fit min-w-[340px]">
+                        <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center text-orange-600 font-bold text-sm shadow-sm border border-orange-200/50">
+                            {agentEmail[0]?.toUpperCase()}
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="font-bold text-[15px] text-gray-900 truncate">{agentEmail}</span>
+                            <span className="font-medium text-[12px] text-gray-400">Support Agent</span>
+                        </div>
                     </div>
                 </div>
 
                 {/* Default Selectors */}
-                <div className="space-y-3 mb-8">
+                <div className="grid grid-cols-2 gap-6 mb-10 pb-8 border-b border-gray-50 animate-in slide-in-from-bottom-2 duration-300 delay-75">
                     <DefaultDropdown
                         label="Default for new messages"
                         value={getDefault('new')}
@@ -525,181 +496,178 @@ const SignaturesPage: React.FC = () => {
                     />
                 </div>
 
-                {/* Divider */}
-                <div className="h-px bg-[#edebe9] mb-4" />
-
                 {/* Signature List */}
-                {loading ? (
-                    <div className="flex items-center gap-2 py-8 text-[#605e5c]">
-                        <Loader2 size={16} className="animate-spin" />
-                        <span className="text-[13px]">Loading signatures...</span>
-                    </div>
-                ) : signatures.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-center">
-                        <div className="w-16 h-16 rounded-full bg-[#f3f2f1] flex items-center justify-center mb-4">
-                            <Pencil size={24} className="text-[#8a8886]" />
+                <div className="animate-in slide-in-from-bottom-2 duration-300 delay-150">
+                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-4">Saved Signatures</p>
+                    {loading ? (
+                        <div className="flex items-center gap-3 py-10 text-gray-400 font-bold justify-center w-full bg-gray-50 border border-gray-100 border-dashed rounded-3xl">
+                            <Loader2 size={18} className="animate-spin text-orange-500" />
+                            <span>Loading your signatures...</span>
                         </div>
-                        <p className="text-[14px] font-semibold text-[#323130] mb-1">No signatures yet</p>
-                        <p className="text-[13px] text-[#605e5c]">Click "+ Add signature" to create your first signature.</p>
-                    </div>
-                ) : (
-                    <div className="space-y-1">
-                        {signatures.map(sig => (
-                            <div
-                                key={sig.id}
-                                className="flex items-center justify-between px-4 py-3 border border-[#edebe9] rounded hover:border-[#c8c6c4] bg-white transition-all group"
+                    ) : signatures.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-16 px-6 text-center bg-gray-50 border border-gray-100 border-dashed rounded-3xl">
+                            <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center mb-5 shadow-sm border border-gray-100/50">
+                                <Pencil size={28} className="text-gray-300" />
+                            </div>
+                            <p className="text-[16px] font-bold text-gray-900 mb-2">It's a bit empty here</p>
+                            <p className="text-[14px] font-medium text-gray-500 max-w-[280px]">Create your very first email signature to start giving your replies a professional touch.</p>
+                            <button
+                                onClick={openCreate}
+                                className="mt-6 font-bold text-orange-500 hover:text-orange-600 transition-colors"
                             >
-                                <div className="flex items-center gap-3 flex-1 min-w-0">
-                                    <span className="text-[13px] text-[#323130] font-medium truncate">{sig.name}</span>
-                                    {sig.defaultFor && (
-                                        <span className="text-[11px] text-[#0f6cbd] bg-[#deecf9] px-1.5 py-0.5 rounded font-medium flex-shrink-0">
-                                            {sig.defaultFor === 'both' ? 'New & Replies' : sig.defaultFor === 'new' ? 'New messages' : 'Replies'}
-                                        </span>
-                                    )}
-                                </div>
-
-                                <div className="flex items-center gap-1">
-                                    {/* Edit */}
-                                    <button
-                                        onClick={() => openEdit(sig)}
-                                        id={`edit-sig-${sig.id}`}
-                                        title="Edit signature"
-                                        className="w-8 h-8 flex items-center justify-center text-[#605e5c] hover:text-[#323130] hover:bg-[#f3f2f1] rounded transition-all"
-                                    >
-                                        <Pencil size={15} />
-                                    </button>
-
-                                    {/* Delete */}
-                                    {deleteConfirmId === sig.id ? (
-                                        <div className="flex items-center gap-1 animate-in slide-in-from-right-2 duration-200">
-                                            <button
-                                                onClick={() => handleDelete(sig.id)}
-                                                className="px-2 py-1 text-[11px] font-bold text-white bg-red-600 rounded hover:bg-red-700 transition-all"
-                                            >Delete</button>
-                                            <button
-                                                onClick={() => setDeleteConfirmId(null)}
-                                                className="px-2 py-1 text-[11px] font-bold text-gray-600 bg-gray-100 rounded hover:bg-gray-200 transition-all"
-                                            >Cancel</button>
+                                + Add a Signature
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            {signatures.map(sig => (
+                                <div
+                                    key={sig.id}
+                                    className="flex items-center justify-between p-4 bg-white border border-gray-100 rounded-2xl hover:border-gray-300 hover:shadow-lg hover:shadow-gray-900/5 transition-all duration-300 group"
+                                >
+                                    <div className="flex items-center gap-4 flex-1 min-w-0 pl-2">
+                                        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-orange-50 to-white border border-orange-100/50 flex items-center justify-center text-orange-500 shadow-sm flex-shrink-0">
+                                            <Type size={18} strokeWidth={2.5} />
                                         </div>
-                                    ) : (
-                                        <button
-                                            onClick={() => setDeleteConfirmId(sig.id)}
-                                            id={`delete-sig-${sig.id}`}
-                                            title="Delete signature"
-                                            className="w-8 h-8 flex items-center justify-center text-[#605e5c] hover:text-red-600 hover:bg-red-50 rounded transition-all"
-                                        >
-                                            <Trash2 size={15} />
-                                        </button>
-                                    )}
+                                        <div className="flex flex-col gap-0.5">
+                                            <span className="text-[15px] text-gray-900 font-bold truncate">{sig.name}</span>
+                                            {sig.defaultFor && (
+                                                <span className="text-[12px] text-orange-500 font-bold bg-orange-50 w-fit px-2 py-0.5 rounded-md">
+                                                    Default for {sig.defaultFor === 'both' ? 'New & Replies' : sig.defaultFor === 'new' ? 'New messages' : 'Replies'}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
 
-                                    {/* More */}
-                                    <div className="relative">
+                                    <div className="flex items-center gap-2 pr-2 lg:opacity-0 group-hover:opacity-100 transition-opacity">
+                                        {/* Edit */}
                                         <button
-                                            onClick={() => setOpenMoreId(openMoreId === sig.id ? null : sig.id)}
-                                            title="More options"
-                                            className="w-8 h-8 flex items-center justify-center text-[#605e5c] hover:text-[#323130] hover:bg-[#f3f2f1] rounded transition-all"
+                                            onClick={() => openEdit(sig)}
+                                            className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-xl transition-all"
                                         >
-                                            <MoreHorizontal size={15} />
+                                            <Pencil size={18} />
                                         </button>
 
-                                        {openMoreId === sig.id && (
-                                            <>
-                                                <div className="fixed inset-0 z-[150]" onClick={() => setOpenMoreId(null)} />
-                                                <div className="absolute right-0 top-full mt-1 bg-white border border-[#8a8886] rounded shadow-lg z-[160] py-1 min-w-[180px] animate-in fade-in slide-in-from-top-1 duration-150">
-                                                    <button
-                                                        onClick={() => openEdit(sig)}
-                                                        className="w-full text-left px-3 py-2 text-[13px] text-[#323130] hover:bg-[#deecf9] transition-all flex items-center gap-2"
-                                                    >
-                                                        <Pencil size={13} /> Rename / Edit
-                                                    </button>
-                                                    <button
-                                                        onClick={async () => {
-                                                            setOpenMoreId(null);
-                                                            try {
-                                                                const updated = await signatureService.setDefault(sig.id, 'new');
-                                                                setSignatures(prev => prev.map(s => s.id === updated.id ? updated : { ...s, defaultFor: s.defaultFor === 'new' || s.defaultFor === 'both' ? (s.defaultFor === 'both' ? 'reply' : null) : s.defaultFor }));
-                                                                const all = await signatureService.getSignatures(agentId);
-                                                                setSignatures(all);
-                                                                toast.success('Set as default for new messages');
-                                                            } catch { toast.error('Failed to set default'); }
-                                                        }}
-                                                        className="w-full text-left px-3 py-2 text-[13px] text-[#323130] hover:bg-[#deecf9] transition-all"
-                                                    >
-                                                        Set as default (New messages)
-                                                    </button>
-                                                    <button
-                                                        onClick={async () => {
-                                                            setOpenMoreId(null);
-                                                            try {
-                                                                const updated = await signatureService.setDefault(sig.id, 'reply');
-                                                                (_updated => {})(updated);
-                                                                const all = await signatureService.getSignatures(agentId);
-                                                                setSignatures(all);
-                                                                toast.success('Set as default for replies');
-                                                            } catch { toast.error('Failed to set default'); }
-                                                        }}
-                                                        className="w-full text-left px-3 py-2 text-[13px] text-[#323130] hover:bg-[#deecf9] transition-all"
-                                                    >
-                                                        Set as default (Replies)
-                                                    </button>
-                                                    <div className="h-px bg-[#edebe9] my-1" />
-                                                    <button
-                                                        onClick={() => { setOpenMoreId(null); setDeleteConfirmId(sig.id); }}
-                                                        className="w-full text-left px-3 py-2 text-[13px] text-red-600 hover:bg-red-50 transition-all flex items-center gap-2"
-                                                    >
-                                                        <Trash2 size={13} /> Delete
-                                                    </button>
-                                                </div>
-                                            </>
+                                        {/* Delete */}
+                                        {deleteConfirmId === sig.id ? (
+                                            <div className="flex items-center gap-2 animate-in slide-in-from-right-2 duration-200">
+                                                <button
+                                                    onClick={() => handleDelete(sig.id)}
+                                                    className="px-4 py-2 text-[12px] font-bold text-white bg-red-500 rounded-xl hover:bg-red-600 transition-all shadow-md shadow-red-200"
+                                                >Delete</button>
+                                                <button
+                                                    onClick={() => setDeleteConfirmId(null)}
+                                                    className="px-4 py-2 text-[12px] font-bold text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 transition-all"
+                                                >Cancel</button>
+                                            </div>
+                                        ) : (
+                                            <button
+                                                onClick={() => setDeleteConfirmId(sig.id)}
+                                                className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                                            >
+                                                <Trash2 size={18} />
+                                            </button>
                                         )}
+
+                                        {/* More Options */}
+                                        <div className="relative">
+                                            <button
+                                                onClick={() => setOpenMoreId(openMoreId === sig.id ? null : sig.id)}
+                                                className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-xl transition-all"
+                                            >
+                                                <MoreHorizontal size={18} />
+                                            </button>
+
+                                            {openMoreId === sig.id && (
+                                                <>
+                                                    <div className="fixed inset-0 z-[150]" onClick={() => setOpenMoreId(null)} />
+                                                    <div className="absolute right-0 top-full mt-2 bg-white border border-gray-100 rounded-2xl shadow-[0_20px_60px_-12px_rgba(15,23,42,0.15)] z-[160] py-1.5 min-w-[200px] animate-in fade-in slide-in-from-top-2 duration-150">
+                                                        <button
+                                                            onClick={async () => {
+                                                                setOpenMoreId(null);
+                                                                try {
+                                                                    const updated = await signatureService.setDefault(sig.id, 'new');
+                                                                    setSignatures(prev => prev.map(s => s.id === updated.id ? updated : { ...s, defaultFor: s.defaultFor === 'new' || s.defaultFor === 'both' ? (s.defaultFor === 'both' ? 'reply' : null) : s.defaultFor }));
+                                                                    toast.success('Set as default for new messages');
+                                                                } catch { toast.error('Failed to set default'); }
+                                                            }}
+                                                            className="w-full text-left px-4 py-3 text-[13px] font-bold text-gray-600 hover:bg-gray-50 transition-all"
+                                                        >
+                                                            Set default (New messages)
+                                                        </button>
+                                                        <button
+                                                            onClick={async () => {
+                                                                setOpenMoreId(null);
+                                                                try {
+                                                                    const updated = await signatureService.setDefault(sig.id, 'reply');
+                                                                    setSignatures(prev => prev.map(s => s.id === updated.id ? updated : { ...s, defaultFor: s.defaultFor === 'reply' || s.defaultFor === 'both' ? (s.defaultFor === 'both' ? 'new' : null) : s.defaultFor }));
+                                                                    toast.success('Set as default for replies');
+                                                                } catch { toast.error('Failed to set default'); }
+                                                            }}
+                                                            className="w-full text-left px-4 py-3 text-[13px] font-bold text-gray-600 hover:bg-gray-50 transition-all"
+                                                        >
+                                                            Set default (Replies)
+                                                        </button>
+                                                        <div className="h-px bg-gray-50 my-1.5 mx-2" />
+                                                        <button
+                                                            onClick={() => { setOpenMoreId(null); setDeleteConfirmId(sig.id); }}
+                                                            className="w-full text-left px-4 py-3 text-[13px] font-bold text-red-500 hover:bg-red-50 transition-all flex items-center gap-2"
+                                                        >
+                                                            <Trash2 size={16} /> Delete
+                                                        </button>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
+                            ))}
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* ─── Create / Edit Modal ────────────────────────────────────────────── */}
             {showModal && (
-                <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/30 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-lg shadow-[0_16px_64px_rgba(0,0,0,0.22)] w-full max-w-[720px] max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200"
-                        style={{ fontFamily: 'Segoe UI, Arial, sans-serif' }}>
+                <div className="fixed inset-0 z-[400] flex items-center justify-center p-6 bg-[#0F172A]/30 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-white rounded-[32px] shadow-[0_32px_128px_-12px_rgba(15,23,42,0.3)] w-full max-w-[800px] max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-300 relative border border-white">
 
                         {/* Modal Header */}
-                        <div className="flex items-center justify-between px-6 py-4 border-b border-[#edebe9]">
-                            <h2 className="text-[20px] font-semibold text-[#323130]">
-                                {editingSignature ? 'Edit signature' : 'New signature'}
-                            </h2>
+                        <div className="flex items-center justify-between px-10 py-8 border-b border-gray-50">
+                            <div>
+                                <h2 className="text-[24px] font-bold text-gray-900 tracking-tight">
+                                    {editingSignature ? 'Edit Signature' : 'New Signature'}
+                                </h2>
+                                <p className="text-[14px] text-gray-500 font-medium mt-1">Design your custom email footer.</p>
+                            </div>
                             <button
                                 onClick={() => setShowModal(false)}
-                                className="w-8 h-8 flex items-center justify-center text-[#605e5c] hover:text-[#323130] hover:bg-[#f3f2f1] rounded transition-all"
+                                className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-full transition-all"
                             >
-                                <X size={18} />
+                                <X size={20} />
                             </button>
                         </div>
 
                         {/* Modal Body */}
-                        <div className="flex-1 overflow-y-auto p-6 space-y-5">
+                        <div className="flex-1 overflow-y-auto p-10 space-y-8 scrollbar-hide">
                             {/* Name Field */}
-                            <div>
-                                <label className="block text-[13px] font-semibold text-[#323130] mb-1.5">
-                                    Signature name
+                            <div className="flex flex-col">
+                                <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2 pl-1">
+                                    Signature Name
                                 </label>
                                 <input
                                     type="text"
-                                    id="sig-name-input"
                                     value={formName}
                                     onChange={e => setFormName(e.target.value)}
-                                    placeholder="e.g. Priyanshu Routh CTO AeroTalk"
-                                    className="w-full h-[32px] px-3 border border-[#8a8886] rounded text-[13px] text-[#323130] focus:outline-none focus:border-[#106ebe] focus:ring-1 focus:ring-[#106ebe] transition-all"
+                                    placeholder="e.g. Priyanshu Routh - CTO AeroTalk"
+                                    className="w-full h-[56px] px-5 bg-gray-50 border border-gray-100 rounded-2xl text-[14px] font-bold text-gray-900 placeholder:text-gray-300 focus:outline-none focus:ring-4 focus:ring-gray-900/5 focus:bg-white transition-all"
                                 />
                             </div>
 
                             {/* Editor */}
-                            <div>
-                                <label className="block text-[13px] font-semibold text-[#323130] mb-1.5">
-                                    Edit signature
+                            <div className="flex flex-col">
+                                <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2 pl-1">
+                                    Compose
                                 </label>
                                 <SignatureEditor
                                     key={editingSignature?.id || 'new'}
@@ -707,19 +675,19 @@ const SignaturesPage: React.FC = () => {
                                     onChange={setFormContent}
                                     onImageUpload={handleImageUpload}
                                 />
-                                <p className="mt-1.5 text-[11px] text-[#605e5c]">
-                                    Tip: Use the image button to insert logos or photos. Images embed as inline data for best compatibility.
+                                <p className="mt-3 text-[12px] text-gray-400 font-medium flex items-center gap-2 px-1">
+                                    <ImageIcon size={14} className="text-gray-300" /> Feel free to embed logos directly using the image tool.
                                 </p>
                             </div>
 
                             {/* Default For */}
-                            <div className="grid grid-cols-2 gap-4 pt-2 border-t border-[#edebe9]">
+                            <div className="grid grid-cols-2 gap-6 pt-4">
                                 <DefaultDropdown
                                     label="Default for new messages"
                                     value={formDefaultFor === 'new' || formDefaultFor === 'both' ? '__this__' : ''}
                                     options={[
                                         { value: '', label: '(No signature)' },
-                                        { value: '__this__', label: `This signature (${formName || 'current'})` },
+                                        { value: '__this__', label: `This signature (${formName || 'Current'})` },
                                     ]}
                                     onChange={(v) => {
                                         if (v === '__this__') {
@@ -734,7 +702,7 @@ const SignaturesPage: React.FC = () => {
                                     value={formDefaultFor === 'reply' || formDefaultFor === 'both' ? '__this__' : ''}
                                     options={[
                                         { value: '', label: '(No signature)' },
-                                        { value: '__this__', label: `This signature (${formName || 'current'})` },
+                                        { value: '__this__', label: `This signature (${formName || 'Current'})` },
                                     ]}
                                     onChange={(v) => {
                                         if (v === '__this__') {
@@ -748,21 +716,19 @@ const SignaturesPage: React.FC = () => {
                         </div>
 
                         {/* Modal Footer */}
-                        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-[#edebe9] bg-[#faf9f8]">
+                        <div className="flex items-center justify-end gap-3 px-10 py-6 border-t border-gray-50 bg-gray-50/50 rounded-b-[32px]">
                             <button
                                 onClick={() => setShowModal(false)}
-                                className="px-4 h-[32px] border border-[#8a8886] text-[13px] text-[#323130] rounded hover:bg-[#f3f2f1] transition-all"
+                                className="px-6 py-3 text-[14px] font-bold text-gray-500 hover:text-gray-900 border border-transparent hover:border-gray-200 hover:bg-white rounded-xl transition-all"
                             >
-                                Cancel
+                                Discard
                             </button>
                             <button
                                 onClick={handleSave}
                                 disabled={saving}
-                                id="save-signature-btn"
-                                className="flex items-center gap-2 px-4 h-[32px] bg-[#0f6cbd] text-white text-[13px] font-semibold rounded hover:bg-[#115ea3] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                                className="flex items-center gap-2 px-8 py-3 bg-orange-500 text-white text-[14px] font-bold rounded-xl hover:bg-orange-600 transition-all active:scale-[0.98] shadow-[0_12px_24px_-8px_rgba(249,115,22,0.3)] disabled:opacity-60 disabled:cursor-not-allowed group"
                             >
-                                {saving && <Loader2 size={13} className="animate-spin" />}
-                                Save
+                                {saving ? <Loader2 size={16} className="animate-spin" /> : 'Save Signature'}
                             </button>
                         </div>
                     </div>
