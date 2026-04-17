@@ -62,7 +62,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const isSupportCrew = (): boolean => {
-        return user?.role === 'Support crew';
+        return user?.role === 'Support crew' || user?.role === 'agent' as any;
     };
 
     const isAgent = (): boolean => {

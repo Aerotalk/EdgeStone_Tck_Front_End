@@ -56,9 +56,12 @@ const AssignAgentsPage: React.FC = () => {
     };
 
     const getAgentRole = (agent: any): string => {
-        if (agent.role) {
-             if (agent.role === 'super_admin') return 'Super admin';
-             return agent.role;
+        const roleStr = agent.role || agent.userRole || agent.access?.role;
+        if (roleStr) {
+             if (roleStr === 'super_admin' || roleStr === 'Super admin') return 'Super admin';
+             if (roleStr.toLowerCase() === 'manager') return 'Manager';
+             if (roleStr.toLowerCase() === 'support crew') return 'Support crew';
+             return roleStr;
         }
         if (agent.access?.superAdmin || agent.isSuperAdmin) {
             return 'Super admin';
