@@ -13,6 +13,8 @@ const AssignAgentsPage: React.FC = () => {
     const [editFormData, setEditFormData] = useState<Partial<Agent>>({});
     const [showSuccess, setShowSuccess] = useState(false);
     const [successMessage, setSuccessMessage] = useState('Details Updated Successfully');
+    const [showError, setShowError] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
 
     // Add Agent Modal states
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -104,11 +106,13 @@ const AssignAgentsPage: React.FC = () => {
             setTimeout(() => setShowSuccess(false), 2000);
         } catch (error: any) {
             console.error('Failed to update agent:', error);
+            setErrorMessage(error.message || 'Failed to update user assigned role');
             if (error.message === 'Unauthorized') {
                 localStorage.removeItem('edgestone_user');
                 navigate('/login');
             }
-            // Handle error UI
+            setShowError(true);
+            setTimeout(() => setShowError(false), 3000);
         }
     };
 
@@ -137,11 +141,13 @@ const AssignAgentsPage: React.FC = () => {
             setTimeout(() => setShowSuccess(false), 2000);
         } catch (error: any) {
             console.error('Failed to create agent:', error);
+            setErrorMessage(error.message || 'Failed to assign a new agent');
             if (error.message === 'Unauthorized') {
                 localStorage.removeItem('edgestone_user');
                 navigate('/login');
             }
-            // Handle error UI
+            setShowError(true);
+            setTimeout(() => setShowError(false), 3000);
         } finally {
             setSubmitting(false);
         }
@@ -180,12 +186,24 @@ const AssignAgentsPage: React.FC = () => {
 
             {/* Success Notification */}
             {showSuccess && (
-                <div className="absolute top-[72px] left-1/2 -translate-x-[50%] z-50 animate-gradual">
+                <div className="absolute top-[72px] left-1/2 -translate-x-[50%] z-[70] animate-gradual">
                     <div className="bg-white px-8 py-3 rounded-2xl shadow-[0_20px_50px_-12px_rgba(0,0,0,0.15)] border border-gray-100 flex items-center gap-4">
                         <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center shadow-[0_0_20px_rgba(34,197,94,0.3)]">
                             <Check size={18} className="text-white" strokeWidth={3.5} />
                         </div>
                         <span className="text-sm font-bold text-gray-800 tracking-tight text-nowrap">{successMessage}</span>
+                    </div>
+                </div>
+            )}
+
+            {/* Error Notification */}
+            {showError && (
+                <div className="absolute top-[72px] left-1/2 -translate-x-[50%] z-[70] animate-gradual">
+                    <div className="bg-white px-8 py-3 rounded-2xl shadow-[0_20px_50px_-12px_rgba(0,0,0,0.15)] border border-red-100 flex items-center gap-4">
+                        <div className="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center shadow-[0_0_20px_rgba(239,68,68,0.3)]">
+                            <X size={18} className="text-white" strokeWidth={3.5} />
+                        </div>
+                        <span className="text-sm font-bold text-gray-800 tracking-tight text-nowrap">{errorMessage}</span>
                     </div>
                 </div>
             )}
