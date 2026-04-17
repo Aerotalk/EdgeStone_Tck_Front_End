@@ -37,7 +37,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ agentName, isMobileOpen, onClo
         { icon: Building2, label: 'Vendor', path: 'vendors' },
         { icon: Zap, label: 'Circuits', path: 'circuits' },
         { icon: UserPlus, label: 'Assign agent', path: 'assign-agents', superAdminOnly: true },
-        { icon: FileText, label: 'SLA', path: 'sla' },
+        { icon: FileText, label: 'SLA', path: 'sla', superAdminOnly: true },
     ];
 
     // Filter menu items based on user role

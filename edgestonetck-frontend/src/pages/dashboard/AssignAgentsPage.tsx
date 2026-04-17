@@ -55,6 +55,17 @@ const AssignAgentsPage: React.FC = () => {
         return words.length >= 2;
     };
 
+    const getAgentRole = (agent: any): string => {
+        if (agent.role) {
+             if (agent.role === 'super_admin') return 'Super admin';
+             return agent.role;
+        }
+        if (agent.access?.superAdmin || agent.isSuperAdmin) {
+            return 'Super admin';
+        }
+        return 'Support crew';
+    };
+
     const filteredAgents = agents.filter(agent => {
         const query = searchQuery.toLowerCase();
         return (
@@ -65,7 +76,7 @@ const AssignAgentsPage: React.FC = () => {
 
     const handleEditClick = (agent: Agent) => {
         setEditingId(agent.id);
-        setEditFormData({ ...agent });
+        setEditFormData({ ...agent, role: getAgentRole(agent) as any });
     };
 
     const handleCancel = () => {
@@ -410,7 +421,13 @@ const AssignAgentsPage: React.FC = () => {
                                                 </span>
                                             </div>
 
-                                            <div className="flex flex-wrap gap-1.5">
+                                            <div className="flex flex-wrap gap-1.5 mt-1 mb-2">
+                                                <span className="inline-flex items-center px-3 py-1.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-600">
+                                                    {getAgentRole(agent)}
+                                                </span>
+                                            </div>
+                                            
+                                            <div className="flex flex-wrap gap-1.5 mt-2">
                                                 {agent.emails.map((email, i) => (
                                                     <span key={i} className="px-2 py-0.5 bg-orange-50 text-[#D97706] rounded text-[11px] border border-orange-100/50 font-medium">
                                                         {email}
@@ -512,7 +529,7 @@ const AssignAgentsPage: React.FC = () => {
                                                         </select>
                                                     ) : (
                                                         <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-600">
-                                                            {agent.role || 'Support crew'}
+                                                            {getAgentRole(agent)}
                                                         </span>
                                                     )}
                                                 </td>
