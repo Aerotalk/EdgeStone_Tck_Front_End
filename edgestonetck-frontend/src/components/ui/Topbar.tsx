@@ -1,5 +1,6 @@
 import React from 'react';
 import { Search } from 'lucide-react';
+import { GlobalClock } from './GlobalClock';
 
 interface TopbarProps {
     title: string;
@@ -29,6 +30,10 @@ export const Topbar: React.FC<TopbarProps> = ({
                     />
                 </div>
             )}
+
+            <div className="ml-auto hidden md:block flex-shrink-0">
+                <GlobalClock />
+            </div>
         </div>
     );
 };
