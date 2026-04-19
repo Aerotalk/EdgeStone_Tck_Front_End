@@ -27,6 +27,7 @@ import { formatDateIST, formatTimeIST, nowDateIST, nowTimeIST } from '../../util
 import { vendorService } from '../../services/vendorService';
 import { circuitService } from '../../services/circuitService';
 import { useAuth } from '../../contexts/AuthContext';
+import { GlobalClock } from '../../components/ui/GlobalClock';
 
 
 // ... (keep imports)
@@ -415,41 +416,46 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                         </div>
                     </div>
 
-                    <div className="relative">
-                        <button
-                            onClick={() => !isUpdatingStatus && ticketStatus.toLowerCase() !== 'closed' && setShowStatusDropdown(!showStatusDropdown)}
-                            disabled={isUpdatingStatus}
-                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] font-bold border transition-all ${ticketStatus.toLowerCase() === 'closed'
-                                ? 'bg-green-100/50 text-green-600 border-green-200/30 cursor-not-allowed'
-                                : 'bg-orange-100/50 text-orange-600 border-orange-200/30 hover:bg-orange-100'
-                                } ${isUpdatingStatus ? 'opacity-70 cursor-wait' : ''}`}
-                        >
-                            {isUpdatingStatus ? (
-                                <>
-                                    <Loader2 size={14} className="animate-spin" />
-                                    Updating...
-                                </>
-                            ) : (
-                                <>
-                                    {ticketStatus}
-                                    {ticketStatus.toLowerCase() !== 'closed' && <ChevronDown size={14} />}
-                                </>
+                    <div className="flex items-center gap-6 relative">
+                        <div className="hidden lg:block">
+                            <GlobalClock />
+                        </div>
+                        <div className="relative">
+                            <button
+                                onClick={() => !isUpdatingStatus && ticketStatus.toLowerCase() !== 'closed' && setShowStatusDropdown(!showStatusDropdown)}
+                                disabled={isUpdatingStatus}
+                                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] font-bold border transition-all ${ticketStatus.toLowerCase() === 'closed'
+                                    ? 'bg-green-100/50 text-green-600 border-green-200/30 cursor-not-allowed'
+                                    : 'bg-orange-100/50 text-orange-600 border-orange-200/30 hover:bg-orange-100'
+                                    } ${isUpdatingStatus ? 'opacity-70 cursor-wait' : ''}`}
+                            >
+                                {isUpdatingStatus ? (
+                                    <>
+                                        <Loader2 size={14} className="animate-spin" />
+                                        Updating...
+                                    </>
+                                ) : (
+                                    <>
+                                        {ticketStatus}
+                                        {ticketStatus.toLowerCase() !== 'closed' && <ChevronDown size={14} />}
+                                    </>
+                                )}
+                            </button>
+
+                            {showStatusDropdown && (
+                                <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-100 rounded-xl shadow-xl z-[110] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                                    <button
+                                        onClick={() => handleStatusChange('Closed')}
+                                        className="w-full px-4 py-2.5 text-left text-[13px] font-bold text-green-600 hover:bg-green-50 transition-colors flex items-center justify-between"
+                                    >
+                                        Closed
+                                    </button>
+                                </div>
                             )}
-                        </button>
 
-                        {showStatusDropdown && (
-                            <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-100 rounded-xl shadow-xl z-[110] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                                <button
-                                    onClick={() => handleStatusChange('Closed')}
-                                    className="w-full px-4 py-2.5 text-left text-[13px] font-bold text-green-600 hover:bg-green-50 transition-colors flex items-center justify-between"
-                                >
-                                    Closed
-                                </button>
-                            </div>
-                        )}
-
-                        {/* Overlay to close dropdown */}
-                        {showStatusDropdown && <div className="fixed inset-0 z-[105]" onClick={() => setShowStatusDropdown(false)} />}
+                            {/* Overlay to close dropdown */}
+                            {showStatusDropdown && <div className="fixed inset-0 z-[105]" onClick={() => setShowStatusDropdown(false)} />}
+                        </div>
                     </div>
                 </div>
 
