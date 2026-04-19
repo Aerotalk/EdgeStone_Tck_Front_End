@@ -55,17 +55,24 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
     const [newNote, setNewNote] = useState('');
     const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
 
-    // SLA Close states
     const [slaCloseDate, setSlaCloseDate] = useState('');
     const [slaCloseTime, setSlaCloseTime] = useState('');
     const [slaCompensation, setSlaCompensation] = useState('-');
     const [slaStatus, setSlaStatus] = useState('Safe');
+    const [slaStartDate, setSlaStartDate] = useState('');
+    const [slaStartTime, setSlaStartTime] = useState('');
+    const [isSlaLocked, setIsSlaLocked] = useState(false);
 
     // Modal states
     const [showDateModal, setShowDateModal] = useState(false);
     const [showTimeModal, setShowTimeModal] = useState(false);
+    const [showStartDateModal, setShowStartDateModal] = useState(false);
+    const [showStartTimeModal, setShowStartTimeModal] = useState(false);
+
     const [tempDate, setTempDate] = useState('');
     const [tempTime, setTempTime] = useState('');
+    const [tempStartDate, setTempStartDate] = useState('');
+    const [tempStartTime, setTempStartTime] = useState('');
 
     const currentAgentName = SUPPORT_AGENTS.find(a => a.id === id)?.name || 'Agent';
 
@@ -112,6 +119,12 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                 const result = await response.json();
                 const record = result.data;
                 if (record) {
+                    if (record.startDate) {
+                        setSlaStartDate(record.startDate);
+                    }
+                    if (record.startTime) {
+                        setSlaStartTime(record.startTime);
+                    }
                     if (record.closeDate) {
                         setSlaCloseDate(record.closeDate);
                     }
@@ -187,6 +200,40 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
         }
     };
 
+    const handleSaveStartDate = async () => {
+        setSlaStartDate(tempStartDate);
+        setShowStartDateModal(false);
+        try {
+            const response = await fetch(`${API_URL_SLA}/ticket/${ticket.id}/start`, {
+                method: 'PATCH',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ startDate: tempStartDate, startTime: slaStartTime })
+            });
+            if (!response.ok) throw new Error('API failed');
+
+            toast.success('SLA start date updated in records');
+        } catch (error) {
+            console.error('Failed to update SLA start date in backend', error);
+        }
+    };
+
+    const handleSaveStartTime = async () => {
+        setSlaStartTime(tempStartTime);
+        setShowStartTimeModal(false);
+        try {
+            const response = await fetch(`${API_URL_SLA}/ticket/${ticket.id}/start`, {
+                method: 'PATCH',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ startDate: slaStartDate, startTime: tempStartTime })
+            });
+            if (!response.ok) throw new Error('API failed');
+
+            toast.success('SLA start time updated in records');
+        } catch (error) {
+            console.error('Failed to update SLA start time in backend', error);
+        }
+    };
+
     return (
         <div className="w-[340px] border-l border-gray-100 bg-white hidden lg:flex flex-col h-full font-sans shrink-0 relative">
             <div className="flex-1 overflow-y-auto scrollbar-hide">
@@ -232,27 +279,65 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
 
                 {/* SLA Calculator Section */}
                 <div className="p-8 border-b border-gray-50">
-                    <h4 className="text-[14px] font-bold text-gray-900 mb-6 tracking-tight">SLA calculator</h4>
+                    <div className="flex items-center justify-between mb-6">
+                        <h4 className="text-[14px] font-bold text-gray-900 tracking-tight">SLA calculator</h4>
+                        <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-bold text-gray-400 uppercase">Lock SLA</span>
+                            <button
+                                onClick={() => setIsSlaLocked(!isSlaLocked)}
+                                className={`w-8 h-4 rounded-full transition-colors relative ${isSlaLocked ? 'bg-orange-500' : 'bg-gray-200'}`}
+                            >
+                                <div className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-transform ${isSlaLocked ? 'translate-x-4' : 'translate-x-0'}`} />
+                            </button>
+                        </div>
+                    </div>
                     <div className="space-y-4">
                         <div className={`text-[14px] font-medium pb-1 cursor-pointer transition-colors ${circuit ? 'text-gray-900 font-bold' : 'text-gray-700 hover:text-gray-900'}`}>
                             {circuit || 'Select circuit'}
                         </div>
                         <div className="flex justify-between items-center text-[14px]">
-                            <span className="text-gray-400 font-medium">SLA starts at</span>
-                            <span className="text-gray-600 font-bold">{(() => {
-                                const baseTime = new Date(ticket.receivedAt || ticket.createdAt || new Date());
-                                return formatTimeIST(baseTime) + ' hrs';
-                            })()}</span>
+                            <div className="flex items-center gap-2">
+                                <span className="text-gray-400 font-medium">SLA start time</span>
+                                {!isSlaLocked && (
+                                    <button
+                                        onClick={() => { setTempStartTime(slaStartTime); setShowStartTimeModal(true); }}
+                                        className="p-1 hover:bg-orange-50 rounded-full text-orange-400 hover:text-orange-600 transition-all border border-transparent hover:border-orange-100 shadow-sm hover:shadow active:scale-90"
+                                    >
+                                        <Plus size={12} strokeWidth={3} />
+                                    </button>
+                                )}
+                            </div>
+                            <span className={`text-[14px] font-bold ${slaStartTime ? 'text-gray-900' : 'text-gray-600'}`}>
+                                {slaStartTime ? `${slaStartTime} hrs` : '-'}
+                            </span>
+                        </div>
+                        <div className="flex justify-between items-center text-[14px]">
+                            <div className="flex items-center gap-2">
+                                <span className="text-gray-400 font-medium">SLA start date</span>
+                                {!isSlaLocked && (
+                                    <button
+                                        onClick={() => { setTempStartDate(slaStartDate); setShowStartDateModal(true); }}
+                                        className="p-1 hover:bg-orange-50 rounded-full text-orange-400 hover:text-orange-600 transition-all border border-transparent hover:border-orange-100 shadow-sm hover:shadow active:scale-90"
+                                    >
+                                        <Plus size={12} strokeWidth={3} />
+                                    </button>
+                                )}
+                            </div>
+                            <span className={`text-[14px] font-bold ${slaStartDate ? 'text-gray-900' : 'text-gray-600'}`}>
+                                {slaStartDate || '-'}
+                            </span>
                         </div>
                         <div className="flex justify-between items-center text-[14px]">
                             <div className="flex items-center gap-2">
                                 <span className="text-gray-400 font-medium">SLA close at</span>
-                                <button
-                                    onClick={() => { setTempTime(slaCloseTime); setShowTimeModal(true); }}
-                                    className="p-1 hover:bg-orange-50 rounded-full text-orange-400 hover:text-orange-600 transition-all border border-transparent hover:border-orange-100 shadow-sm hover:shadow active:scale-90"
-                                >
-                                    <Plus size={12} strokeWidth={3} />
-                                </button>
+                                {!isSlaLocked && (
+                                    <button
+                                        onClick={() => { setTempTime(slaCloseTime); setShowTimeModal(true); }}
+                                        className="p-1 hover:bg-orange-50 rounded-full text-orange-400 hover:text-orange-600 transition-all border border-transparent hover:border-orange-100 shadow-sm hover:shadow active:scale-90"
+                                    >
+                                        <Plus size={12} strokeWidth={3} />
+                                    </button>
+                                )}
                             </div>
                             <span className={`text-[14px] font-bold ${slaCloseTime ? 'text-gray-900' : 'text-gray-600'}`}>
                                 {slaCloseTime ? `${slaCloseTime} hrs` : '-'}
@@ -261,12 +346,14 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                         <div className="flex justify-between items-center text-[14px]">
                             <div className="flex items-center gap-2">
                                 <span className="text-gray-400 font-medium">SLA close date</span>
-                                <button
-                                    onClick={() => { setTempDate(slaCloseDate); setShowDateModal(true); }}
-                                    className="p-1 hover:bg-orange-50 rounded-full text-orange-400 hover:text-orange-600 transition-all border border-transparent hover:border-orange-100 shadow-sm hover:shadow active:scale-90"
-                                >
-                                    <Plus size={12} strokeWidth={3} />
-                                </button>
+                                {!isSlaLocked && (
+                                    <button
+                                        onClick={() => { setTempDate(slaCloseDate); setShowDateModal(true); }}
+                                        className="p-1 hover:bg-orange-50 rounded-full text-orange-400 hover:text-orange-600 transition-all border border-transparent hover:border-orange-100 shadow-sm hover:shadow active:scale-90"
+                                    >
+                                        <Plus size={12} strokeWidth={3} />
+                                    </button>
+                                )}
                             </div>
                             <span className={`text-[14px] font-bold ${slaCloseDate ? 'text-gray-900' : 'text-gray-600'}`}>
                                 {slaCloseDate || '-'}
@@ -507,6 +594,42 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                 </div>
             )}
 
+            {/* Set Start Time Modal */}
+            {showStartTimeModal && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-[#0F172A]/20 backdrop-blur-[6px] animate-in fade-in duration-500">
+                    <div className="bg-white rounded-[32px] w-full max-w-[400px] shadow-[0_32px_128px_-12px_rgba(15,23,42,0.25)] border border-gray-100/50 p-10 animate-in zoom-in-95 duration-300 relative">
+                        <button onClick={() => setShowStartTimeModal(false)} className="absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-full transition-all">
+                            <X size={20} />
+                        </button>
+
+                        <div className="flex flex-col items-center text-center">
+                            <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-2xl flex items-center justify-center mb-6">
+                                <Clock size={32} />
+                            </div>
+                            <h3 className="text-[24px] font-bold text-gray-900 mb-2 tracking-tight">Set SLA Start Time</h3>
+                            <p className="text-[14px] text-gray-500 mb-8 font-medium">Please enter the start time</p>
+
+                            <div className="w-full mb-8 group">
+                                <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2 text-left px-1">Time (24h format)</label>
+                                <input
+                                    type="time"
+                                    value={tempStartTime}
+                                    onChange={(e) => setTempStartTime(e.target.value)}
+                                    className="w-full h-[56px] border border-gray-100 bg-gray-50/50 rounded-2xl px-6 text-[16px] font-bold text-gray-900 outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500 focus:bg-white transition-all"
+                                />
+                            </div>
+
+                            <button
+                                onClick={handleSaveStartTime}
+                                className="w-full h-[56px] bg-[#0F172A] text-white font-bold rounded-2xl text-[15px] shadow-[0_8px_32px_rgba(15,23,42,0.2)] hover:bg-[#1E293B] hover:-translate-y-0.5 transition-all active:scale-95"
+                            >
+                                Confirm Time
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Set Date Modal */}
             {showDateModal && (
                 <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-[#0F172A]/20 backdrop-blur-[6px] animate-in fade-in duration-500">
@@ -534,6 +657,42 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
 
                             <button
                                 onClick={handleSaveDate}
+                                className="w-full h-[56px] bg-[#0F172A] text-white font-bold rounded-2xl text-[15px] shadow-[0_8px_32px_rgba(15,23,42,0.2)] hover:bg-[#1E293B] hover:-translate-y-0.5 transition-all active:scale-95"
+                            >
+                                Confirm Date
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Set Start Date Modal */}
+            {showStartDateModal && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-[#0F172A]/20 backdrop-blur-[6px] animate-in fade-in duration-500">
+                    <div className="bg-white rounded-[32px] w-full max-w-[400px] shadow-[0_32px_128px_-12px_rgba(15,23,42,0.25)] border border-gray-100/50 p-10 animate-in zoom-in-95 duration-300 relative">
+                        <button onClick={() => setShowStartDateModal(false)} className="absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-full transition-all">
+                            <X size={20} />
+                        </button>
+
+                        <div className="flex flex-col items-center text-center">
+                            <div className="w-16 h-16 bg-orange-50 text-orange-500 rounded-2xl flex items-center justify-center mb-6">
+                                <Calendar size={32} />
+                            </div>
+                            <h3 className="text-[24px] font-bold text-gray-900 mb-2 tracking-tight">Set SLA Start Date</h3>
+                            <p className="text-[14px] text-gray-500 mb-8 font-medium">Please select the start date</p>
+
+                            <div className="w-full mb-8 group">
+                                <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2 text-left px-1">Select Date</label>
+                                <input
+                                    type="date"
+                                    value={tempStartDate}
+                                    onChange={(e) => setTempStartDate(e.target.value)}
+                                    className="w-full h-[56px] border border-gray-100 bg-gray-50/50 rounded-2xl px-6 text-[16px] font-bold text-gray-900 outline-none focus:ring-4 focus:ring-orange-500/5 focus:border-orange-500 focus:bg-white transition-all"
+                                />
+                            </div>
+
+                            <button
+                                onClick={handleSaveStartDate}
                                 className="w-full h-[56px] bg-[#0F172A] text-white font-bold rounded-2xl text-[15px] shadow-[0_8px_32px_rgba(15,23,42,0.2)] hover:bg-[#1E293B] hover:-translate-y-0.5 transition-all active:scale-95"
                             >
                                 Confirm Date
