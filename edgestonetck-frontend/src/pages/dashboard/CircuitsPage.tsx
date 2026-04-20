@@ -28,6 +28,8 @@ const blankForm = (): CreateCircuitData => ({
     supplierContractType: '',
     billingStartDate: '',
     supplierMrc: undefined,
+    nrc: undefined,
+    supplierNrc: undefined,
 });
 
 const circuitToForm = (c: Circuit): CreateCircuitData => ({
@@ -47,6 +49,8 @@ const circuitToForm = (c: Circuit): CreateCircuitData => ({
     supplierContractType:       c.supplierContractType ?? '',
     billingStartDate:           c.billingStartDate ?? '',
     supplierMrc:                c.supplierMrc,
+    nrc:                        c.nrc ?? undefined,
+    supplierNrc:                c.supplierNrc ?? undefined,
 });
 
 // ─── Reusable labeled input ───────────────────────────────────────────────────
@@ -176,6 +180,9 @@ const CircuitFormModal: React.FC<CircuitFormModalProps> = ({
                             <Field label="MRC (Monthly Recurring Charge)">
                                 <input type="number" min={0} step="0.01" value={form.mrc ?? ''} onChange={e => onChange('mrc', e.target.value ? Number(e.target.value) : null)} placeholder="1000.00" className={inputCls} />
                             </Field>
+                            <Field label="NRC (Non-Recurring Charge)">
+                                <input type="number" min={0} step="0.01" value={form.nrc ?? ''} onChange={e => onChange('nrc', e.target.value ? Number(e.target.value) : null)} placeholder="50.00" className={inputCls} />
+                            </Field>
                             <Field label="Service Description">
                                 <input type="text" value={form.serviceDescription ?? ''} onChange={e => onChange('serviceDescription', e.target.value)} placeholder="Service description" className={`${inputCls} sm:col-span-2`} />
                             </Field>
@@ -197,6 +204,9 @@ const CircuitFormModal: React.FC<CircuitFormModalProps> = ({
                             </Field>
                             <Field label="Supplier MRC">
                                 <input type="number" min={0} step="0.01" value={form.supplierMrc ?? ''} onChange={e => onChange('supplierMrc', e.target.value ? Number(e.target.value) : null)} placeholder="800.00" className={inputCls} />
+                            </Field>
+                            <Field label="Supplier NRC">
+                                <input type="number" min={0} step="0.01" value={form.supplierNrc ?? ''} onChange={e => onChange('supplierNrc', e.target.value ? Number(e.target.value) : null)} placeholder="40.00" className={inputCls} />
                             </Field>
                             <Field label="Billing Start Date">
                                 <input type="date" value={form.billingStartDate ?? ''} onChange={e => onChange('billingStartDate', e.target.value)} className={inputCls} />

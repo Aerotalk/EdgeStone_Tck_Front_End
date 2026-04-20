@@ -63,6 +63,9 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
     const [signatureHtml, setSignatureHtml] = useState<string>(''); // Raw HTML — never stripped
     const [showSigDropdown, setShowSigDropdown] = useState(false);
     const [showSignatureModal, setShowSignatureModal] = useState(false);
+    
+    // Dynamic Circuit Options
+    const [dynamicCircuitOptions, setDynamicCircuitOptions] = useState<string[]>([]);
 
     // Email Modal form states
     const [emailForm, setEmailForm] = useState({
@@ -157,6 +160,22 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
             });
         }
     }, [activeTab, ticket.email, ticket.header, ticket.id, confirmedCircuit, ticket.circuitId]);
+
+    // Fetch dynamic circuits depending on current ticket vendor context
+    useEffect(() => {
+        circuitService.getAllCircuits().then(circuits => {
+            const vendorId = vendorName && vendorName !== 'EdgeStone Vendor' 
+                ? circuits.find(c => c.vendor?.name === vendorName)?.vendorId 
+                : undefined;
+            
+            // Just filter dynamically on client side or pass to backend
+            const filtered = circuits.filter(c => {
+                 if (activeTab === 'vendor' && vendorId) return c.vendorId === vendorId;
+                 return true; // client context sees all or maybe specific ones
+            });
+            setDynamicCircuitOptions(filtered.map(c => c.customerCircuitId).filter(Boolean));
+        }).catch(err => console.error(err));
+    }, [activeTab, vendorName]);
 
     // Construct replies from ticket prop
     useEffect(() => {
@@ -362,14 +381,6 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
     };
 
     // vendorEmail removed (declared at top)
-
-    const circuitOptions = [
-        'BA/SNG-TY2/ESPL-003',
-        'BA/SNG-CHK/ESPL-002',
-        'BA/SNG-CHK/ESPL-004',
-        'FPT/TY2-EquinixLA1/ESPL-005',
-        'N1/LON-MUM/ESPL-006'
-    ];
 
     const priorityOptions = [
         { label: 'High', color: 'text-red-500', bars: [true, true, true] },
@@ -708,7 +719,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                             <div className="fixed inset-0 z-[110]" onClick={() => setOpenDropdown(null)} />
                                             <div className="absolute left-0 right-0 mt-2 bg-white border border-gray-100 rounded-2xl shadow-[0_20px_60px_-12px_rgba(15,23,42,0.15)] z-[120] max-h-[320px] overflow-y-auto scrollbar-hide animate-in slide-in-from-top-2 duration-300">
                                                 <div className="p-1.5">
-                                                    {circuitOptions.map((opt) => (
+                                                    {dynamicCircuitOptions.length > 0 ? dynamicCircuitOptions.map((opt) => (
                                                         <button
                                                             key={opt}
                                                             onClick={() => { setSelectedCircuit(opt); setOpenDropdown(null); }}
@@ -717,7 +728,9 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                                             <span className="break-all">{opt}</span>
                                                             {selectedCircuit === opt && <div className="w-1.5 h-1.5 flex-shrink-0 rounded-full bg-gray-900" />}
                                                         </button>
-                                                    ))}
+                                                    )) : (
+                                                        <div className="px-3.5 py-3 text-left text-[13px] font-medium text-gray-400">No circuits found</div>
+                                                    )}
                                                     <div className="my-1.5 border-t border-gray-50" />
                                                     <button
                                                         onClick={() => { setSelectedCircuit('SPAM'); setOpenDropdown(null); }}

@@ -27,6 +27,7 @@ export interface Ticket {
     replies: Reply[];
     createdAt: string;
     updatedAt: string;
+    isSlaActive?: boolean;
     // Add other fields as needed
 }
 

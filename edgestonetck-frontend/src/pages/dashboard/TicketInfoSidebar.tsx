@@ -59,9 +59,11 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
     const [slaCloseTime, setSlaCloseTime] = useState('');
     const [slaCompensation, setSlaCompensation] = useState('-');
     const [slaStatus, setSlaStatus] = useState('Safe');
+    const [slaStatus, setSlaStatus] = useState('Safe');
     const [slaStartDate, setSlaStartDate] = useState('');
     const [slaStartTime, setSlaStartTime] = useState('');
-    const [isSlaLocked, setIsSlaLocked] = useState(false);
+    const [slaTimeZone, setSlaTimeZone] = useState('UTC');
+    const [isSlaActive, setIsSlaActive] = useState(ticket.isSlaActive !== undefined ? ticket.isSlaActive : true);
 
     // Modal states
     const [showDateModal, setShowDateModal] = useState(false);
@@ -131,6 +133,9 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                     if (record.closedTime) {
                         setSlaCloseTime(record.closedTime);
                     }
+                    if (record.timeZone) {
+                        setSlaTimeZone(record.timeZone);
+                    }
                     if (record.compensation) {
                         setSlaCompensation(record.compensation);
                     }
@@ -166,71 +171,88 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
         localStorage.setItem(`ticket_notes_${ticket.id}`, JSON.stringify(updatedNotes));
     };
 
+    const handleManualUpdate = async (payload: any) => {
+        try {
+            const response = await fetch(`${API_URL_SLA}/ticket/${ticket.id}/manual-update`, {
+                method: 'PUT',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(payload)
+            });
+            if (!response.ok) throw new Error('API failed');
+            return true;
+        } catch (error) {
+            console.error('Failed to manually update SLA', error);
+            return false;
+        }
+    };
+
     const handleSaveDate = async () => {
         setSlaCloseDate(tempDate);
         setShowDateModal(false);
-        try {
-            const response = await fetch(`${API_URL_SLA}/ticket/${ticket.id}/closure`, {
-                method: 'PATCH',
-                headers: getAuthHeaders(),
-                body: JSON.stringify({ closeDate: tempDate, closedTime: slaCloseTime })
-            });
-            if (!response.ok) throw new Error('API failed');
-
-            toast.success('SLA date updated in records');
-        } catch (error) {
-            console.error('Failed to update SLA close date in backend', error);
+        if (await handleManualUpdate({ closeDate: tempDate })) {
+            toast.success('SLA close date updated manually');
         }
     };
 
     const handleSaveTime = async () => {
         setSlaCloseTime(tempTime);
         setShowTimeModal(false);
-        try {
-            const response = await fetch(`${API_URL_SLA}/ticket/${ticket.id}/closure`, {
-                method: 'PATCH',
-                headers: getAuthHeaders(),
-                body: JSON.stringify({ closeDate: slaCloseDate, closedTime: tempTime })
-            });
-            if (!response.ok) throw new Error('API failed');
-
-            toast.success('SLA time updated in records');
-        } catch (error) {
-            console.error('Failed to update SLA close time in backend', error);
+        if (await handleManualUpdate({ closedTime: tempTime })) {
+            toast.success('SLA close time updated manually');
         }
     };
 
     const handleSaveStartDate = async () => {
         setSlaStartDate(tempStartDate);
         setShowStartDateModal(false);
-        try {
-            const response = await fetch(`${API_URL_SLA}/ticket/${ticket.id}/start`, {
-                method: 'PATCH',
-                headers: getAuthHeaders(),
-                body: JSON.stringify({ startDate: tempStartDate, startTime: slaStartTime })
-            });
-            if (!response.ok) throw new Error('API failed');
-
-            toast.success('SLA start date updated in records');
-        } catch (error) {
-            console.error('Failed to update SLA start date in backend', error);
+        if (await handleManualUpdate({ startDate: tempStartDate })) {
+            toast.success('SLA start date updated manually');
         }
     };
 
     const handleSaveStartTime = async () => {
         setSlaStartTime(tempStartTime);
         setShowStartTimeModal(false);
-        try {
-            const response = await fetch(`${API_URL_SLA}/ticket/${ticket.id}/start`, {
-                method: 'PATCH',
-                headers: getAuthHeaders(),
-                body: JSON.stringify({ startDate: slaStartDate, startTime: tempStartTime })
-            });
-            if (!response.ok) throw new Error('API failed');
+        if (await handleManualUpdate({ startTime: tempStartTime })) {
+            toast.success('SLA start time updated manually');
+        }
+    };
 
-            toast.success('SLA start time updated in records');
-        } catch (error) {
-            console.error('Failed to update SLA start time in backend', error);
+    const handleSaveTimeZone = async (zone: string) => {
+        setSlaTimeZone(zone);
+        if (await handleManualUpdate({ timeZone: zone })) {
+            toast.success('SLA timezone updated');
+        } else {
+             toast.error('Failed to update timezone');
+        }
+    };
+
+    const handleSlaToggle = async () => {
+        const newValue = !isSlaActive;
+        setIsSlaActive(newValue);
+        try {
+            const API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/tickets`;
+            const userStr = localStorage.getItem('edgestone_user');
+            const user = userStr ? JSON.parse(userStr) : null;
+            const token = user?.token || '';
+            const response = await fetch(`${API_URL}/${ticket.id}/sla-toggle`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ isSlaActive: newValue })
+            });
+
+            if (response.ok) {
+                toast.success(`SLA has been ${newValue ? 'Actived' : 'Deactivated'}`);
+            } else {
+                toast.error('Failed to update SLA status on server');
+                setIsSlaActive(!newValue); // revert on failure
+            }
+        } catch (e) {
+            setIsSlaActive(!newValue);
+            toast.error('Failed to update SLA status');
         }
     };
 
@@ -282,30 +304,28 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                     <div className="flex items-center justify-between mb-6">
                         <h4 className="text-[14px] font-bold text-gray-900 tracking-tight">SLA calculator</h4>
                         <div className="flex items-center gap-2">
-                            <span className="text-[11px] font-bold text-gray-400 uppercase">Lock SLA</span>
+                            <span className="text-[11px] font-bold text-gray-400 uppercase">{isSlaActive ? 'SLA ON' : 'SLA OFF'}</span>
                             <button
-                                onClick={() => setIsSlaLocked(!isSlaLocked)}
-                                className={`w-8 h-4 rounded-full transition-colors relative ${isSlaLocked ? 'bg-orange-500' : 'bg-gray-200'}`}
+                                onClick={handleSlaToggle}
+                                className={`w-8 h-4 rounded-full transition-colors relative ${isSlaActive ? 'bg-orange-500' : 'bg-gray-200'}`}
                             >
-                                <div className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-transform ${isSlaLocked ? 'translate-x-4' : 'translate-x-0'}`} />
+                                <div className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-transform ${isSlaActive ? 'translate-x-4' : 'translate-x-0'}`} />
                             </button>
                         </div>
                     </div>
-                    <div className="space-y-4">
+                    <div className={`space-y-4 ${!isSlaActive ? 'opacity-50 pointer-events-none' : ''}`}>
                         <div className={`text-[14px] font-medium pb-1 cursor-pointer transition-colors ${circuit ? 'text-gray-900 font-bold' : 'text-gray-700 hover:text-gray-900'}`}>
                             {circuit || 'Select circuit'}
                         </div>
                         <div className="flex justify-between items-center text-[14px]">
                             <div className="flex items-center gap-2">
                                 <span className="text-gray-400 font-medium">SLA start time</span>
-                                {!isSlaLocked && (
-                                    <button
-                                        onClick={() => { setTempStartTime(slaStartTime); setShowStartTimeModal(true); }}
-                                        className="p-1 hover:bg-orange-50 rounded-full text-orange-400 hover:text-orange-600 transition-all border border-transparent hover:border-orange-100 shadow-sm hover:shadow active:scale-90"
-                                    >
-                                        <Plus size={12} strokeWidth={3} />
-                                    </button>
-                                )}
+                                <button
+                                    onClick={() => { setTempStartTime(slaStartTime); setShowStartTimeModal(true); }}
+                                    className="p-1 hover:bg-orange-50 rounded-full text-orange-400 hover:text-orange-600 transition-all border border-transparent hover:border-orange-100 shadow-sm hover:shadow active:scale-90"
+                                >
+                                    <Plus size={12} strokeWidth={3} />
+                                </button>
                             </div>
                             <span className={`text-[14px] font-bold ${slaStartTime ? 'text-gray-900' : 'text-gray-600'}`}>
                                 {slaStartTime ? `${slaStartTime} hrs` : '-'}
@@ -314,14 +334,12 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                         <div className="flex justify-between items-center text-[14px]">
                             <div className="flex items-center gap-2">
                                 <span className="text-gray-400 font-medium">SLA start date</span>
-                                {!isSlaLocked && (
-                                    <button
-                                        onClick={() => { setTempStartDate(slaStartDate); setShowStartDateModal(true); }}
-                                        className="p-1 hover:bg-orange-50 rounded-full text-orange-400 hover:text-orange-600 transition-all border border-transparent hover:border-orange-100 shadow-sm hover:shadow active:scale-90"
-                                    >
-                                        <Plus size={12} strokeWidth={3} />
-                                    </button>
-                                )}
+                                <button
+                                    onClick={() => { setTempStartDate(slaStartDate); setShowStartDateModal(true); }}
+                                    className="p-1 hover:bg-orange-50 rounded-full text-orange-400 hover:text-orange-600 transition-all border border-transparent hover:border-orange-100 shadow-sm hover:shadow active:scale-90"
+                                >
+                                    <Plus size={12} strokeWidth={3} />
+                                </button>
                             </div>
                             <span className={`text-[14px] font-bold ${slaStartDate ? 'text-gray-900' : 'text-gray-600'}`}>
                                 {slaStartDate || '-'}
@@ -330,14 +348,12 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                         <div className="flex justify-between items-center text-[14px]">
                             <div className="flex items-center gap-2">
                                 <span className="text-gray-400 font-medium">SLA close at</span>
-                                {!isSlaLocked && (
-                                    <button
-                                        onClick={() => { setTempTime(slaCloseTime); setShowTimeModal(true); }}
-                                        className="p-1 hover:bg-orange-50 rounded-full text-orange-400 hover:text-orange-600 transition-all border border-transparent hover:border-orange-100 shadow-sm hover:shadow active:scale-90"
-                                    >
-                                        <Plus size={12} strokeWidth={3} />
-                                    </button>
-                                )}
+                                <button
+                                    onClick={() => { setTempTime(slaCloseTime); setShowTimeModal(true); }}
+                                    className="p-1 hover:bg-orange-50 rounded-full text-orange-400 hover:text-orange-600 transition-all border border-transparent hover:border-orange-100 shadow-sm hover:shadow active:scale-90"
+                                >
+                                    <Plus size={12} strokeWidth={3} />
+                                </button>
                             </div>
                             <span className={`text-[14px] font-bold ${slaCloseTime ? 'text-gray-900' : 'text-gray-600'}`}>
                                 {slaCloseTime ? `${slaCloseTime} hrs` : '-'}
@@ -346,18 +362,28 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                         <div className="flex justify-between items-center text-[14px]">
                             <div className="flex items-center gap-2">
                                 <span className="text-gray-400 font-medium">SLA close date</span>
-                                {!isSlaLocked && (
-                                    <button
-                                        onClick={() => { setTempDate(slaCloseDate); setShowDateModal(true); }}
-                                        className="p-1 hover:bg-orange-50 rounded-full text-orange-400 hover:text-orange-600 transition-all border border-transparent hover:border-orange-100 shadow-sm hover:shadow active:scale-90"
-                                    >
-                                        <Plus size={12} strokeWidth={3} />
-                                    </button>
-                                )}
+                                <button
+                                    onClick={() => { setTempDate(slaCloseDate); setShowDateModal(true); }}
+                                    className="p-1 hover:bg-orange-50 rounded-full text-orange-400 hover:text-orange-600 transition-all border border-transparent hover:border-orange-100 shadow-sm hover:shadow active:scale-90"
+                                >
+                                    <Plus size={12} strokeWidth={3} />
+                                </button>
                             </div>
                             <span className={`text-[14px] font-bold ${slaCloseDate ? 'text-gray-900' : 'text-gray-600'}`}>
                                 {slaCloseDate || '-'}
                             </span>
+                        </div>
+                        <div className="flex justify-between items-center text-[14px]">
+                            <span className="text-gray-400 font-medium">Time Zone</span>
+                            <select
+                                value={slaTimeZone}
+                                onChange={(e) => handleSaveTimeZone(e.target.value)}
+                                className="bg-gray-50 border border-gray-100 rounded-md px-2 py-1 outline-none text-[12px] font-bold text-gray-700"
+                            >
+                                <option value="UTC">UTC</option>
+                                <option value="GMT">GMT</option>
+                                <option value="IST">IST</option>
+                            </select>
                         </div>
 
                         {/* Compensation Row */}

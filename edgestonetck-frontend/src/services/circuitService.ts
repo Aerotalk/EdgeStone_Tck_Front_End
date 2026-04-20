@@ -20,6 +20,8 @@ export interface Circuit {
     supplierContractType: string | null;
     billingStartDate: string | null;
     supplierMrc: number;
+    nrc?: number;
+    supplierNrc?: number;
 }
 
 export interface CreateCircuitData {
@@ -39,6 +41,8 @@ export interface CreateCircuitData {
     supplierContractType?: string | null;
     billingStartDate?: string | null;
     supplierMrc?: number;
+    nrc?: number;
+    supplierNrc?: number;
 }
 
 export type UpdateCircuitData = Partial<CreateCircuitData>;
@@ -55,8 +59,15 @@ const getAuthHeaders = () => {
 };
 
 export const circuitService = {
-    getAllCircuits: async (): Promise<Circuit[]> => {
-        const response = await fetch(API_URL, { headers: getAuthHeaders() });
+    getAllCircuits: async (filters?: { vendorId?: string; clientId?: string }): Promise<Circuit[]> => {
+        let qs = '';
+        if (filters && (filters.vendorId || filters.clientId)) {
+            const params = new URLSearchParams();
+            if (filters.vendorId) params.append('vendorId', filters.vendorId);
+            if (filters.clientId) params.append('clientId', filters.clientId);
+            qs = `?${params.toString()}`;
+        }
+        const response = await fetch(`${API_URL}${qs}`, { headers: getAuthHeaders() });
         if (!response.ok) {
             if (response.status === 401) throw new Error('Unauthorized');
             const err = await response.json().catch(() => ({ message: 'Failed to fetch circuits' }));
