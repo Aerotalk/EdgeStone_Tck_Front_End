@@ -28,6 +28,7 @@ interface TicketInfoSidebarProps {
         receivedAt?: string;
         receivedTime?: string;
         createdAt?: string;
+        isSlaActive?: boolean;
     };
     priority?: string;
     circuit?: string;
@@ -58,7 +59,6 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
     const [slaCloseDate, setSlaCloseDate] = useState('');
     const [slaCloseTime, setSlaCloseTime] = useState('');
     const [slaCompensation, setSlaCompensation] = useState('-');
-    const [slaStatus, setSlaStatus] = useState('Safe');
     const [slaStatus, setSlaStatus] = useState('Safe');
     const [slaStartDate, setSlaStartDate] = useState('');
     const [slaStartTime, setSlaStartTime] = useState('');
