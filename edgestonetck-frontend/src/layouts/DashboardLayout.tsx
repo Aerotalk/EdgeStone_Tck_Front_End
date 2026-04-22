@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Outlet, useParams, Navigate } from 'react-router-dom';
 import { Sidebar } from '../components/ui/Sidebar';
+import { Chatbot } from '../components/ui/Chatbot';
 import { useAuth } from '../contexts/AuthContext';
 import { DashboardDataProvider } from '../contexts/DashboardDataContext';
 
@@ -25,7 +26,7 @@ const DashboardLayout: React.FC = () => {
     }
 
     return (
-        <div className="h-screen w-full bg-white flex flex-col lg:flex-row font-sans selection:bg-brand-red selection:text-white overflow-hidden">
+        <div className="h-screen w-full bg-white flex flex-col lg:flex-row font-sans selection:bg-brand-red selection:text-white overflow-hidden relative">
             <Sidebar
                 agentName={user.name}
                 isMobileOpen={isMobileMenuOpen}
@@ -52,6 +53,8 @@ const DashboardLayout: React.FC = () => {
                     </main>
                 </div>
             </DashboardDataProvider>
+            
+            <Chatbot />
         </div>
     );
 };
