@@ -70,7 +70,7 @@ export const Chatbot: React.FC = () => {
                     boxShadow: '0 10px 25px -5px rgba(242, 68, 68, 0.4), 0 8px 10px -6px rgba(242, 68, 68, 0.1)'
                 }}
             >
-                <MessageSquare className="w-6 h-6" />
+                <Bot className="w-6 h-6" />
             </button>
         </div>
     );
