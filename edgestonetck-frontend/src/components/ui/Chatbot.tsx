@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Send, Bot } from 'lucide-react';
+import { X, Send, BotMessageSquare } from 'lucide-react';
 
 export const Chatbot: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -13,7 +13,7 @@ export const Chatbot: React.FC = () => {
                     {/* Header */}
                     <div className="bg-brand-red p-4 flex items-center justify-between text-white">
                         <div className="flex items-center space-x-2">
-                            <Bot className="w-6 h-6" />
+                            <BotMessageSquare className="w-6 h-6" />
                             <span className="font-medium">AI Assistant</span>
                         </div>
                         <button
