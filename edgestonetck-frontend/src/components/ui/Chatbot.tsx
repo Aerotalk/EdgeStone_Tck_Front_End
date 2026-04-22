@@ -29,7 +29,7 @@ export const Chatbot: React.FC = () => {
                         {/* Initial Message */}
                         <div className="flex space-x-2">
                             <div className="w-8 h-8 rounded-full bg-brand-red flex items-center justify-center flex-shrink-0">
-                                <Bot className="w-5 h-5 text-white" />
+                                <BotMessageSquare className="w-5 h-5 text-white" />
                             </div>
                             <div className="bg-white p-3 rounded-2xl rounded-tl-none shadow-sm text-sm text-gray-700 max-w-[80%] border border-gray-100">
                                 Hello! I'm your AI assistant. How can I help you today?
@@ -70,7 +70,7 @@ export const Chatbot: React.FC = () => {
                     boxShadow: '0 10px 25px -5px rgba(242, 68, 68, 0.4), 0 8px 10px -6px rgba(242, 68, 68, 0.1)'
                 }}
             >
-                <Bot className="w-6 h-6" />
+                <BotMessageSquare className="w-6 h-6" />
             </button>
         </div>
     );
