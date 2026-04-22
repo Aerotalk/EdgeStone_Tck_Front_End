@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MessageSquare, X, Send, Bot } from 'lucide-react';
+import { X, Send, Bot } from 'lucide-react';
 
 export const Chatbot: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -16,7 +16,7 @@ export const Chatbot: React.FC = () => {
                             <Bot className="w-6 h-6" />
                             <span className="font-medium">AI Assistant</span>
                         </div>
-                        <button 
+                        <button
                             onClick={() => setIsOpen(false)}
                             className="p-1 hover:bg-brand-red-hover rounded-full transition-colors"
                         >
@@ -39,7 +39,7 @@ export const Chatbot: React.FC = () => {
 
                     {/* Input Area */}
                     <div className="p-3 bg-white border-t border-gray-100">
-                        <form 
+                        <form
                             onSubmit={(e) => { e.preventDefault(); setMessage(''); }}
                             className="flex items-center space-x-2 bg-gray-50 rounded-full px-4 py-2 border border-gray-200 focus-within:border-brand-red focus-within:ring-1 focus-within:ring-brand-red transition-all"
                         >
