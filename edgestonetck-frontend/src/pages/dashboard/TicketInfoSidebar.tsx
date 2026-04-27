@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronUp, Ticket as TicketIcon, X, Send, Trash2, CheckCircle, Plus, Calendar, Clock } from 'lucide-react';
 import { useParams } from 'react-router-dom';
-import { formatDateIST, formatTimeIST, nowDateIST, nowTimeIST } from '../../utils/dateUtils';
+import { formatDateIST, formatTimeIST, nowDateIST, nowTimeIST, formatDateWithTZ, formatTimeWithTZ } from '../../utils/dateUtils';
 import { getAuthHeaders, API_URL_SLA } from '../../types/sla';
 import { toast } from 'react-hot-toast';
 
@@ -37,6 +37,7 @@ interface TicketInfoSidebarProps {
     activeTab?: string;
     vendorEmail?: string;
     vendorName?: string;
+    onTimeZoneChangeActive?: (zone: string) => void;
 }
 
 interface ActivityLog {
@@ -49,7 +50,7 @@ interface ActivityLog {
     createdAt?: string; // ISO timestamp — use this for IST formatting when available
 }
 
-export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, priority, circuit, status, closedAt, activeTab, vendorEmail, vendorName }) => {
+export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, priority, circuit, status, closedAt, activeTab, vendorEmail, vendorName, onTimeZoneChangeActive }) => {
     const { id } = useParams();
     const [isNotesOpen, setIsNotesOpen] = useState(false);
     const [notes, setNotes] = useState<Note[]>([]);
@@ -137,6 +138,7 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                     }
                     if (record.timeZone) {
                         setSlaTimeZone(record.timeZone);
+                        if (onTimeZoneChangeActive) onTimeZoneChangeActive(record.timeZone);
                     }
                     if (record.compensation) {
                         setSlaCompensation(record.compensation);
@@ -222,6 +224,8 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
 
     const handleSaveTimeZone = async (zone: string) => {
         setSlaTimeZone(zone);
+        if (onTimeZoneChangeActive) onTimeZoneChangeActive(zone);
+        
         if (await handleManualUpdate({ timeZone: zone })) {
             toast.success('SLA timezone updated');
         } else {
@@ -316,12 +320,12 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                         <div className="flex justify-between items-center text-[14px]">
                             <span className="text-gray-400 font-medium">Date</span>
                             <span className="text-gray-600 font-bold">
-                                {formatDateIST(ticket.createdAt || ticket.date || '', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                {formatDateWithTZ(ticket.createdAt || ticket.date || '', slaTimeZone, { day: 'numeric', month: 'short', year: 'numeric' })}
                             </span>
                         </div>
                         <div className="flex justify-between items-center text-[14px]">
                             <span className="text-gray-400 font-medium">Time</span>
-                            <span className="text-gray-600 font-bold">{formatTimeIST(ticket.receivedAt || ticket.createdAt || new Date())} hrs</span>
+                            <span className="text-gray-600 font-bold">{formatTimeWithTZ(ticket.receivedAt || ticket.createdAt || new Date(), slaTimeZone)} hrs</span>
                         </div>
                         <div className="flex justify-between items-center text-[14px]">
                             <span className="text-gray-400 font-medium">Priority</span>
@@ -504,11 +508,11 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                                     <div className="space-y-1">
                                         <span className="text-[13px] font-bold text-gray-900 block">{log.description}</span>
                                         <div className="flex items-center gap-2">
-                                            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-tight">
-                                                {log.createdAt ? formatDateIST(log.createdAt) : log.date}
+                                        <span className="text-[11px] font-bold text-gray-400 uppercase tracking-tight">
+                                                {log.createdAt ? formatDateWithTZ(log.createdAt, slaTimeZone) : log.date}
                                             </span>
                                             <div className="w-1 h-1 rounded-full bg-gray-200" />
-                                            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-tight">{log.createdAt ? formatTimeIST(log.createdAt) : log.time} hrs</span>
+                                            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-tight">{log.createdAt ? formatTimeWithTZ(log.createdAt, slaTimeZone) : log.time} hrs</span>
                                         </div>
                                     </div>
                                     <p className="text-[11px] text-gray-500 font-bold mt-2">By {log.author}</p>
@@ -525,10 +529,10 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                                     <span className="text-[13px] font-bold text-gray-900 block">Ticket opened</span>
                                     <div className="flex items-center gap-2">
                                         <span className="text-[11px] font-bold text-gray-400 uppercase tracking-tight">
-                                            {formatDateIST(ticket.createdAt || ticket.date || '')}
+                                            {formatDateWithTZ(ticket.createdAt || ticket.date || '', slaTimeZone)}
                                         </span>
                                         <div className="w-1 h-1 rounded-full bg-gray-200" />
-                                        <span className="text-[11px] font-bold text-gray-400 uppercase tracking-tight">{formatTimeIST(ticket.receivedAt || ticket.createdAt || new Date())} hrs</span>
+                                        <span className="text-[11px] font-bold text-gray-400 uppercase tracking-tight">{formatTimeWithTZ(ticket.receivedAt || ticket.createdAt || new Date(), slaTimeZone)} hrs</span>
                                     </div>
                                 </div>
                                 <p className="text-[11px] text-[#A688C4] font-bold mt-2">Ticket #{ticket.ticketId} created</p>
