@@ -23,7 +23,7 @@ import { ticketService, type Reply, type Ticket } from '../../services/ticketSer
 import { signatureService, type Signature } from '../../services/signatureService';
 import SignaturesPage from './SignaturesPage';
 
-import { formatDateIST, formatTimeIST, nowDateIST, nowTimeIST, formatDateWithTZ, formatTimeWithTZ } from '../../utils/dateUtils';
+import { nowDateIST, nowTimeIST, formatDateWithTZ, formatTimeWithTZ } from '../../utils/dateUtils';
 import { vendorService } from '../../services/vendorService';
 import { circuitService } from '../../services/circuitService';
 import { useAuth } from '../../contexts/AuthContext';
