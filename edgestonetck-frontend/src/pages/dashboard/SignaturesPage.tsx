@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
-    Pencil,
     Bold,
     Italic,
     Underline,
@@ -244,7 +243,8 @@ const SignatureEditor: React.FC<SignatureEditorProps> = ({ initialContent, onCha
 
 // ─── Main SignaturesPage ──────────────────────────────────────────────────────
 const SignaturesPage: React.FC = () => {
-    const { user, token } = useAuth();
+    const { user } = useAuth();
+    const token = user?.token;
     const agentId = user?.id || '';
 
     const [liveProfile, setLiveProfile] = useState<any>(null);

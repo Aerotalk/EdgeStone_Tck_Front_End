@@ -9,7 +9,8 @@ interface Message {
 }
 
 export const Chatbot: React.FC = () => {
-    const { token } = useAuth();
+    const { user } = useAuth();
+    const token = user?.token;
     const [isOpen, setIsOpen] = useState(false);
     const [message, setMessage] = useState('');
     const [messages, setMessages] = useState<Message[]>([
