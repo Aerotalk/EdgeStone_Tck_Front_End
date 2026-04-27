@@ -65,6 +65,8 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
     const [slaTimeZone, setSlaTimeZone] = useState('UTC');
     const [isSlaActive, setIsSlaActive] = useState(ticket.isSlaActive !== undefined ? ticket.isSlaActive : true);
 
+    const [isExtractingAi, setIsExtractingAi] = useState(false);
+
     // Modal states
     const [showDateModal, setShowDateModal] = useState(false);
     const [showTimeModal, setShowTimeModal] = useState(false);
@@ -256,6 +258,37 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
         }
     };
 
+    const handleAiExtractSla = async () => {
+        setIsExtractingAi(true);
+        try {
+            const API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/ai/extract-sla-start/${ticket.id}`;
+            const userStr = localStorage.getItem('edgestone_user');
+            const user = userStr ? JSON.parse(userStr) : null;
+            const token = user?.token || '';
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) throw new Error('AI Extractor failed');
+
+            const data = await response.json();
+            if (data.success && data.sla) {
+                setSlaStartDate(data.sla.startDate);
+                setSlaStartTime(data.sla.startTime);
+                toast.success('✨ Automatically set SLA Start Time!');
+            } else {
+                toast.error(data.message || 'No clear SLA times found in discussion.');
+            }
+        } catch (e) {
+            toast.error('AI feature unavailable at the moment.');
+        } finally {
+            setIsExtractingAi(false);
+        }
+    };
+
     return (
         <div className="w-[340px] border-l border-gray-100 bg-white hidden lg:flex flex-col h-full font-sans shrink-0 relative">
             <div className="flex-1 overflow-y-auto scrollbar-hide">
@@ -313,6 +346,27 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                             </button>
                         </div>
                     </div>
+                    
+                    {/* Add AI Auto Extract Button */}
+                    <div className={`mb-5 flex justify-end ${!isSlaActive ? 'opacity-50 pointer-events-none' : ''}`}>
+                        <button
+                            onClick={handleAiExtractSla}
+                            disabled={isExtractingAi || !isSlaActive}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white rounded-lg text-[12px] font-bold shadow-sm shadow-indigo-200 transition-all active:scale-95 disabled:opacity-50"
+                        >
+                            {isExtractingAi ? (
+                                <span className="flex items-center gap-1.5">
+                                    <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    Scanning...
+                                </span>
+                            ) : (
+                                <>
+                                    <span>✨</span> Automated Start
+                                </>
+                            )}
+                        </button>
+                    </div>
+
                     <div className={`space-y-4 ${!isSlaActive ? 'opacity-50 pointer-events-none' : ''}`}>
                         <div className={`text-[14px] font-medium pb-1 cursor-pointer transition-colors ${circuit ? 'text-gray-900 font-bold' : 'text-gray-700 hover:text-gray-900'}`}>
                             {circuit || 'Select circuit'}
