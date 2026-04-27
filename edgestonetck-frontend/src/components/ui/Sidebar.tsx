@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import SignaturesPage from '../../pages/dashboard/SignaturesPage';
+import { useAvatar } from '../../hooks/useAvatar';
 
 interface SidebarProps {
     agentName: string;
@@ -30,7 +31,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ agentName, isMobileOpen, onClo
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const navigate = useNavigate();
     const { id } = useParams<{ id: string }>();
-    const { isSuperAdmin, logout } = useAuth();
+    const { isSuperAdmin, logout, user } = useAuth();
+    
+    const agentId = user?.id;
+    const { avatarUrl } = useAvatar(agentId);
 
     const allMenuItems = [
         { icon: PieChart, label: 'Dashboard', path: 'overview' },
@@ -130,8 +134,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ agentName, isMobileOpen, onClo
                 <div className={`border-t border-gray-100 relative transition-all duration-300 ${isCollapsed ? 'p-2' : 'p-4'}`}>
                     <div className={`flex items-center justify-between gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors ${isCollapsed ? 'flex-col' : ''}`}>
                         <div className="flex items-center gap-3 overflow-hidden">
-                            <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center text-gray-700 font-bold flex-shrink-0 text-sm">
-                                {agentName.charAt(0)}
+                            <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center text-gray-700 font-bold flex-shrink-0 text-sm overflow-hidden">
+                                {avatarUrl ? (
+                                    <img src={avatarUrl} alt={agentName} className="w-full h-full object-cover" />
+                                ) : (
+                                    agentName.charAt(0)
+                                )}
                             </div>
                             <div className={`transition-all duration-300 overflow-hidden ${isCollapsed ? 'w-0 opacity-0' : 'w-40 opacity-100'}`}>
                                 <span className="text-[14px] font-bold text-gray-900 truncate block uppercase tracking-tight whitespace-nowrap">

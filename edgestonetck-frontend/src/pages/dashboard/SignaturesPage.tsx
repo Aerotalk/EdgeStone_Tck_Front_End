@@ -11,11 +11,13 @@ import {
     Loader2,
     ChevronDown,
     Type,
-    Check
+    Check,
+    Camera
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { signatureService, type Signature } from '../../services/signatureService';
 import { useAuth } from '../../contexts/AuthContext';
+import { useAvatar } from '../../hooks/useAvatar';
 
 // ─── Signature Editor Toolbar ─────────────────────────────────────────────────
 const exec = (cmd: string, value?: string) => document.execCommand(cmd, false, value);
@@ -254,6 +256,44 @@ const SignaturesPage: React.FC = () => {
 
     const [formContent, setFormContent] = useState('');
 
+    // Avatar logic
+    const { avatarUrl, updateAvatar } = useAvatar(agentId);
+    const [uploadingAvatar, setUploadingAvatar] = useState(false);
+    const avatarInputRef = useRef<HTMLInputElement>(null);
+
+    const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (file.size > 5 * 1024 * 1024) {
+            toast.error('Image must be smaller than 5MB');
+            return;
+        }
+        
+        setUploadingAvatar(true);
+        try {
+            const formData = new FormData();
+            formData.append('image', file);
+            const apiKey = '8ab75421ccecda2f5b61e2cbacdbab8f';
+            const res = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            if (data && data.success && data.data && data.data.url) {
+                updateAvatar(data.data.url);
+                toast.success('Profile photo updated successfully');
+            } else {
+                throw new Error('Upload failed');
+            }
+        } catch (error) {
+            console.error('Avatar upload failed:', error);
+            toast.error('Failed to update profile photo');
+        } finally {
+            setUploadingAvatar(false);
+            if (avatarInputRef.current) avatarInputRef.current.value = '';
+        }
+    };
+
     useEffect(() => {
         if (!agentId || !token) return;
         setLoading(true);
@@ -354,45 +394,74 @@ const SignaturesPage: React.FC = () => {
     return (
         <div className="h-full flex flex-col bg-[#F9FAFB] font-sans overflow-x-hidden">
             {/* Header Area */}
-            <div className="px-10 py-8 border-b border-gray-100 bg-white flex items-start justify-between">
-                <div>
-                    <h1 className="text-[24px] font-bold text-gray-900 tracking-tight mb-2">My Account</h1>
-                    <p className="text-[14px] text-gray-500 max-w-[500px] leading-relaxed font-medium">
-                        View your profile details and manage your email signature.
-                    </p>
+            <div className="px-6 md:px-10 py-8 border-b border-gray-100 bg-white/80 backdrop-blur-md sticky top-0 z-10">
+                <div className="max-w-4xl mx-auto flex items-start justify-between">
+                    <div>
+                        <h1 className="text-[28px] font-black text-gray-900 tracking-tight mb-2">Account Settings</h1>
+                        <p className="text-[15px] text-gray-500 leading-relaxed font-medium">
+                            Manage your profile identity and customize your outgoing communications.
+                        </p>
+                    </div>
                 </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-10 py-8">
-                {/* Account Settings */}
-                <div className="mb-10 animate-in slide-in-from-bottom-2 duration-300">
-                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">Profile Details</p>
-                    <div className="flex items-center gap-4 px-6 py-5 bg-white border border-gray-100 rounded-[20px] w-full max-w-2xl shadow-sm">
-                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-100 to-orange-50 flex items-center justify-center text-orange-600 font-black text-xl shadow-inner border border-orange-200/50">
-                            {(displayName[0] || displayEmail[0] || 'U').toUpperCase()}
-                        </div>
-                        <div className="flex flex-col gap-0.5">
-                            <span className="font-bold text-[18px] text-gray-900 truncate tracking-tight">{displayName}</span>
-                            <span className="font-medium text-[14px] text-gray-500">{displayEmail}</span>
-                        </div>
-                        <div className="ml-auto flex items-center gap-3">
-                            <span className="px-3.5 py-1.5 bg-gray-50 border border-gray-100 text-gray-600 text-[12px] font-bold rounded-xl uppercase tracking-wider">
-                                {displayRole}
-                            </span>
-                        </div>
-                    </div>
-                </div>
+            <div className="flex-1 overflow-y-auto px-6 md:px-10 py-8">
+                <div className="max-w-4xl mx-auto">
+                    {/* Account Settings */}
+                    <div className="mb-12 animate-in slide-in-from-bottom-2 duration-300">
+                        <p className="text-[12px] font-bold text-gray-400 uppercase tracking-widest mb-4">Identity</p>
+                        
+                        <div className="flex flex-col md:flex-row items-center md:items-start gap-8 bg-white border border-gray-100 rounded-[24px] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] w-full relative overflow-hidden group">
+                            <div className="absolute inset-0 bg-gradient-to-br from-orange-50/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                            
+                            <div className="relative group/avatar cursor-pointer shrink-0" onClick={() => !uploadingAvatar && avatarInputRef.current?.click()}>
+                                <div className="w-28 h-28 rounded-[1.5rem] bg-gradient-to-br from-orange-100 to-orange-50 flex items-center justify-center text-orange-600 font-black text-4xl shadow-sm border-4 border-white ring-4 ring-orange-50 overflow-hidden relative transition-transform duration-300 group-hover/avatar:scale-105">
+                                    {avatarUrl ? (
+                                        <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" />
+                                    ) : (
+                                        (displayName[0] || displayEmail[0] || 'U').toUpperCase()
+                                    )}
+                                    
+                                    {/* Overlay */}
+                                    <div className={`absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity ${uploadingAvatar ? 'opacity-100' : ''}`}>
+                                        {uploadingAvatar ? (
+                                            <Loader2 size={28} className="text-white animate-spin" />
+                                        ) : (
+                                            <Camera size={28} className="text-white" />
+                                        )}
+                                    </div>
+                                </div>
+                                <input ref={avatarInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleAvatarChange} />
+                                
+                                <div className="absolute -bottom-2 -right-2 bg-white rounded-full p-2 shadow-md border border-gray-100 text-orange-500 opacity-0 group-hover/avatar:opacity-100 transition-all translate-y-2 group-hover/avatar:translate-y-0 z-10">
+                                    <Camera size={16} strokeWidth={2.5} />
+                                </div>
+                            </div>
 
-                {/* Signature Editor Area */}
-                <div className="animate-in slide-in-from-bottom-2 duration-300 delay-150 max-w-4xl">
-                    <div className="flex items-center justify-between mb-4">
-                        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Email Signature</p>
-                        {existingSignature && (
-                            <span className="px-3 py-1 bg-green-50 text-green-600 text-[11px] font-bold rounded-lg uppercase tracking-wider flex items-center gap-1 border border-green-100/50">
-                                <Check size={12} strokeWidth={3} /> Connected
-                            </span>
-                        )}
+                            <div className="flex flex-col gap-2 text-center md:text-left pt-2 z-10 w-full">
+                                <h2 className="text-[28px] font-black text-gray-900 tracking-tight leading-none">{displayName}</h2>
+                                <p className="font-semibold text-[16px] text-gray-500 mb-2">
+                                    {displayEmail}
+                                </p>
+                                <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mt-auto">
+                                    <span className="px-4 py-1.5 bg-gray-900 text-white text-[13px] font-bold rounded-xl uppercase tracking-wider shadow-sm">
+                                        {displayRole}
+                                    </span>
+                                    {existingSignature && (
+                                        <span className="px-4 py-1.5 bg-green-50 text-green-600 text-[13px] font-bold rounded-xl uppercase tracking-wider flex items-center gap-1.5 border border-green-100/50">
+                                            <Check size={14} strokeWidth={3} /> Signature Active
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
                     </div>
+
+                    {/* Signature Editor Area */}
+                    <div className="animate-in slide-in-from-bottom-2 duration-300 delay-150">
+                        <div className="flex items-center justify-between mb-4">
+                            <p className="text-[12px] font-bold text-gray-400 uppercase tracking-widest">Email Signature</p>
+                        </div>
 
                     {loading ? (
                         <div className="flex items-center gap-3 py-10 text-gray-400 font-bold justify-center w-full bg-white border border-gray-100 rounded-[20px] shadow-sm">
@@ -427,6 +496,7 @@ const SignaturesPage: React.FC = () => {
                             </div>
                         </div>
                     )}
+                </div>
                 </div>
             </div>
         </div>
