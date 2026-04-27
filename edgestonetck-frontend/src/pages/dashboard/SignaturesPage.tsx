@@ -298,6 +298,8 @@ const SignaturesPage: React.FC = () => {
     const { user } = useAuth();
     const agentId = user?.id || '';
     const agentEmail = user?.email || '';
+    const agentName = user?.name || '';
+    const agentRole = user?.role || 'Support Agent';
 
     const [signatures, setSignatures] = useState<Signature[]>([]);
     const [loading, setLoading] = useState(true);
@@ -449,10 +451,9 @@ const SignaturesPage: React.FC = () => {
             {/* Header Area */}
             <div className="px-10 py-8 border-b border-gray-50 flex items-start justify-between">
                 <div>
-                    <h1 className="text-[24px] font-bold text-gray-900 tracking-tight mb-2">Signatures</h1>
+                    <h1 className="text-[24px] font-bold text-gray-900 tracking-tight mb-2">My Account</h1>
                     <p className="text-[14px] text-gray-500 max-w-[500px] leading-relaxed font-medium">
-                        Manage your custom email signatures. 
-                        You can add new designs or choose your defaults for outgoing messages.
+                        View your profile details and manage your custom email signatures.
                     </p>
                 </div>
                 <button
@@ -467,14 +468,19 @@ const SignaturesPage: React.FC = () => {
             <div className="flex-1 overflow-y-auto px-10 py-8">
                 {/* Account Settings */}
                 <div className="mb-10 animate-in slide-in-from-bottom-2 duration-300">
-                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">Account Profile</p>
-                    <div className="flex items-center gap-3 px-4 py-3 bg-gray-50/80 border border-gray-100 rounded-2xl w-fit min-w-[340px]">
-                        <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center text-orange-600 font-bold text-sm shadow-sm border border-orange-200/50">
-                            {agentEmail[0]?.toUpperCase()}
+                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">Profile Details</p>
+                    <div className="flex items-center gap-4 px-5 py-4 bg-gray-50/80 border border-gray-100 rounded-2xl w-full max-w-2xl">
+                        <div className="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center text-orange-600 font-bold text-lg shadow-sm border border-orange-200/50">
+                            {(agentName[0] || agentEmail[0] || 'U').toUpperCase()}
                         </div>
                         <div className="flex flex-col">
-                            <span className="font-bold text-[15px] text-gray-900 truncate">{agentEmail}</span>
-                            <span className="font-medium text-[12px] text-gray-400">Support Agent</span>
+                            <span className="font-bold text-[16px] text-gray-900 truncate">{agentName || 'User'}</span>
+                            <span className="font-medium text-[13px] text-gray-500">{agentEmail}</span>
+                        </div>
+                        <div className="ml-auto">
+                            <span className="px-3 py-1 bg-gray-200/50 text-gray-600 text-[12px] font-bold rounded-lg uppercase tracking-wide">
+                                {agentRole}
+                            </span>
                         </div>
                     </div>
                 </div>

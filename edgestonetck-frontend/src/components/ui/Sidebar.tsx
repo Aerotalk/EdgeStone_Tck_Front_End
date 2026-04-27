@@ -15,6 +15,7 @@ import {
     Zap
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import SignaturesPage from '../../pages/dashboard/SignaturesPage';
 
 interface SidebarProps {
     agentName: string;
@@ -25,6 +26,7 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ agentName, isMobileOpen, onClose }) => {
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
+    const [showAccountModal, setShowAccountModal] = useState(false);
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const navigate = useNavigate();
     const { id } = useParams<{ id: string }>();
@@ -153,6 +155,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ agentName, isMobileOpen, onClo
                                     className="absolute bottom-full right-0 mb-3 bg-white border border-gray-100 rounded-lg shadow-xl py-2 min-w-[150px] z-50 animate-in fade-in slide-in-from-bottom-2 duration-200"
                                 >
                                     <button
+                                        onClick={() => { setShowMenu(false); setShowAccountModal(true); }}
+                                        className="w-full flex items-center gap-3 px-4 py-2 text-gray-700 hover:bg-gray-50 text-sm font-bold transition-colors"
+                                    >
+                                        <UserIcon size={16} />
+                                        My Account
+                                    </button>
+                                    <div className="h-px bg-gray-100 my-1 mx-2"></div>
+                                    <button
                                         onClick={handleLogoutTrigger}
                                         className="w-full flex items-center gap-3 px-4 py-2 text-brand-red hover:bg-red-50 text-sm font-bold transition-colors"
                                     >
@@ -175,6 +185,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ agentName, isMobileOpen, onClo
                     </div>
                 </div>
             </div>
+
+            {/* My Account Modal */}
+            {showAccountModal && (
+                <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-[#0F172A]/20 backdrop-blur-[6px] animate-in fade-in duration-500">
+                    <div className="bg-white rounded-[32px] w-full max-w-[1000px] h-[85vh] shadow-[0_32px_128px_-12px_rgba(15,23,42,0.25)] border border-gray-100/50 flex flex-col overflow-hidden animate-in zoom-in-95 duration-300 relative">
+                        <button onClick={() => setShowAccountModal(false)} className="absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-full transition-all z-10">
+                            <X size={20} />
+                        </button>
+                        <div className="flex-1 overflow-hidden relative rounded-[32px]">
+                            <SignaturesPage />
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Logout Confirmation Modal */}
             {showLogoutModal && (
