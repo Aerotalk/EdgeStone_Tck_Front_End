@@ -198,7 +198,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ agentName, isMobileOpen, onClo
             {showAccountModal && (
                 <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-[#0F172A]/20 backdrop-blur-[6px] animate-in fade-in duration-500">
                     <div className="bg-white rounded-[32px] w-full max-w-[1000px] h-[85vh] shadow-[0_32px_128px_-12px_rgba(15,23,42,0.25)] border border-gray-100/50 flex flex-col overflow-hidden animate-in zoom-in-95 duration-300 relative">
-                        <button onClick={() => setShowAccountModal(false)} className="absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-full transition-all z-10">
+                        <button onClick={() => setShowAccountModal(false)} className="absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-full transition-all z-50">
                             <X size={20} />
                         </button>
                         <div className="flex-1 overflow-hidden relative rounded-[32px]">
