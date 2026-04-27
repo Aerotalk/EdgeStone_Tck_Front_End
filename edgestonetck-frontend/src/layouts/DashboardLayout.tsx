@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Outlet, useParams, Navigate } from 'react-router-dom';
 import { Sidebar } from '../components/ui/Sidebar';
 import { Chatbot } from '../components/ui/Chatbot';
+import { Calculator } from '../components/ui/Calculator';
 import { useAuth } from '../contexts/AuthContext';
 import { DashboardDataProvider } from '../contexts/DashboardDataContext';
 
@@ -54,6 +55,7 @@ const DashboardLayout: React.FC = () => {
                 </div>
             </DashboardDataProvider>
             
+            <Calculator />
             <Chatbot />
         </div>
     );
