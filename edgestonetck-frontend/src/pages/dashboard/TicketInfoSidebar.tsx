@@ -279,10 +279,11 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
             if (!response.ok) throw new Error('AI Extractor failed');
 
             const data = await response.json();
-            if (data.success && data.sla) {
+            if (data && data.sla) {
+                // UI optimistic update
                 setSlaStartDate(data.sla.startDate);
                 setSlaStartTime(data.sla.startTime);
-                toast.success('✨ Automatically set SLA Start Time!');
+                toast.success('✨ SLA Start Extracted!');
             } else {
                 toast.error(data.message || 'No clear SLA times found in discussion.');
             }
@@ -386,7 +387,7 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                                 </button>
                             </div>
                             <span className={`text-[14px] font-bold ${slaStartTime ? 'text-gray-900' : 'text-gray-600'}`}>
-                                {slaStartTime ? `${slaStartTime} hrs` : '-'}
+                                {slaStartTime ? `${slaStartTime.replace(' hrs', '')} hrs` : '-'}
                             </span>
                         </div>
                         <div className="flex justify-between items-center text-[14px]">
