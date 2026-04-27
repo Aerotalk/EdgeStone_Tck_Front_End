@@ -6,6 +6,7 @@ export interface Agent {
     emails: string[];
     status: 'Active' | 'In-Active';
     role: 'Super admin' | 'Manager' | 'Support crew';
+    signatureConnected?: boolean;
 }
 
 export interface CreateAgentData {

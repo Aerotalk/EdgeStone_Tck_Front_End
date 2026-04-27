@@ -446,6 +446,15 @@ const AssignAgentsPage: React.FC = () => {
                                                 <span className="inline-flex items-center px-3 py-1.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-600">
                                                     {getAgentRole(agent)}
                                                 </span>
+                                                {agent.signatureConnected ? (
+                                                    <span className="inline-flex items-center px-3 py-1.5 rounded-full text-[11px] font-bold bg-green-50 text-green-600 border border-green-100">
+                                                        <Check size={12} className="mr-1" /> Sig Connected
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center px-3 py-1.5 rounded-full text-[11px] font-bold bg-gray-50 text-gray-500 border border-gray-200">
+                                                        No Sig
+                                                    </span>
+                                                )}
                                             </div>
                                             
                                             <div className="flex flex-wrap gap-1.5 mt-2">
@@ -479,6 +488,7 @@ const AssignAgentsPage: React.FC = () => {
                                             <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Created on</th>
                                             <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Email</th>
                                             <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
+                                            <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Signature</th>
                                             <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Role</th>
                                             <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Actions</th>
                                         </tr>
@@ -534,6 +544,17 @@ const AssignAgentsPage: React.FC = () => {
                                                             <span className={`w-1.5 h-1.5 rounded-full ${agent.status === 'Active' ? 'bg-green-500' : 'bg-red-500'
                                                                 }`} />
                                                             {agent.status}
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-5">
+                                                    {agent.signatureConnected ? (
+                                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-green-50 text-green-600 border border-green-100">
+                                                            <Check size={14} /> Connected
+                                                        </span>
+                                                    ) : (
+                                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gray-50 text-gray-500 border border-gray-200">
+                                                            Pending
                                                         </span>
                                                     )}
                                                 </td>
