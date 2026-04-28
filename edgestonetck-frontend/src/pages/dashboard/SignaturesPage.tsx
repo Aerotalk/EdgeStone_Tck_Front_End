@@ -271,44 +271,31 @@ const SignaturesPage: React.FC = () => {
         
         setUploadingAvatar(true);
         try {
-            const formData = new FormData();
-            formData.append('file', file);
+            // Upload to ImgBB for permanent hosting (Railway ephemeral disk workaround)
+            const imgUrl = await handleImageUpload(file);
             
             const rawApiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
             const apiBase = rawApiBase.replace(/\/$/, '');
+            const userStr = localStorage.getItem('edgestone_user');
+            const user = userStr ? JSON.parse(userStr) : null;
+            const token = user?.token || '';
             
-            // 1. Upload file
-            const uploadRes = await fetch(`${apiBase}/api/upload/profile`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` },
-                body: formData
+            // Save profile picture to user profile
+            const updateRes = await fetch(`${apiBase}/api/auth/profile-picture`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ profilePicture: imgUrl })
             });
-            
-            if (!uploadRes.ok) {
-                throw new Error('Upload failed');
-            }
-            const uploadData = await uploadRes.json();
-            
-            if (uploadData && uploadData.success && uploadData.url) {
-                // 2. Save profile picture to user profile
-                const updateRes = await fetch(`${apiBase}/api/auth/profile-picture`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ profilePicture: uploadData.url })
-                });
 
-                if (!updateRes.ok) {
-                    throw new Error('Failed to update profile picture in database');
-                }
-
-                updateAvatar(uploadData.url);
-                toast.success('Profile photo updated successfully');
-            } else {
-                throw new Error(uploadData.message || 'Upload failed');
+            if (!updateRes.ok) {
+                throw new Error('Failed to update profile picture in database');
             }
+
+            updateAvatar(imgUrl);
+            toast.success('Profile photo updated successfully');
         } catch (error: any) {
             console.error('Avatar upload failed:', error);
             toast.error(error.message || 'Failed to update profile photo');
