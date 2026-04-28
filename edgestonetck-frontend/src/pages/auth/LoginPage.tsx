@@ -84,16 +84,16 @@ export default function LoginPage() {
         <AuthLayout>
             <div className="flex flex-col items-center">
                 {/* Logo Section */}
-                <div className="mb-4">
+                <div className="mb-2">
                     <img
                         src="/assets/logo.png"
                         alt="EdgeStone Logo"
-                        className="h-16 w-auto"
+                        className="h-24 w-auto"
                     />
                 </div>
 
                 {/* Login Card */}
-                <div className="bg-white px-6 sm:px-12 py-10 rounded-xl shadow-[0_1px_5px_rgba(0,0,0,0.05)] border border-gray-100 w-full max-w-[500px]">
+                <div className="bg-white px-6 sm:px-12 py-8 rounded-xl shadow-[0_1px_5px_rgba(0,0,0,0.05)] border border-gray-100 w-full max-w-[500px]">
                     <h1 className="text-[28px] font-bold mb-3 text-center text-[#2D3748]">Login to Account</h1>
                     <p className="text-[14px] text-gray-500 text-center mb-8">Please enter your email and password to continue</p>
 
