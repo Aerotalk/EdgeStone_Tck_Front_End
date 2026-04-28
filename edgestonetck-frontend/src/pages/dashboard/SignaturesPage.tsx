@@ -274,7 +274,8 @@ const SignaturesPage: React.FC = () => {
             const formData = new FormData();
             formData.append('file', file);
             
-            const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+            const rawApiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+            const apiBase = rawApiBase.replace(/\/$/, '');
             
             // 1. Upload file
             const uploadRes = await fetch(`${apiBase}/api/upload/profile`, {
@@ -308,9 +309,9 @@ const SignaturesPage: React.FC = () => {
             } else {
                 throw new Error(uploadData.message || 'Upload failed');
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Avatar upload failed:', error);
-            toast.error('Failed to update profile photo');
+            toast.error(error.message || 'Failed to update profile photo');
         } finally {
             setUploadingAvatar(false);
             if (avatarInputRef.current) avatarInputRef.current.value = '';
@@ -324,7 +325,9 @@ const SignaturesPage: React.FC = () => {
         const fetchDetails = async () => {
             try {
                 // Fetch real-time profile via newly created backend /me route
-                const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+                const rawApiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+                const apiBase = rawApiBase.replace(/\/$/, '');
+                
                 const meRes = await fetch(`${apiBase}/api/auth/me`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
