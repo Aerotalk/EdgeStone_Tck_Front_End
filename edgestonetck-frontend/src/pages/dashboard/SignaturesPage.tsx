@@ -272,18 +272,41 @@ const SignaturesPage: React.FC = () => {
         setUploadingAvatar(true);
         try {
             const formData = new FormData();
-            formData.append('image', file);
-            const apiKey = '8ab75421ccecda2f5b61e2cbacdbab8f';
-            const res = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
+            formData.append('file', file);
+            
+            const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+            
+            // 1. Upload file
+            const uploadRes = await fetch(`${apiBase}/api/upload/profile`, {
                 method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
                 body: formData
             });
-            const data = await res.json();
-            if (data && data.success && data.data && data.data.url) {
-                updateAvatar(data.data.url);
+            
+            if (!uploadRes.ok) {
+                throw new Error('Upload failed');
+            }
+            const uploadData = await uploadRes.json();
+            
+            if (uploadData && uploadData.success && uploadData.url) {
+                // 2. Save profile picture to user profile
+                const updateRes = await fetch(`${apiBase}/api/auth/profile-picture`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ profilePicture: uploadData.url })
+                });
+
+                if (!updateRes.ok) {
+                    throw new Error('Failed to update profile picture in database');
+                }
+
+                updateAvatar(uploadData.url);
                 toast.success('Profile photo updated successfully');
             } else {
-                throw new Error('Upload failed');
+                throw new Error(uploadData.message || 'Upload failed');
             }
         } catch (error) {
             console.error('Avatar upload failed:', error);
@@ -309,6 +332,9 @@ const SignaturesPage: React.FC = () => {
                 if (meRes.ok) {
                     const profileData = await meRes.json();
                     setLiveProfile(profileData);
+                    if (profileData.profilePicture) {
+                        updateAvatar(profileData.profilePicture);
+                    }
                 }
 
                 // Fetch signature (only one allowed per agent)

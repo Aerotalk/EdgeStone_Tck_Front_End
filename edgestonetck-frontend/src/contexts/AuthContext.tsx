@@ -7,6 +7,7 @@ export interface User {
     name: string;
     email: string;
     role: UserRole;
+    profilePicture?: string;
     token?: string;
 }
 
@@ -45,6 +46,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const login = (userData: User) => {
         setUser(userData);
         localStorage.setItem('edgestone_user', JSON.stringify(userData));
+        if (userData.profilePicture) {
+            localStorage.setItem(`edgestone_avatar_${userData.id}`, userData.profilePicture);
+        }
     };
 
     const logout = () => {
