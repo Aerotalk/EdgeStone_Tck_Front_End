@@ -83,14 +83,27 @@ const SignatureEditor: React.FC<SignatureEditorProps> = ({ initialContent, onCha
         }
     };
 
+    const cleanHtmlForEmail = (html: string) => {
+        // Outlook ignores <font color="..."> tags. Convert them to <span style="color: ...">
+        if (!editorRef.current) return html;
+        const fonts = editorRef.current.querySelectorAll('font[color]');
+        fonts.forEach(font => {
+            const span = document.createElement('span');
+            span.style.color = font.getAttribute('color') || '';
+            span.innerHTML = font.innerHTML;
+            font.parentNode?.replaceChild(span, font);
+        });
+        return editorRef.current.innerHTML;
+    };
+
     const handleInput = () => {
-        onChange(editorRef.current?.innerHTML || '');
+        onChange(cleanHtmlForEmail(editorRef.current?.innerHTML || ''));
     };
 
     const execAndFocus = (cmd: string, value?: string) => {
         editorRef.current?.focus();
         exec(cmd, value);
-        onChange(editorRef.current?.innerHTML || '');
+        onChange(cleanHtmlForEmail(editorRef.current?.innerHTML || ''));
     };
 
     const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {

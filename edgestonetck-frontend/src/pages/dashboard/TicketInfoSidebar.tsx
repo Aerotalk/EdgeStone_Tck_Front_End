@@ -205,34 +205,82 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
     };
 
     const handleSaveDate = async () => {
-        setSlaCloseDate(tempDate);
-        setShowDateModal(false);
-        if (await handleManualUpdate({ closeDate: tempDate })) {
-            toast.success('SLA close date updated manually');
+        const offsets: Record<string, string> = { 'UTC': '+0000', 'GMT': '+0000', 'IST': '+0530' };
+        const offset = offsets[slaTimeZone] || '+0000';
+        const dateObj = new Date(`${tempDate} ${dynamicSlaClose.time.replace(' hrs', '') || '00:00'} GMT${offset}`);
+        
+        if (!isNaN(dateObj.getTime())) {
+            const istDate = formatDateWithTZ(dateObj, 'IST', { day: 'numeric', month: 'short', year: 'numeric' });
+            const istTime = formatTimeWithTZ(dateObj, 'IST') + ' hrs';
+            setSlaCloseDate(istDate);
+            setSlaCloseTime(istTime);
+            setShowDateModal(false);
+            if (await handleManualUpdate({ closeDate: istDate, closedTime: istTime })) {
+                toast.success('SLA close date updated manually');
+            }
+        } else {
+            setShowDateModal(false);
+            toast.error('Invalid date format');
         }
     };
 
     const handleSaveTime = async () => {
-        setSlaCloseTime(tempTime);
-        setShowTimeModal(false);
-        if (await handleManualUpdate({ closedTime: tempTime })) {
-            toast.success('SLA close time updated manually');
+        const offsets: Record<string, string> = { 'UTC': '+0000', 'GMT': '+0000', 'IST': '+0530' };
+        const offset = offsets[slaTimeZone] || '+0000';
+        const dateObj = new Date(`${dynamicSlaClose.date} ${tempTime} GMT${offset}`);
+        
+        if (!isNaN(dateObj.getTime())) {
+            const istDate = formatDateWithTZ(dateObj, 'IST', { day: 'numeric', month: 'short', year: 'numeric' });
+            const istTime = formatTimeWithTZ(dateObj, 'IST') + ' hrs';
+            setSlaCloseDate(istDate);
+            setSlaCloseTime(istTime);
+            setShowTimeModal(false);
+            if (await handleManualUpdate({ closeDate: istDate, closedTime: istTime })) {
+                toast.success('SLA close time updated manually');
+            }
+        } else {
+            setShowTimeModal(false);
+            toast.error('Invalid time format');
         }
     };
 
     const handleSaveStartDate = async () => {
-        setSlaStartDate(tempStartDate);
-        setShowStartDateModal(false);
-        if (await handleManualUpdate({ startDate: tempStartDate })) {
-            toast.success('SLA start date updated manually');
+        const offsets: Record<string, string> = { 'UTC': '+0000', 'GMT': '+0000', 'IST': '+0530' };
+        const offset = offsets[slaTimeZone] || '+0000';
+        const dateObj = new Date(`${tempStartDate} ${dynamicSlaStart.time.replace(' hrs', '') || '00:00'} GMT${offset}`);
+        
+        if (!isNaN(dateObj.getTime())) {
+            const istDate = formatDateWithTZ(dateObj, 'IST', { day: 'numeric', month: 'short', year: 'numeric' });
+            const istTime = formatTimeWithTZ(dateObj, 'IST') + ' hrs';
+            setSlaStartDate(istDate);
+            setSlaStartTime(istTime);
+            setShowStartDateModal(false);
+            if (await handleManualUpdate({ startDate: istDate, startTime: istTime })) {
+                toast.success('SLA start date updated manually');
+            }
+        } else {
+            setShowStartDateModal(false);
+            toast.error('Invalid date format');
         }
     };
 
     const handleSaveStartTime = async () => {
-        setSlaStartTime(tempStartTime);
-        setShowStartTimeModal(false);
-        if (await handleManualUpdate({ startTime: tempStartTime })) {
-            toast.success('SLA start time updated manually');
+        const offsets: Record<string, string> = { 'UTC': '+0000', 'GMT': '+0000', 'IST': '+0530' };
+        const offset = offsets[slaTimeZone] || '+0000';
+        const dateObj = new Date(`${dynamicSlaStart.date} ${tempStartTime} GMT${offset}`);
+        
+        if (!isNaN(dateObj.getTime())) {
+            const istDate = formatDateWithTZ(dateObj, 'IST', { day: 'numeric', month: 'short', year: 'numeric' });
+            const istTime = formatTimeWithTZ(dateObj, 'IST') + ' hrs';
+            setSlaStartDate(istDate);
+            setSlaStartTime(istTime);
+            setShowStartTimeModal(false);
+            if (await handleManualUpdate({ startDate: istDate, startTime: istTime })) {
+                toast.success('SLA start time updated manually');
+            }
+        } else {
+             setShowStartTimeModal(false);
+             toast.error('Invalid time format');
         }
     };
 
@@ -275,6 +323,25 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
             toast.error('Failed to update SLA status');
         }
     };
+
+    const getDynamicSlaTime = (dateStr: string, timeStr: string) => {
+        if (!dateStr || !timeStr || dateStr === '-' || timeStr === '-') return { date: dateStr || '-', time: timeStr || '-' };
+        try {
+            const cleanTime = timeStr.replace(' hrs', '').trim();
+            // The database stores these strings natively in IST (+05:30)
+            const dateObj = new Date(`${dateStr} ${cleanTime} GMT+0530`);
+            if (isNaN(dateObj.getTime())) return { date: dateStr, time: timeStr };
+            return {
+                date: formatDateWithTZ(dateObj, slaTimeZone, { day: 'numeric', month: 'short', year: 'numeric' }),
+                time: formatTimeWithTZ(dateObj, slaTimeZone) + ' hrs'
+            };
+        } catch (e) {
+            return { date: dateStr, time: timeStr };
+        }
+    };
+
+    const dynamicSlaStart = getDynamicSlaTime(slaStartDate, slaStartTime);
+    const dynamicSlaClose = getDynamicSlaTime(slaCloseDate, slaCloseTime);
 
     return (
         <div className="w-[340px] border-l border-gray-100 bg-white hidden lg:flex flex-col h-full font-sans shrink-0 relative">
@@ -345,56 +412,56 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                             <div className="flex items-center gap-2">
                                 <span className="text-gray-400 font-medium">SLA start time</span>
                                 <button
-                                    onClick={() => { setTempStartTime(slaStartTime); setShowStartTimeModal(true); }}
+                                    onClick={() => { setTempStartTime(dynamicSlaStart.time !== '-' ? dynamicSlaStart.time.replace(' hrs', '') : ''); setShowStartTimeModal(true); }}
                                     className="p-1 hover:bg-orange-50 rounded-full text-orange-400 hover:text-orange-600 transition-all border border-transparent hover:border-orange-100 shadow-sm hover:shadow active:scale-90"
                                 >
                                     <Plus size={12} strokeWidth={3} />
                                 </button>
                             </div>
                             <span className={`text-[14px] font-bold ${slaStartTime ? 'text-gray-900' : 'text-gray-600'}`}>
-                                {slaStartTime ? `${slaStartTime.replace(' hrs', '')} hrs` : '-'}
+                                {dynamicSlaStart.time !== '-' ? dynamicSlaStart.time : '-'}
                             </span>
                         </div>
                         <div className="flex justify-between items-center text-[14px]">
                             <div className="flex items-center gap-2">
                                 <span className="text-gray-400 font-medium">SLA start date</span>
                                 <button
-                                    onClick={() => { setTempStartDate(slaStartDate); setShowStartDateModal(true); }}
+                                    onClick={() => { setTempStartDate(dynamicSlaStart.date !== '-' ? dynamicSlaStart.date : ''); setShowStartDateModal(true); }}
                                     className="p-1 hover:bg-orange-50 rounded-full text-orange-400 hover:text-orange-600 transition-all border border-transparent hover:border-orange-100 shadow-sm hover:shadow active:scale-90"
                                 >
                                     <Plus size={12} strokeWidth={3} />
                                 </button>
                             </div>
                             <span className={`text-[14px] font-bold ${slaStartDate ? 'text-gray-900' : 'text-gray-600'}`}>
-                                {slaStartDate || '-'}
+                                {dynamicSlaStart.date !== '-' ? dynamicSlaStart.date : '-'}
                             </span>
                         </div>
                         <div className="flex justify-between items-center text-[14px]">
                             <div className="flex items-center gap-2">
                                 <span className="text-gray-400 font-medium">SLA close at</span>
                                 <button
-                                    onClick={() => { setTempTime(slaCloseTime); setShowTimeModal(true); }}
+                                    onClick={() => { setTempTime(dynamicSlaClose.time !== '-' ? dynamicSlaClose.time.replace(' hrs', '') : ''); setShowTimeModal(true); }}
                                     className="p-1 hover:bg-orange-50 rounded-full text-orange-400 hover:text-orange-600 transition-all border border-transparent hover:border-orange-100 shadow-sm hover:shadow active:scale-90"
                                 >
                                     <Plus size={12} strokeWidth={3} />
                                 </button>
                             </div>
                             <span className={`text-[14px] font-bold ${slaCloseTime ? 'text-gray-900' : 'text-gray-600'}`}>
-                                {slaCloseTime ? `${slaCloseTime} hrs` : '-'}
+                                {dynamicSlaClose.time !== '-' ? dynamicSlaClose.time : '-'}
                             </span>
                         </div>
                         <div className="flex justify-between items-center text-[14px]">
                             <div className="flex items-center gap-2">
                                 <span className="text-gray-400 font-medium">SLA close date</span>
                                 <button
-                                    onClick={() => { setTempDate(slaCloseDate); setShowDateModal(true); }}
+                                    onClick={() => { setTempDate(dynamicSlaClose.date !== '-' ? dynamicSlaClose.date : ''); setShowDateModal(true); }}
                                     className="p-1 hover:bg-orange-50 rounded-full text-orange-400 hover:text-orange-600 transition-all border border-transparent hover:border-orange-100 shadow-sm hover:shadow active:scale-90"
                                 >
                                     <Plus size={12} strokeWidth={3} />
                                 </button>
                             </div>
                             <span className={`text-[14px] font-bold ${slaCloseDate ? 'text-gray-900' : 'text-gray-600'}`}>
-                                {slaCloseDate || '-'}
+                                {dynamicSlaClose.date !== '-' ? dynamicSlaClose.date : '-'}
                             </span>
                         </div>
                         <div className="flex justify-between items-center text-[14px]">

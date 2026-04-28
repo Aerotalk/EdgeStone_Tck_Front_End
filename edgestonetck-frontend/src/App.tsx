@@ -8,6 +8,7 @@ import VendorsPage from './pages/dashboard/VendorsPage'
 import AssignAgentsPage from './pages/dashboard/AssignAgentsPage'
 import SLAPage from './pages/dashboard/SLAPage'
 import CircuitsPage from './pages/dashboard/CircuitsPage'
+import NotFoundPage from './pages/NotFoundPage'
 import { AuthProvider } from './contexts/AuthContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { Toaster } from 'react-hot-toast'
@@ -40,8 +41,8 @@ function App() {
           {/* Default Route */}
           <Route path="/" element={<Navigate to="/login" replace />} />
 
-          {/* Fallback for 404 */}
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          {/* Fallback for 404 (Game) */}
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Router>
     </AuthProvider>
