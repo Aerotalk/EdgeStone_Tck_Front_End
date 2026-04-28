@@ -177,9 +177,9 @@ const TicketsPage: React.FC = () => {
                                 name={ticket.name}
                                 ticketId={ticket.ticketId}
                                 email={ticket.email}
-                                header={ticket.header}
+                                header={ticket.circuitId || ticket.header}
                                 date={ticket.createdAt || ticket.date}
-                                priority={localStorage.getItem(`confirmed_priority_${ticket.id}`) || undefined}
+                                priority={ticket.priority || localStorage.getItem(`confirmed_priority_${ticket.id}`) || undefined}
                                 onReply={() => setSelectedTicket(ticket)}
                             />
                         ))}
