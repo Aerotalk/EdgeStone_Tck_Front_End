@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FileText, X, Save, Edit3, Loader2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { motion, AnimatePresence } from 'framer-motion';
 
 export const GlobalStickyNote: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -80,73 +79,67 @@ export const GlobalStickyNote: React.FC = () => {
 
     return (
         <div className="fixed bottom-24 right-6 z-50 flex flex-col items-end">
-            <AnimatePresence>
-                {isOpen && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 20, scale: 0.95 }}
-                        transition={{ duration: 0.2 }}
-                        className="bg-[#FFFDF0] border border-yellow-200/60 shadow-2xl rounded-xl w-80 mb-4 overflow-hidden flex flex-col"
-                        style={{
-                            boxShadow: '0 20px 40px -10px rgba(253, 224, 71, 0.2), 0 10px 20px -5px rgba(0,0,0,0.05)'
-                        }}
-                    >
-                        {/* Header */}
-                        <div className="bg-gradient-to-r from-yellow-300 to-yellow-200 p-3 flex justify-between items-center border-b border-yellow-300/50">
-                            <div className="flex items-center gap-2">
-                                <FileText size={16} className="text-yellow-800" />
-                                <span className="font-bold text-yellow-900 text-sm">Shift Handover</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                                <button
-                                    onClick={handleSave}
-                                    disabled={isSaving}
-                                    className="p-1.5 text-yellow-800 hover:bg-yellow-400/30 rounded-md transition-colors"
-                                    title="Save globally"
-                                >
-                                    {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                                </button>
-                                <button
-                                    onClick={toggleOpen}
-                                    className="p-1.5 text-yellow-800 hover:bg-yellow-400/30 rounded-md transition-colors"
-                                >
-                                    <X size={16} />
-                                </button>
-                            </div>
+            {isOpen && (
+                <div
+                    className="bg-[#FFFDF0] border border-yellow-200/60 shadow-2xl rounded-xl w-80 mb-4 overflow-hidden flex flex-col transition-all duration-200 ease-out"
+                    style={{
+                        boxShadow: '0 20px 40px -10px rgba(253, 224, 71, 0.2), 0 10px 20px -5px rgba(0,0,0,0.05)'
+                    }}
+                >
+                    {/* Header */}
+                    <div className="bg-gradient-to-r from-yellow-300 to-yellow-200 p-3 flex justify-between items-center border-b border-yellow-300/50">
+                        <div className="flex items-center gap-2">
+                            <FileText size={16} className="text-yellow-800" />
+                            <span className="font-bold text-yellow-900 text-sm">Shift Handover</span>
                         </div>
-
-                        {/* Body */}
-                        <div className="p-4 flex-1 relative">
-                            {isLoading ? (
-                                <div className="absolute inset-0 flex items-center justify-center bg-[#FFFDF0]/80 backdrop-blur-sm z-10">
-                                    <Loader2 className="w-6 h-6 text-yellow-500 animate-spin" />
-                                </div>
-                            ) : null}
-                            <textarea
-                                value={content}
-                                onChange={(e) => setContent(e.target.value)}
-                                onBlur={handleSave}
-                                placeholder="Type handover notes here..."
-                                className="w-full h-64 bg-transparent resize-none text-gray-800 focus:outline-none placeholder:text-yellow-600/40 font-medium leading-relaxed custom-scrollbar"
-                                style={{
-                                    backgroundImage: 'linear-gradient(transparent, transparent 27px, rgba(234, 179, 8, 0.1) 28px)',
-                                    backgroundSize: '100% 28px',
-                                    lineHeight: '28px'
-                                }}
-                            />
+                        <div className="flex items-center gap-1">
+                            <button
+                                onClick={handleSave}
+                                disabled={isSaving}
+                                className="p-1.5 text-yellow-800 hover:bg-yellow-400/30 rounded-md transition-colors"
+                                title="Save globally"
+                            >
+                                {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                            </button>
+                            <button
+                                onClick={toggleOpen}
+                                className="p-1.5 text-yellow-800 hover:bg-yellow-400/30 rounded-md transition-colors"
+                            >
+                                <X size={16} />
+                            </button>
                         </div>
+                    </div>
 
-                        {/* Footer */}
-                        {lastUpdatedAt && (
-                            <div className="bg-yellow-50/50 p-2.5 text-[11px] text-yellow-700/80 border-t border-yellow-200/50 flex justify-between items-center px-4">
-                                <span>Updated by {lastUpdatedBy || 'Unknown'}</span>
-                                <span>{lastUpdatedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    {/* Body */}
+                    <div className="p-4 flex-1 relative">
+                        {isLoading ? (
+                            <div className="absolute inset-0 flex items-center justify-center bg-[#FFFDF0]/80 backdrop-blur-sm z-10">
+                                <Loader2 className="w-6 h-6 text-yellow-500 animate-spin" />
                             </div>
-                        )}
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                        ) : null}
+                        <textarea
+                            value={content}
+                            onChange={(e) => setContent(e.target.value)}
+                            onBlur={handleSave}
+                            placeholder="Type handover notes here..."
+                            className="w-full h-64 bg-transparent resize-none text-gray-800 focus:outline-none placeholder:text-yellow-600/40 font-medium leading-relaxed custom-scrollbar"
+                            style={{
+                                backgroundImage: 'linear-gradient(transparent, transparent 27px, rgba(234, 179, 8, 0.1) 28px)',
+                                backgroundSize: '100% 28px',
+                                lineHeight: '28px'
+                            }}
+                        />
+                    </div>
+
+                    {/* Footer */}
+                    {lastUpdatedAt && (
+                        <div className="bg-yellow-50/50 p-2.5 text-[11px] text-yellow-700/80 border-t border-yellow-200/50 flex justify-between items-center px-4">
+                            <span>Updated by {lastUpdatedBy || 'Unknown'}</span>
+                            <span>{lastUpdatedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
+                    )}
+                </div>
+            )}
 
             <button
                 onClick={toggleOpen}
