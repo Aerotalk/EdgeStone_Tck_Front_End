@@ -276,6 +276,24 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
         }
     };
 
+    const getDynamicSlaTime = (dateStr: string, timeStr: string) => {
+        if (!dateStr || !timeStr || dateStr === '-' || timeStr === '-') return { date: dateStr || '-', time: timeStr || '-' };
+        try {
+            const cleanTime = timeStr.replace(' hrs', '').trim();
+            const dateObj = new Date(`${dateStr} ${cleanTime} UTC`);
+            if (isNaN(dateObj.getTime())) return { date: dateStr, time: timeStr };
+            return {
+                date: formatDateWithTZ(dateObj, slaTimeZone, { day: 'numeric', month: 'short', year: 'numeric' }),
+                time: formatTimeWithTZ(dateObj, slaTimeZone) + ' hrs'
+            };
+        } catch (e) {
+            return { date: dateStr, time: timeStr };
+        }
+    };
+
+    const dynamicSlaStart = getDynamicSlaTime(slaStartDate, slaStartTime);
+    const dynamicSlaClose = getDynamicSlaTime(slaCloseDate, slaCloseTime);
+
     return (
         <div className="w-[340px] border-l border-gray-100 bg-white hidden lg:flex flex-col h-full font-sans shrink-0 relative">
             <div className="flex-1 overflow-y-auto scrollbar-hide">
@@ -352,7 +370,7 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                                 </button>
                             </div>
                             <span className={`text-[14px] font-bold ${slaStartTime ? 'text-gray-900' : 'text-gray-600'}`}>
-                                {slaStartTime ? `${slaStartTime.replace(' hrs', '')} hrs` : '-'}
+                                {dynamicSlaStart.time !== '-' ? dynamicSlaStart.time : '-'}
                             </span>
                         </div>
                         <div className="flex justify-between items-center text-[14px]">
@@ -366,7 +384,7 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                                 </button>
                             </div>
                             <span className={`text-[14px] font-bold ${slaStartDate ? 'text-gray-900' : 'text-gray-600'}`}>
-                                {slaStartDate || '-'}
+                                {dynamicSlaStart.date !== '-' ? dynamicSlaStart.date : '-'}
                             </span>
                         </div>
                         <div className="flex justify-between items-center text-[14px]">
@@ -380,7 +398,7 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                                 </button>
                             </div>
                             <span className={`text-[14px] font-bold ${slaCloseTime ? 'text-gray-900' : 'text-gray-600'}`}>
-                                {slaCloseTime ? `${slaCloseTime} hrs` : '-'}
+                                {dynamicSlaClose.time !== '-' ? dynamicSlaClose.time : '-'}
                             </span>
                         </div>
                         <div className="flex justify-between items-center text-[14px]">
@@ -394,7 +412,7 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                                 </button>
                             </div>
                             <span className={`text-[14px] font-bold ${slaCloseDate ? 'text-gray-900' : 'text-gray-600'}`}>
-                                {slaCloseDate || '-'}
+                                {dynamicSlaClose.date !== '-' ? dynamicSlaClose.date : '-'}
                             </span>
                         </div>
                         <div className="flex justify-between items-center text-[14px]">
