@@ -142,7 +142,8 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
         };
 
         const fetchCircuitDetails = async () => {
-            if (!circuit) return;
+            const currentCircuit = circuit || ticket.circuitId;
+            if (!currentCircuit) return;
             try {
                 const API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/circuits`;
                 const userStr = localStorage.getItem('edgestone_user');
@@ -155,7 +156,7 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                 
                 if (response.ok) {
                     const allCircuits = await response.json();
-                    const matched = allCircuits.find((c: any) => c.customerCircuitId === circuit || c.id === circuit);
+                    const matched = allCircuits.find((c: any) => c.customerCircuitId === currentCircuit || c.id === currentCircuit);
                     if (matched) {
                         setFullCircuitDetails(matched);
                     }
@@ -167,7 +168,7 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
 
         fetchSLARecord();
         fetchCircuitDetails();
-    }, [ticket.id, circuit]);
+    }, [ticket.id, circuit, ticket.circuitId]);
 
     const handleAddNote = () => {
         if (!newNote.trim()) return;
@@ -404,8 +405,8 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                     <div className={`space-y-4 ${!isSlaActive ? 'opacity-50 pointer-events-none' : ''}`}>
                         <div className="flex justify-between items-center pb-1">
                             <span className="text-[12px] font-bold text-gray-400 uppercase tracking-wider">Circuit ID</span>
-                            <span className={`text-[14px] font-bold ${circuit ? 'text-gray-900' : 'text-gray-400'}`}>
-                                {activeTab === 'vendor' ? (fullCircuitDetails?.supplierCircuitId || circuit || 'None') : (fullCircuitDetails?.customerCircuitId || circuit || 'None')}
+                            <span className={`text-[14px] font-bold ${circuit || ticket.circuitId ? 'text-gray-900' : 'text-gray-400'}`}>
+                                {activeTab === 'vendor' ? (fullCircuitDetails?.supplierCircuitId || fullCircuitDetails?.customerCircuitId || circuit || ticket.circuitId || 'None') : (fullCircuitDetails?.customerCircuitId || circuit || ticket.circuitId || 'None')}
                             </span>
                         </div>
                         <div className="flex justify-between items-center text-[14px]">
