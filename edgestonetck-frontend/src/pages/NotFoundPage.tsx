@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Home, Crosshair, Skull, ShieldAlert } from 'lucide-react';
+import { Home, Crosshair, Skull } from 'lucide-react';
 
 export default function NotFoundPage() {
     const navigate = useNavigate();
@@ -271,7 +271,6 @@ export default function NotFoundPage() {
                 ctx.save();
                 ctx.translate(this.x - cameraX + this.w / 2, this.y - cameraY + this.h / 2);
                 ctx.scale(this.facing, 1);
-                const cy = -this.h / 2;
 
                 const eBob = (Math.abs(this.vx) > 0.5 && this.isGrounded) ? Math.sin(this.timer * 0.4) * 2 : 0;
 
@@ -403,12 +402,11 @@ export default function NotFoundPage() {
 
                 this.isCrouching = false;
                 this.aimDir = 'straight';
-                let isRunning = false;
 
                 if (downPressed) {
                     if (this.isGrounded) {
                         if (leftPressed || rightPressed) {
-                            this.aimDir = 'diag-down'; isRunning = true;
+                            this.aimDir = 'diag-down';
                             this.facing = leftPressed ? -1 : 1; this.vx = RUN_SPEED * this.facing;
                         } else {
                             this.isCrouching = true; this.vx = 0;
@@ -424,12 +422,12 @@ export default function NotFoundPage() {
                 } else {
                     if (upPressed) {
                         this.aimDir = 'up';
-                        if (leftPressed) { this.aimDir = 'diag-up'; this.vx = -RUN_SPEED; this.facing = -1; isRunning=true;}
-                        else if (rightPressed) { this.aimDir = 'diag-up'; this.vx = RUN_SPEED; this.facing = 1; isRunning=true;}
+                        if (leftPressed) { this.aimDir = 'diag-up'; this.vx = -RUN_SPEED; this.facing = -1; }
+                        else if (rightPressed) { this.aimDir = 'diag-up'; this.vx = RUN_SPEED; this.facing = 1; }
                         else { this.vx = 0; }
                     } else {
-                        if (leftPressed) { this.vx = -RUN_SPEED; this.facing = -1; isRunning=true; }
-                        else if (rightPressed) { this.vx = RUN_SPEED; this.facing = 1; isRunning=true; }
+                        if (leftPressed) { this.vx = -RUN_SPEED; this.facing = -1; }
+                        else if (rightPressed) { this.vx = RUN_SPEED; this.facing = 1; }
                         else { this.vx = 0; }
                     }
                 }
