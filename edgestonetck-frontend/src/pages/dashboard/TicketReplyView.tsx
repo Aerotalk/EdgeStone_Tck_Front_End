@@ -44,7 +44,9 @@ interface TicketReplyViewProps {
 export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack }) => {
     const [activeTab, setActiveTab] = useState<'client' | 'vendor'>('client');
     const [showCircuitModal, setShowCircuitModal] = useState(false);
-    const [selectedCircuit, setSelectedCircuit] = useState('BA/SNG-TY2/ESPL-003');
+    const [selectedCircuit, setSelectedCircuit] = useState(() => {
+        return localStorage.getItem(`confirmed_circuit_id_${ticket.id}`) || ticket.circuitId || 'BA/SNG-TY2/ESPL-003';
+    });
     const [selectedPriority, setSelectedPriority] = useState('');
     const [openDropdown, setOpenDropdown] = useState<'circuit' | 'priority' | null>(null);
     const [replyText, setReplyText] = useState('');
@@ -84,8 +86,15 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
     });
 
     const [confirmedCircuit, setConfirmedCircuit] = useState(() => {
-        return localStorage.getItem(`confirmed_circuit_id_${ticket.id}`) || '';
+        return localStorage.getItem(`confirmed_circuit_id_${ticket.id}`) || ticket.circuitId || '';
     });
+
+    useEffect(() => {
+        if (ticket.circuitId && !localStorage.getItem(`confirmed_circuit_id_${ticket.id}`)) {
+            setConfirmedCircuit(ticket.circuitId);
+        }
+    }, [ticket.circuitId, ticket.id]);
+
     const [confirmedPriority, setConfirmedPriority] = useState(() => {
         return localStorage.getItem(`confirmed_priority_${ticket.id}`) || '';
     });
