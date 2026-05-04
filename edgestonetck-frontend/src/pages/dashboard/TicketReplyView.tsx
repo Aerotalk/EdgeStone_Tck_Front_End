@@ -421,24 +421,24 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
         <div className="flex flex-col h-full bg-white relative font-sans">
             {/* Header Area */}
             <div className="flex flex-col border-b border-gray-100">
-                <div className="flex items-center justify-between px-6 py-4">
-                    <div className="flex items-center gap-4 text-[18px] text-gray-500 font-medium whitespace-nowrap">
+                <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between px-4 sm:px-6 py-4 gap-4">
+                    <div className="flex items-center gap-2 sm:gap-4 text-[16px] sm:text-[18px] text-gray-500 font-medium w-full xl:w-auto">
                         <button
                             onClick={onBack}
-                            className="p-1.5 hover:bg-gray-100 rounded-lg transition-all text-gray-400 hover:text-gray-900 border border-transparent hover:border-gray-200"
+                            className="p-1.5 hover:bg-gray-100 rounded-lg transition-all text-gray-400 hover:text-gray-900 border border-transparent hover:border-gray-200 flex-shrink-0"
                             title="Back to Tickets"
                         >
                             <ChevronLeft size={20} strokeWidth={2.5} />
                         </button>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap min-w-0">
                             <button onClick={onBack} className="hover:text-gray-900 transition-colors flex-shrink-0">Tickets</button>
                             <span className="flex-shrink-0">/</span>
-                            <span className="text-gray-900 font-bold whitespace-nowrap">{ticket.header}</span>
+                            <span className="text-gray-900 font-bold truncate">{ticket.header}</span>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-6 relative">
-                        <div className="hidden lg:block">
+                    <div className="flex flex-wrap xl:flex-nowrap items-center gap-3 sm:gap-6 relative w-full xl:w-auto">
+                        <div className="w-full xl:w-auto overflow-x-auto pb-2 xl:pb-0 scrollbar-hide">
                             <GlobalClock />
                         </div>
                         <div className="relative">
@@ -505,9 +505,9 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
             </div>
 
             {/* Main Content Area */}
-            <div className="flex-1 flex overflow-hidden">
+            <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
                 {/* Left Conversation Area */}
-                <div className="flex-1 min-w-0 flex flex-col p-8 space-y-6 overflow-y-auto bg-gray-50/30 scrollbar-hide">
+                <div className="flex-1 min-w-0 flex flex-col p-4 sm:p-8 space-y-6 overflow-y-auto bg-gray-50/30 scrollbar-hide">
 
                     {/* Original Client Message (Always visible but maybe distinct based on user preference) */}
                     {activeTab === 'client' && (

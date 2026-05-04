@@ -31,7 +31,7 @@ export const Topbar: React.FC<TopbarProps> = ({
                 </div>
             )}
 
-            <div className="ml-auto hidden md:block flex-shrink-0">
+            <div className="w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0 scrollbar-hide flex-shrink-0 mt-4 sm:mt-0 sm:ml-auto">
                 <GlobalClock />
             </div>
         </div>
