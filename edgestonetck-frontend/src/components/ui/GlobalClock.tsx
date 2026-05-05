@@ -1,8 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Globe } from 'lucide-react';
+import { Globe, ChevronDown } from 'lucide-react';
 
 export const GlobalClock: React.FC = () => {
     const [time, setTime] = useState(new Date());
+    const [selectedTimeZone, setSelectedTimeZone] = useState('GMT');
+
+    const timeZones = [
+        { label: 'GMT', value: 'GMT' },
+        { label: 'EST', value: 'America/New_York' },
+        { label: 'PST', value: 'America/Los_Angeles' },
+        { label: 'CET', value: 'Europe/Paris' },
+        { label: 'GST', value: 'Asia/Dubai' },
+        { label: 'SGT', value: 'Asia/Singapore' },
+        { label: 'AEST', value: 'Australia/Sydney' },
+    ];
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -40,8 +51,19 @@ export const GlobalClock: React.FC = () => {
             <div className="w-1.5 h-1.5 rounded-full bg-gray-300 mx-1 sm:mx-2 flex-shrink-0"></div>
 
             <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-                <span className="text-[10px] sm:text-[11px] text-gray-500 font-bold uppercase tracking-widest">GMT</span>
-                <span className="text-gray-900">{formatTime('GMT')}</span>
+                <div className="relative flex items-center bg-gray-100 hover:bg-gray-200 transition-colors rounded-md px-1.5 py-0.5 cursor-pointer">
+                    <select 
+                        className="text-[10px] sm:text-[11px] text-gray-500 font-bold uppercase tracking-widest bg-transparent border-none outline-none cursor-pointer appearance-none pr-3 z-10"
+                        value={selectedTimeZone}
+                        onChange={(e) => setSelectedTimeZone(e.target.value)}
+                    >
+                        {timeZones.map(tz => (
+                            <option key={tz.value} value={tz.value} className="text-gray-900">{tz.label}</option>
+                        ))}
+                    </select>
+                    <ChevronDown size={10} className="text-gray-500 absolute right-1.5 pointer-events-none" />
+                </div>
+                <span className="text-gray-900">{formatTime(selectedTimeZone)}</span>
             </div>
         </div>
     );
