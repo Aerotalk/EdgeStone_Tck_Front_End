@@ -35,7 +35,7 @@ export const GlobalClock: React.FC = () => {
     return (
         <div className="flex flex-nowrap md:flex-wrap items-center justify-start md:justify-center gap-2 sm:gap-3 bg-white px-3 sm:px-5 py-2 sm:py-2.5 rounded-2xl sm:rounded-full border-2 border-gray-200 shadow-sm text-xs sm:text-sm font-bold text-gray-700 w-max max-w-full overflow-x-auto scrollbar-hide">
             <Globe size={16} className="text-brand-red flex-shrink-0" />
-            
+
             <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
                 <span className="text-[10px] sm:text-[11px] text-gray-500 font-bold uppercase tracking-widest">IST</span>
                 <span className="text-gray-900">{formatTime('Asia/Kolkata')}</span>
@@ -52,7 +52,7 @@ export const GlobalClock: React.FC = () => {
 
             <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
                 <div className="relative flex items-center bg-gray-100 hover:bg-gray-200 transition-colors rounded-md px-1.5 py-0.5 cursor-pointer">
-                    <select 
+                    <select
                         className="text-[10px] sm:text-[11px] text-gray-500 font-bold uppercase tracking-widest bg-transparent border-none outline-none cursor-pointer appearance-none pr-3 z-10"
                         value={selectedTimeZone}
                         onChange={(e) => setSelectedTimeZone(e.target.value)}
@@ -66,5 +66,6 @@ export const GlobalClock: React.FC = () => {
                 <span className="text-gray-900">{formatTime(selectedTimeZone)}</span>
             </div>
         </div>
+
     );
 };
