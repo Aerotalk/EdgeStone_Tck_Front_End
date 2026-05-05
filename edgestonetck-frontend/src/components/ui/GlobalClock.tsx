@@ -51,9 +51,12 @@ export const GlobalClock: React.FC = () => {
             <div className="w-1.5 h-1.5 rounded-full bg-gray-300 mx-1 sm:mx-2 flex-shrink-0"></div>
 
             <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+                <span className="text-[10px] sm:text-[11px] text-gray-500 font-bold uppercase tracking-widest">GMT</span>
                 <div className="relative flex items-center bg-gray-100 hover:bg-gray-200 transition-colors rounded-md px-1.5 py-0.5 cursor-pointer">
+                    <span className="text-gray-900">{formatTime(selectedTimeZone)}</span>
+                    <ChevronDown size={12} className="text-gray-500 ml-1.5 pointer-events-none" />
                     <select
-                        className="text-[10px] sm:text-[11px] text-gray-500 font-bold uppercase tracking-widest bg-transparent border-none outline-none cursor-pointer appearance-none pr-3 z-10"
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                         value={selectedTimeZone}
                         onChange={(e) => setSelectedTimeZone(e.target.value)}
                     >
@@ -61,9 +64,7 @@ export const GlobalClock: React.FC = () => {
                             <option key={tz.value} value={tz.value} className="text-gray-900">{tz.label}</option>
                         ))}
                     </select>
-                    <ChevronDown size={10} className="text-gray-500 absolute right-1.5 pointer-events-none" />
                 </div>
-                <span className="text-gray-900">{formatTime(selectedTimeZone)}</span>
             </div>
         </div>
 
