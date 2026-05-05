@@ -420,9 +420,9 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
     return (
         <div className="flex flex-col h-full bg-white relative font-sans">
             {/* Header Area */}
-            <div className="flex flex-col border-b border-gray-100">
-                <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between px-4 sm:px-6 py-4 gap-4">
-                    <div className="flex items-center gap-2 sm:gap-4 text-[16px] sm:text-[18px] text-gray-500 font-medium w-full xl:w-auto">
+            <div className="flex flex-col border-b border-gray-100 w-full overflow-hidden">
+                <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between px-4 sm:px-6 py-4 gap-4 w-full">
+                    <div className="flex items-center gap-2 sm:gap-4 text-[16px] sm:text-[18px] text-gray-500 font-medium flex-1 min-w-0 w-full pr-0 xl:pr-4">
                         <button
                             onClick={onBack}
                             className="p-1.5 hover:bg-gray-100 rounded-lg transition-all text-gray-400 hover:text-gray-900 border border-transparent hover:border-gray-200 flex-shrink-0"
@@ -430,22 +430,24 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                         >
                             <ChevronLeft size={20} strokeWidth={2.5} />
                         </button>
-                        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap min-w-0">
-                            <button onClick={onBack} className="hover:text-gray-900 transition-colors flex-shrink-0">Tickets</button>
-                            <span className="flex-shrink-0">/</span>
-                            <span className="text-gray-900 font-bold truncate">{ticket.header}</span>
+                        <div className="flex items-center gap-2 flex-nowrap min-w-0 flex-1">
+                            <button onClick={onBack} className="hover:text-gray-900 transition-colors flex-shrink-0 hidden sm:block">Tickets</button>
+                            <span className="flex-shrink-0 hidden sm:block">/</span>
+                            <div className="group flex-1 min-w-0 flex items-center">
+                                <span className="text-gray-900 font-bold truncate cursor-help max-w-full" title={ticket.header}>{ticket.header}</span>
+                            </div>
                         </div>
                     </div>
 
-                    <div className="flex flex-wrap xl:flex-nowrap items-center gap-3 sm:gap-6 relative w-full xl:w-auto">
-                        <div className="w-full xl:w-auto overflow-x-auto pb-2 xl:pb-0 scrollbar-hide">
+                    <div className="flex flex-row items-center gap-3 sm:gap-6 relative flex-shrink-0 w-full xl:w-auto justify-between xl:justify-end">
+                        <div className="overflow-x-auto scrollbar-hide max-w-full">
                             <GlobalClock />
                         </div>
-                        <div className="relative">
+                        <div className="relative flex-shrink-0">
                             <button
                                 onClick={() => !isUpdatingStatus && ticketStatus.toLowerCase() !== 'closed' && setShowStatusDropdown(!showStatusDropdown)}
                                 disabled={isUpdatingStatus}
-                                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] font-bold border transition-all ${ticketStatus.toLowerCase() === 'closed'
+                                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] font-bold border transition-all whitespace-nowrap ${ticketStatus.toLowerCase() === 'closed'
                                     ? 'bg-green-100/50 text-green-600 border-green-200/30 cursor-not-allowed'
                                     : 'bg-orange-100/50 text-orange-600 border-orange-200/30 hover:bg-orange-100'
                                     } ${isUpdatingStatus ? 'opacity-70 cursor-wait' : ''}`}
