@@ -3,9 +3,7 @@ import { Globe, ChevronDown } from 'lucide-react';
 
 export const GlobalClock: React.FC = () => {
     const [time, setTime] = useState(new Date());
-    const [gmtOffsetHours, setGmtOffsetHours] = useState(0);
-
-    const offsetOptions = Array.from({ length: 24 }, (_, i) => i - 12);
+    const [gmtOffsetMs, setGmtOffsetMs] = useState(0);
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -24,15 +22,34 @@ export const GlobalClock: React.FC = () => {
         }).format(time).toUpperCase();
     };
 
-    const getOffsetTime = (offsetHours: number) => {
-        const t = new Date(time.getTime());
-        t.setUTCHours(t.getUTCHours() + offsetHours);
+    const getOffsetTime = (offsetMs: number) => {
+        const t = new Date(time.getTime() + offsetMs);
         return new Intl.DateTimeFormat('en-US', {
             timeZone: 'UTC',
             hour: '2-digit',
             minute: '2-digit',
             hour12: true
         }).format(t).toUpperCase();
+    };
+
+    const getInputValue = (offsetMs: number) => {
+        const t = new Date(time.getTime() + offsetMs);
+        return `${String(t.getUTCHours()).padStart(2, '0')}:${String(t.getUTCMinutes()).padStart(2, '0')}`;
+    };
+
+    const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newTimeStr = e.target.value;
+        if (!newTimeStr) return;
+        
+        const [hours, minutes] = newTimeStr.split(':').map(Number);
+        
+        const now = new Date();
+        const currentUtcSeconds = now.getUTCSeconds();
+        
+        const newTime = new Date(now.getTime());
+        newTime.setUTCHours(hours, minutes, currentUtcSeconds, 0);
+        
+        setGmtOffsetMs(newTime.getTime() - now.getTime());
     };
 
     return (
@@ -56,19 +73,21 @@ export const GlobalClock: React.FC = () => {
             <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
                 <span className="text-[10px] sm:text-[11px] text-gray-500 font-bold uppercase tracking-widest">GMT</span>
                 <div className="relative flex items-center bg-gray-100 hover:bg-gray-200 transition-colors rounded-md px-1.5 py-0.5 cursor-pointer">
-                    <span className="text-gray-900">{getOffsetTime(gmtOffsetHours)}</span>
+                    <span className="text-gray-900">{getOffsetTime(gmtOffsetMs)}</span>
                     <ChevronDown size={12} className="text-gray-500 ml-1.5 pointer-events-none" />
-                    <select
+                    <input
+                        type="time"
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        value={gmtOffsetHours}
-                        onChange={(e) => setGmtOffsetHours(Number(e.target.value))}
-                    >
-                        {offsetOptions.map(offset => (
-                            <option key={offset} value={offset} className="text-gray-900">
-                                {getOffsetTime(offset)}
-                            </option>
-                        ))}
-                    </select>
+                        value={getInputValue(gmtOffsetMs)}
+                        onChange={handleTimeChange}
+                        onClick={(e) => {
+                            try {
+                                if ('showPicker' in HTMLInputElement.prototype) {
+                                    (e.target as HTMLInputElement).showPicker();
+                                }
+                            } catch (err) {}
+                        }}
+                    />
                 </div>
             </div>
         </div>
