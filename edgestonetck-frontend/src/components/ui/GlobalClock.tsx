@@ -3,17 +3,9 @@ import { Globe, ChevronDown } from 'lucide-react';
 
 export const GlobalClock: React.FC = () => {
     const [time, setTime] = useState(new Date());
-    const [selectedTimeZone, setSelectedTimeZone] = useState('GMT');
+    const [gmtOffsetHours, setGmtOffsetHours] = useState(0);
 
-    const timeZones = [
-        { label: 'GMT', value: 'GMT' },
-        { label: 'EST', value: 'America/New_York' },
-        { label: 'PST', value: 'America/Los_Angeles' },
-        { label: 'CET', value: 'Europe/Paris' },
-        { label: 'GST', value: 'Asia/Dubai' },
-        { label: 'SGT', value: 'Asia/Singapore' },
-        { label: 'AEST', value: 'Australia/Sydney' },
-    ];
+    const offsetOptions = Array.from({ length: 24 }, (_, i) => i - 12);
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -30,6 +22,17 @@ export const GlobalClock: React.FC = () => {
             minute: '2-digit',
             hour12: true
         }).format(time).toUpperCase();
+    };
+
+    const getOffsetTime = (offsetHours: number) => {
+        const t = new Date(time.getTime());
+        t.setUTCHours(t.getUTCHours() + offsetHours);
+        return new Intl.DateTimeFormat('en-US', {
+            timeZone: 'UTC',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        }).format(t).toUpperCase();
     };
 
     return (
@@ -53,15 +56,17 @@ export const GlobalClock: React.FC = () => {
             <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
                 <span className="text-[10px] sm:text-[11px] text-gray-500 font-bold uppercase tracking-widest">GMT</span>
                 <div className="relative flex items-center bg-gray-100 hover:bg-gray-200 transition-colors rounded-md px-1.5 py-0.5 cursor-pointer">
-                    <span className="text-gray-900">{formatTime(selectedTimeZone)}</span>
+                    <span className="text-gray-900">{getOffsetTime(gmtOffsetHours)}</span>
                     <ChevronDown size={12} className="text-gray-500 ml-1.5 pointer-events-none" />
                     <select
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        value={selectedTimeZone}
-                        onChange={(e) => setSelectedTimeZone(e.target.value)}
+                        value={gmtOffsetHours}
+                        onChange={(e) => setGmtOffsetHours(Number(e.target.value))}
                     >
-                        {timeZones.map(tz => (
-                            <option key={tz.value} value={tz.value} className="text-gray-900">{tz.label}</option>
+                        {offsetOptions.map(offset => (
+                            <option key={offset} value={offset} className="text-gray-900">
+                                {getOffsetTime(offset)}
+                            </option>
                         ))}
                     </select>
                 </div>
