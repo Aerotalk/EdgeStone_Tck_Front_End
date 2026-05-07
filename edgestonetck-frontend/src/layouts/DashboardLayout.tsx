@@ -18,66 +18,98 @@ const DashboardLayout: React.FC = () => {
         document.title = 'EdgeStone - Dashboard';
     }, []);
 
-    // Notifications Stream
+    // Notifications Stream — with auto-reconnect & chime sound
     useEffect(() => {
         const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
-        const eventSource = new EventSource(`${apiBase}/api/notifications/stream`);
+        let eventSource: EventSource | null = null;
+        let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+        let retryDelay = 3000;
 
-        eventSource.onmessage = (event) => {
+        const playChime = () => {
             try {
-                const data = JSON.parse(event.data);
-                if (data.type === 'connected') return;
-
-                // Show toast notification
-                toast.success(data.message, {
-                    duration: 5000,
-                    icon: '🔔',
-                    style: {
-                        background: '#333',
-                        color: '#fff',
-                        borderRadius: '10px'
-                    }
+                const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+                const frequencies = [523.25, 659.25, 783.99]; // C5, E5, G5
+                frequencies.forEach((freq, i) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.frequency.value = freq;
+                    osc.type = 'sine';
+                    const startTime = ctx.currentTime + i * 0.15;
+                    gain.gain.setValueAtTime(0, startTime);
+                    gain.gain.linearRampToValueAtTime(0.3, startTime + 0.05);
+                    gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.4);
+                    osc.start(startTime);
+                    osc.stop(startTime + 0.4);
                 });
+            } catch (_) { /* AudioContext may be blocked before user interaction */ }
+        };
 
-                // Play Keery Voice (Male AI)
-                if ('speechSynthesis' in window) {
-                    const utterance = new SpeechSynthesisUtterance(`Keery Notification: ${data.message}`);
-                    
-                    const setVoiceAndSpeak = () => {
-                        const voices = window.speechSynthesis.getVoices();
-                        // Try to find a male voice (often named Google UK English Male, David, etc.)
-                        const maleVoice = voices.find(v => 
-                            v.name.toLowerCase().includes('male') || 
-                            v.name.toLowerCase().includes('david') || 
-                            v.name.toLowerCase().includes('guy') ||
-                            v.name.toLowerCase().includes('mark')
-                        );
-                        
-                        if (maleVoice) {
-                            utterance.voice = maleVoice;
-                        }
-                        
-                        utterance.pitch = 0.8; // slightly deeper
-                        utterance.rate = 1.0;
-                        window.speechSynthesis.speak(utterance);
-                    };
-
-                    if (window.speechSynthesis.getVoices().length > 0) {
-                        setVoiceAndSpeak();
-                    } else {
-                        window.speechSynthesis.onvoiceschanged = setVoiceAndSpeak;
-                    }
-                }
-            } catch (error) {
-                console.error("Error parsing notification:", error);
+        const speakNotification = (message: string) => {
+            if (!('speechSynthesis' in window)) return;
+            const utterance = new SpeechSynthesisUtterance(`Keery says: ${message}`);
+            const setVoiceAndSpeak = () => {
+                const voices = window.speechSynthesis.getVoices();
+                const maleVoice = voices.find(v =>
+                    v.name.toLowerCase().includes('male') ||
+                    v.name.toLowerCase().includes('david') ||
+                    v.name.toLowerCase().includes('guy') ||
+                    v.name.toLowerCase().includes('mark')
+                );
+                if (maleVoice) utterance.voice = maleVoice;
+                utterance.pitch = 0.85;
+                utterance.rate = 1.0;
+                window.speechSynthesis.speak(utterance);
+            };
+            if (window.speechSynthesis.getVoices().length > 0) {
+                setVoiceAndSpeak();
+            } else {
+                window.speechSynthesis.onvoiceschanged = setVoiceAndSpeak;
             }
         };
 
+        const connect = () => {
+            eventSource = new EventSource(`${apiBase}/api/notifications/stream`);
+
+            eventSource.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.type === 'connected') {
+                        retryDelay = 3000; // Reset backoff on successful connect
+                        return;
+                    }
+
+                    // Toast notification
+                    toast.success(data.message, {
+                        duration: 6000,
+                        icon: '🔔',
+                        style: { background: '#1e1e2e', color: '#fff', borderRadius: '12px', fontWeight: '600' }
+                    });
+
+                    // Chime + Voice
+                    playChime();
+                    speakNotification(data.message);
+
+                } catch (error) {
+                    console.error('[Keery] Error parsing notification:', error);
+                }
+            };
+
+            eventSource.onerror = () => {
+                eventSource?.close();
+                // Reconnect with backoff (max 30s)
+                retryDelay = Math.min(retryDelay * 1.5, 30000);
+                reconnectTimer = setTimeout(connect, retryDelay);
+            };
+        };
+
+        connect();
+
         return () => {
-            eventSource.close();
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.onvoiceschanged = null;
-            }
+            eventSource?.close();
+            if (reconnectTimer) clearTimeout(reconnectTimer);
+            if ('speechSynthesis' in window) window.speechSynthesis.onvoiceschanged = null;
         };
     }, []);
 
