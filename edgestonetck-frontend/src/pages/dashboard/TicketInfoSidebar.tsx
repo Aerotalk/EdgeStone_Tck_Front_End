@@ -420,11 +420,11 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                             </span>
                         </div>
 
-                        {activeTab === 'vendor' && (
+                        {activeTab !== 'vendor' && (
                             <div className="flex justify-between items-center pb-1">
                                 <span className="text-[12px] font-bold text-orange-400 uppercase tracking-wider">Supplier ID</span>
-                                <span className={`text-[14px] font-bold ${fullCircuitDetails?.vendorId ? 'text-gray-900' : 'text-gray-400'}`}>
-                                    {fullCircuitDetails?.vendorId || 'None'}
+                                <span className={`text-[14px] font-bold ${fullCircuitDetails?.supplierCircuitId ? 'text-gray-900' : 'text-gray-400'}`}>
+                                    {fullCircuitDetails?.supplierCircuitId || 'None'}
                                 </span>
                             </div>
                         )}
