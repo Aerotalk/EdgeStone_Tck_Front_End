@@ -420,32 +420,34 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
     return (
         <div className="flex flex-col h-full bg-white relative font-sans">
             {/* Header Area */}
-            <div className="flex flex-col border-b border-gray-100">
-                <div className="flex items-center justify-between px-6 py-4">
-                    <div className="flex items-center gap-4 text-[18px] text-gray-500 font-medium whitespace-nowrap">
+            <div className="flex flex-col border-b border-gray-100 w-full overflow-hidden">
+                <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between px-4 sm:px-6 py-4 gap-4 w-full">
+                    <div className="flex items-center gap-2 sm:gap-4 text-[16px] sm:text-[18px] text-gray-500 font-medium flex-1 min-w-0 w-full pr-0 xl:pr-4">
                         <button
                             onClick={onBack}
-                            className="p-1.5 hover:bg-gray-100 rounded-lg transition-all text-gray-400 hover:text-gray-900 border border-transparent hover:border-gray-200"
+                            className="p-1.5 hover:bg-gray-100 rounded-lg transition-all text-gray-400 hover:text-gray-900 border border-transparent hover:border-gray-200 flex-shrink-0"
                             title="Back to Tickets"
                         >
                             <ChevronLeft size={20} strokeWidth={2.5} />
                         </button>
-                        <div className="flex items-center gap-2">
-                            <button onClick={onBack} className="hover:text-gray-900 transition-colors flex-shrink-0">Tickets</button>
-                            <span className="flex-shrink-0">/</span>
-                            <span className="text-gray-900 font-bold whitespace-nowrap">{ticket.header}</span>
+                        <div className="flex items-center gap-2 flex-nowrap min-w-0 flex-1">
+                            <button onClick={onBack} className="hover:text-gray-900 transition-colors flex-shrink-0 hidden sm:block">Tickets</button>
+                            <span className="flex-shrink-0 hidden sm:block">/</span>
+                            <div className="group flex-1 min-w-0 flex items-center">
+                                <span className="text-gray-900 font-bold truncate cursor-help max-w-full" title={ticket.header}>{ticket.header}</span>
+                            </div>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-6 relative">
-                        <div className="hidden lg:block">
+                    <div className="flex flex-row items-center gap-3 sm:gap-6 relative flex-shrink-0 w-full xl:w-auto justify-between xl:justify-end">
+                        <div className="overflow-x-auto scrollbar-hide max-w-full">
                             <GlobalClock />
                         </div>
-                        <div className="relative">
+                        <div className="relative flex-shrink-0">
                             <button
                                 onClick={() => !isUpdatingStatus && ticketStatus.toLowerCase() !== 'closed' && setShowStatusDropdown(!showStatusDropdown)}
                                 disabled={isUpdatingStatus}
-                                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] font-bold border transition-all ${ticketStatus.toLowerCase() === 'closed'
+                                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] font-bold border transition-all whitespace-nowrap ${ticketStatus.toLowerCase() === 'closed'
                                     ? 'bg-green-100/50 text-green-600 border-green-200/30 cursor-not-allowed'
                                     : 'bg-orange-100/50 text-orange-600 border-orange-200/30 hover:bg-orange-100'
                                     } ${isUpdatingStatus ? 'opacity-70 cursor-wait' : ''}`}
@@ -505,9 +507,9 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
             </div>
 
             {/* Main Content Area */}
-            <div className="flex-1 flex overflow-hidden">
+            <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
                 {/* Left Conversation Area */}
-                <div className="flex-1 min-w-0 flex flex-col p-8 space-y-6 overflow-y-auto bg-gray-50/30 scrollbar-hide">
+                <div className="flex-1 min-w-0 flex flex-col p-4 sm:p-8 space-y-6 overflow-y-auto bg-gray-50/30 scrollbar-hide">
 
                     {/* Original Client Message (Always visible but maybe distinct based on user preference) */}
                     {activeTab === 'client' && (

@@ -60,10 +60,10 @@ const AssignAgentsPage: React.FC = () => {
     const getAgentRole = (agent: any): string => {
         const roleStr = agent.role || agent.userRole || agent.access?.role;
         if (roleStr) {
-             if (roleStr === 'super_admin' || roleStr === 'Super admin') return 'Super admin';
-             if (roleStr.toLowerCase() === 'manager') return 'Manager';
-             if (roleStr.toLowerCase() === 'support crew') return 'Support crew';
-             return roleStr;
+            if (roleStr === 'super_admin' || roleStr === 'Super admin') return 'Super admin';
+            if (roleStr.toLowerCase() === 'manager') return 'Manager';
+            if (roleStr.toLowerCase() === 'support crew') return 'Support crew';
+            return roleStr;
         }
         if (agent.access?.superAdmin || agent.isSuperAdmin) {
             return 'Super admin';
@@ -456,7 +456,7 @@ const AssignAgentsPage: React.FC = () => {
                                                     </span>
                                                 )}
                                             </div>
-                                            
+
                                             <div className="flex flex-wrap gap-1.5 mt-2">
                                                 {agent.emails.map((email, i) => (
                                                     <span key={i} className="px-2 py-0.5 bg-orange-50 text-[#D97706] rounded text-[11px] border border-orange-100/50 font-medium">
@@ -550,7 +550,7 @@ const AssignAgentsPage: React.FC = () => {
                                                 <td className="px-6 py-5">
                                                     {agent.signatureConnected ? (
                                                         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-green-50 text-green-600 border border-green-100">
-                                                            <Check size={14} /> Connected
+                                                            <Check size={14} /> Done
                                                         </span>
                                                     ) : (
                                                         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gray-50 text-gray-500 border border-gray-200">
