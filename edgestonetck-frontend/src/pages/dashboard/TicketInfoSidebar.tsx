@@ -143,7 +143,10 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
 
         const fetchCircuitDetails = async () => {
             const currentCircuit = circuit || ticket.circuitId;
-            if (!currentCircuit) return;
+            if (!currentCircuit) {
+                setFullCircuitDetails(null);
+                return;
+            }
             try {
                 const API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/circuits`;
                 const userStr = localStorage.getItem('edgestone_user');
@@ -161,6 +164,8 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                     const matched = allCircuits.find((c: any) => c.customerCircuitId === currentCircuit || c.id === currentCircuit);
                     if (matched) {
                         setFullCircuitDetails(matched);
+                    } else {
+                        setFullCircuitDetails(null);
                     }
                 }
             } catch (error) {

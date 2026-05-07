@@ -90,8 +90,13 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
     });
 
     useEffect(() => {
-        if (ticket.circuitId && !localStorage.getItem(`confirmed_circuit_id_${ticket.id}`)) {
+        const storedCircuit = localStorage.getItem(`confirmed_circuit_id_${ticket.id}`);
+        if (storedCircuit) {
+            setConfirmedCircuit(storedCircuit);
+        } else if (ticket.circuitId) {
             setConfirmedCircuit(ticket.circuitId);
+        } else {
+            setConfirmedCircuit('');
         }
     }, [ticket.circuitId, ticket.id]);
 
@@ -99,11 +104,17 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
         return localStorage.getItem(`confirmed_priority_${ticket.id}`) || '';
     });
 
+    useEffect(() => {
+        setConfirmedPriority(localStorage.getItem(`confirmed_priority_${ticket.id}`) || '');
+    }, [ticket.id]);
+
     const [ticketStatus, setTicketStatus] = useState(() => {
-        // Always prefer the DB value (ticket.status) — localStorage is only a UI cache
-        // for optimistic updates that haven't been re-fetched yet.
         return ticket.status || localStorage.getItem(`ticket_status_${ticket.id}`) || 'Open';
     });
+
+    useEffect(() => {
+        setTicketStatus(ticket.status || localStorage.getItem(`ticket_status_${ticket.id}`) || 'Open');
+    }, [ticket.id, ticket.status]);
     const [showStatusDropdown, setShowStatusDropdown] = useState(false);
     const [vendorName, setVendorName] = useState<string>('');
     const [closedAt, setClosedAt] = useState(() => {
