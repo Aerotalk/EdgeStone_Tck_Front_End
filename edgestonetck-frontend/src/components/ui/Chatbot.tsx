@@ -14,7 +14,7 @@ export const Chatbot: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [message, setMessage] = useState('');
     const [messages, setMessages] = useState<Message[]>([
-        { role: 'assistant', content: "Hello! I'm your EdgeStone AI assistant. I can help answer questions, summarize SLA policies, and pull up work logs. How can I help you today?" }
+        { role: 'assistant', content: "Hello! I'm Keery, your personal EdgeStone AI assistant. I can analyze tickets, compose emails, draft handover notes, and help you manage your tasks. How can I help you today?" }
     ]);
     const [loading, setLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -80,7 +80,7 @@ export const Chatbot: React.FC = () => {
                     <div className="bg-brand-red p-4 flex items-center justify-between text-white shadow-sm z-10">
                         <div className="flex items-center space-x-2">
                             <BotMessageSquare className="w-6 h-6" />
-                            <span className="font-bold text-[15px] tracking-wide">EdgeStone AI</span>
+                            <span className="font-bold text-[15px] tracking-wide">Keery</span>
                         </div>
                         <button
                             onClick={() => setIsOpen(false)}
