@@ -419,6 +419,15 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                                 }
                             </span>
                         </div>
+
+                        {activeTab === 'vendor' && (
+                            <div className="flex justify-between items-center pb-1">
+                                <span className="text-[12px] font-bold text-orange-400 uppercase tracking-wider">Supplier ID</span>
+                                <span className={`text-[14px] font-bold ${fullCircuitDetails?.vendorId ? 'text-gray-900' : 'text-gray-400'}`}>
+                                    {fullCircuitDetails?.vendorId || 'None'}
+                                </span>
+                            </div>
+                        )}
                         <div className="flex justify-between items-center text-[14px]">
                             <div className="flex items-center gap-2">
                                 <span className="text-gray-400 font-medium">SLA start time</span>
