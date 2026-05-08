@@ -66,7 +66,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
     const [signatureHtml, setSignatureHtml] = useState<string>(''); // Raw HTML — never stripped
     const [showSigDropdown, setShowSigDropdown] = useState(false);
     const [showSignatureModal, setShowSignatureModal] = useState(false);
-    
+
     // Dynamic Circuit Options
     const [dynamicCircuitOptions, setDynamicCircuitOptions] = useState<string[]>([]);
 
@@ -143,21 +143,21 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                 setEmailForm(prev => ({
                     ...prev,
                     to: emails,
-                    subject: `RE: ${ticket.header}`
+                    subject: ``
                 }));
-                
+
                 // Fetch the vendor name associated specifically with the connected circuit
                 circuitService.getAllCircuits().then(circuits => {
-                    const matchedCircuit = circuits.find(c => 
+                    const matchedCircuit = circuits.find(c =>
                         (confirmedCircuit && c.customerCircuitId === confirmedCircuit) ||
                         c.customerCircuitId === ticket.header ||
                         c.customerCircuitId === ticket.circuitId ||
                         c.id === ticket.circuitId
                     );
-                    
+
                     if (matchedCircuit && matchedCircuit.vendor) {
                         setVendorName(matchedCircuit.vendor.name);
-                        
+
                         // Override the dummy ticketService email with the actual vendor's mapped email
                         vendorService.getAllVendors().then(vendors => {
                             const fullVendor = vendors.find(v => v.id === matchedCircuit.vendor!.id || v.name === matchedCircuit.vendor!.name);
@@ -185,14 +185,14 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
     // Fetch dynamic circuits depending on current ticket vendor context
     useEffect(() => {
         circuitService.getAllCircuits().then(circuits => {
-            const vendorId = vendorName && vendorName !== 'EdgeStone Vendor' 
-                ? circuits.find(c => c.vendor?.name === vendorName)?.vendorId 
+            const vendorId = vendorName && vendorName !== 'EdgeStone Vendor'
+                ? circuits.find(c => c.vendor?.name === vendorName)?.vendorId
                 : undefined;
-            
+
             // Just filter dynamically on client side or pass to backend
             const filtered = circuits.filter(c => {
-                 if (activeTab === 'vendor' && vendorId) return c.vendorId === vendorId;
-                 return true; // client context sees all or maybe specific ones
+                if (activeTab === 'vendor' && vendorId) return c.vendorId === vendorId;
+                return true; // client context sees all or maybe specific ones
             });
             setDynamicCircuitOptions(filtered.map(c => c.customerCircuitId).filter(Boolean));
         }).catch(err => console.error(err));
@@ -216,7 +216,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                 setActiveSignatureId(defaultReply.id);
                 setSignatureHtml(defaultReply.content); // Store real HTML
             }
-        }).catch(() => {/* silent — signatures are optional */});
+        }).catch(() => {/* silent — signatures are optional */ });
     }, [user?.id]);
 
 
@@ -225,7 +225,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
     const plainTextToHtml = (text: string): string => {
         return text
             .split('\n')
-            .map(line => line.trim() === '' ? '<br>' : `<span>${line.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>`)
+            .map(line => line.trim() === '' ? '<br>' : `<span>${line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>`)
             .join('<br>');
     };
 
@@ -962,14 +962,14 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                     className="w-full min-h-[120px] flex-1 p-6 text-[15px] font-medium text-gray-700 placeholder:text-gray-300 focus:outline-none resize-none bg-transparent"
                                     autoFocus
                                 />
-                                
+
                                 {signatureHtml && (
-                                    <div 
+                                    <div
                                         className="px-6 pb-16 pt-0 text-[14px] text-gray-600"
                                         dangerouslySetInnerHTML={{ __html: signatureHtml }}
                                     />
                                 )}
-                                
+
                                 <input
                                     type="file"
                                     ref={fileInputRef}
@@ -1105,7 +1105,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                 if (user?.id) {
                                     signatureService.getSignatures(user.id).then(sigs => {
                                         setSignatures(sigs);
-                                    }).catch(() => {});
+                                    }).catch(() => { });
                                 }
                             }}
                             className="absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-full transition-all z-10"
