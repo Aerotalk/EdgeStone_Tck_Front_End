@@ -1081,7 +1081,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                 </button>
                                 <button
                                     onClick={handleSendReply}
-                                    disabled={!replyText.trim() || isSending}
+                                    disabled={(!replyText.trim() && !signatureHtml) || isSending || !emailForm.subject.trim()}
                                     className="flex items-center gap-2.5 px-8 py-3 bg-orange-500 text-white rounded-xl text-[15px] font-bold hover:bg-orange-600 transition-all active:scale-[0.98] shadow-[0_20px_40px_-12px_rgba(249,115,22,0.3)] disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed group"
                                 >
                                     <span>{isSending ? 'Sending...' : 'Send Message'}</span>
