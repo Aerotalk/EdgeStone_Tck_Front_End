@@ -140,10 +140,13 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
         } else if (activeTab === 'vendor') {
             // Fetch dynamically on vendor tab click
             ticketService.getVendorEmails(ticket.id).then(emails => {
+                const vendorReplies = replies.filter(r => r && r.category === 'vendor');
+                const existingSubject = vendorReplies.find(r => r.subject)?.subject || '';
+
                 setEmailForm(prev => ({
                     ...prev,
                     to: emails,
-                    subject: ``
+                    subject: existingSubject
                 }));
 
                 // Fetch the vendor name associated specifically with the connected circuit
@@ -181,6 +184,20 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
             });
         }
     }, [activeTab, ticket.email, ticket.header, ticket.id, confirmedCircuit, ticket.circuitId]);
+
+    // Autofill subject line for vendor replies when opening the email modal
+    useEffect(() => {
+        if (showEmailModal && activeTab === 'vendor') {
+            const vendorReplies = replies.filter(r => r && r.category === 'vendor');
+            const existingSubject = vendorReplies.find(r => r.subject)?.subject || '';
+            if (existingSubject) {
+                setEmailForm(prev => ({
+                    ...prev,
+                    subject: existingSubject
+                }));
+            }
+        }
+    }, [showEmailModal, activeTab, replies]);
 
     // Fetch dynamic circuits depending on current ticket vendor context
     useEffect(() => {
