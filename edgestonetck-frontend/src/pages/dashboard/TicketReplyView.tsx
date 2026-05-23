@@ -141,7 +141,8 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
             // Fetch dynamically on vendor tab click
             ticketService.getVendorEmails(ticket.id).then(emails => {
                 const vendorReplies = replies.filter(r => r && r.category === 'vendor');
-                const existingSubject = vendorReplies.find(r => r.subject)?.subject || '';
+                const localSub = localStorage.getItem(`vendor_subject_${ticket.id}`);
+                const existingSubject = vendorReplies.find(r => r.subject)?.subject || localSub || '';
 
                 setEmailForm(prev => ({
                     ...prev,
@@ -189,7 +190,8 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
     useEffect(() => {
         if (showEmailModal && activeTab === 'vendor') {
             const vendorReplies = replies.filter(r => r && r.category === 'vendor');
-            const existingSubject = vendorReplies.find(r => r.subject)?.subject || '';
+            const localSub = localStorage.getItem(`vendor_subject_${ticket.id}`);
+            const existingSubject = vendorReplies.find(r => r.subject)?.subject || localSub || '';
             if (existingSubject) {
                 setEmailForm(prev => ({
                     ...prev,
@@ -365,6 +367,10 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                     htmlContent: fullHtmlContent,
                     attachments: processedAttachments
                 });
+                
+                if (emailForm.subject.trim()) {
+                    localStorage.setItem(`vendor_subject_${ticket.id}`, emailForm.subject.trim());
+                }
             } else {
                 newReply = await ticketService.replyToTicket(ticket.id, plainBody, fullHtmlContent, processedAttachments);
             }
