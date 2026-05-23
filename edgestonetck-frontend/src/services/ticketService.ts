@@ -60,11 +60,11 @@ export const ticketService = {
         return response.json();
     },
 
-    replyToTicket: async (id: string, message: string, htmlContent?: string): Promise<Reply> => {
+    replyToTicket: async (id: string, message: string, htmlContent?: string, attachments?: any[]): Promise<Reply> => {
         const response = await fetch(`${API_URL}/${id}/reply`, {
             method: 'POST',
             headers: getAuthHeaders(),
-            body: JSON.stringify({ message, htmlContent }),
+            body: JSON.stringify({ message, htmlContent, attachments }),
         });
 
         if (!response.ok) {

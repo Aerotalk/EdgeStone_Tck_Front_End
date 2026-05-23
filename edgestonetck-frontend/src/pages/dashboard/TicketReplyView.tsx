@@ -301,8 +301,24 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
     };
 
 
+    const fileToBase64 = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+                if (typeof reader.result === 'string') {
+                    const base64 = reader.result.split(',')[1];
+                    resolve(base64 || '');
+                } else {
+                    resolve('');
+                }
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    };
+
     const handleSendReply = async () => {
-        if (!replyText.trim() && !signatureHtml) return;
+        if (!replyText.trim() && !signatureHtml && attachments.length === 0) return;
 
         // ── Build the plain-text body ──
         const plainBody = replyText.trim();
@@ -317,6 +333,12 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
 
         try {
             setIsSending(true);
+
+            const processedAttachments = await Promise.all(attachments.map(async (file) => ({
+                name: file.name,
+                contentBytes: await fileToBase64(file)
+            })));
+
             // Send to client or vendor based on the active tab
             let newReply;
             if (activeTab === 'vendor') {
@@ -324,9 +346,10 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                     ...emailForm,
                     message: plainBody,
                     htmlContent: fullHtmlContent,
+                    attachments: processedAttachments
                 });
             } else {
-                newReply = await ticketService.replyToTicket(ticket.id, plainBody, fullHtmlContent);
+                newReply = await ticketService.replyToTicket(ticket.id, plainBody, fullHtmlContent, processedAttachments);
             }
 
             // Update local state
