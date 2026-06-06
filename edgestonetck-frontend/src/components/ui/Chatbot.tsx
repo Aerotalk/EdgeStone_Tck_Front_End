@@ -9,7 +9,7 @@ interface Message {
 }
 
 // Keery Avatar — used in header and message bubbles
-const KeerySvg: React.FC<{ size?: number; className?: string }> = ({ size = 28, className = '' }) => (
+export const KeerySvg: React.FC<{ size?: number; className?: string }> = ({ size = 28, className = '' }) => (
     <img
         src="/assets/keery.png"
         alt="Keery"
@@ -24,10 +24,28 @@ const KeerySvg: React.FC<{ size?: number; className?: string }> = ({ size = 28, 
     />
 );
 
-export const Chatbot: React.FC = () => {
+interface ChatbotProps {
+    isOpen?: boolean;
+    onClose?: () => void;
+    showFloatingButton?: boolean;
+}
+
+export const Chatbot: React.FC<ChatbotProps> = ({
+    isOpen: controlledIsOpen,
+    onClose,
+    showFloatingButton
+}) => {
     const { user } = useAuth();
     const token = user?.token;
-    const [isOpen, setIsOpen] = useState(false);
+    const [localIsOpen, setLocalIsOpen] = useState(false);
+    const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : localIsOpen;
+    const setIsOpen = (val: boolean) => {
+        if (controlledIsOpen !== undefined) {
+            if (!val && onClose) onClose();
+        } else {
+            setLocalIsOpen(val);
+        }
+    };
     const [message, setMessage] = useState('');
     const [messages, setMessages] = useState<Message[]>([
         { role: 'assistant', content: "Hello! I'm Keery, your personal EdgeStone AI assistant. I can analyze tickets, compose emails, draft handover notes, and help you manage your tasks. How can I help you today?" }
@@ -87,11 +105,14 @@ export const Chatbot: React.FC = () => {
         }
     };
 
+    const isControlled = controlledIsOpen !== undefined;
+    const finalShowFloatingButton = showFloatingButton ?? !isControlled;
+
     return (
-        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+        <div className={`fixed right-6 z-50 flex flex-col items-end ${finalShowFloatingButton ? 'bottom-6' : 'bottom-24'}`}>
             {/* Chat Window */}
             {isOpen && (
-                <div className="mb-4 w-[350px] sm:w-[400px] h-[520px] bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden flex flex-col transition-all duration-300 transform origin-bottom-right animate-in slide-in-from-bottom-2 fade-in">
+                <div className={`${finalShowFloatingButton ? 'mb-4' : ''} w-[350px] sm:w-[400px] h-[520px] bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden flex flex-col transition-all duration-300 transform origin-bottom-right animate-in slide-in-from-bottom-2 fade-in`}>
                     {/* Header */}
                     <div className="bg-brand-red p-4 flex items-center justify-between text-white shadow-sm z-10">
                         <div className="flex items-center space-x-2.5">
@@ -179,16 +200,18 @@ export const Chatbot: React.FC = () => {
             )}
 
             {/* Floating Button — shows Keery avatar */}
-            <button
-                onClick={() => setIsOpen(!isOpen)}
-                title="Chat with Keery"
-                className={`flex items-center justify-center w-14 h-14 bg-brand-red text-white rounded-full shadow-lg hover:scale-105 transition-all duration-300 z-50 overflow-hidden ring-4 ring-brand-red/30 ${isOpen ? 'scale-0 opacity-0 absolute' : 'scale-100 opacity-100'}`}
-                style={{
-                    boxShadow: '0 10px 25px -5px rgba(242, 68, 68, 0.4), 0 8px 10px -6px rgba(242, 68, 68, 0.1)'
-                }}
-            >
-                <KeerySvg size={56} className="w-full h-full" />
-            </button>
+            {finalShowFloatingButton && (
+                <button
+                    onClick={() => setIsOpen(!isOpen)}
+                    title="Chat with Keery"
+                    className={`flex items-center justify-center w-14 h-14 bg-brand-red text-white rounded-full shadow-lg hover:scale-105 transition-all duration-300 z-50 overflow-hidden ring-4 ring-brand-red/30 ${isOpen ? 'scale-0 opacity-0 absolute' : 'scale-100 opacity-100'}`}
+                    style={{
+                        boxShadow: '0 10px 25px -5px rgba(242, 68, 68, 0.4), 0 8px 10px -6px rgba(242, 68, 68, 0.1)'
+                    }}
+                >
+                    <KeerySvg size={56} className="w-full h-full" />
+                </button>
+            )}
         </div>
     );
 };

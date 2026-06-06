@@ -1,8 +1,26 @@
 import React, { useState } from 'react';
 import { Calculator as CalcIcon, X } from 'lucide-react';
 
-export const Calculator: React.FC = () => {
-    const [isOpen, setIsOpen] = useState(false);
+interface CalculatorProps {
+    isOpen?: boolean;
+    onClose?: () => void;
+    showFloatingButton?: boolean;
+}
+
+export const Calculator: React.FC<CalculatorProps> = ({
+    isOpen: controlledIsOpen,
+    onClose,
+    showFloatingButton
+}) => {
+    const [localIsOpen, setLocalIsOpen] = useState(false);
+    const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : localIsOpen;
+    const setIsOpen = (val: boolean) => {
+        if (controlledIsOpen !== undefined) {
+            if (!val && onClose) onClose();
+        } else {
+            setLocalIsOpen(val);
+        }
+    };
     const [display, setDisplay] = useState('0');
     const [equation, setEquation] = useState('');
 
@@ -62,10 +80,13 @@ export const Calculator: React.FC = () => {
         }
     };
 
+    const isControlled = controlledIsOpen !== undefined;
+    const finalShowFloatingButton = showFloatingButton ?? !isControlled;
+
     return (
-        <div className="fixed bottom-6 right-[5.5rem] z-50 flex flex-col items-end">
+        <div className={`fixed right-6 z-50 flex flex-col items-end ${finalShowFloatingButton ? 'bottom-6 right-[5.5rem]' : 'bottom-24'}`}>
             {isOpen && (
-                <div className="mb-4 w-[320px] bg-gray-900 rounded-3xl shadow-2xl border border-gray-800 overflow-hidden flex flex-col transition-all duration-300 transform origin-bottom-right animate-in slide-in-from-bottom-2 fade-in">
+                <div className={`${finalShowFloatingButton ? 'mb-4' : ''} w-[320px] bg-gray-900 rounded-3xl shadow-2xl border border-gray-800 overflow-hidden flex flex-col transition-all duration-300 transform origin-bottom-right animate-in slide-in-from-bottom-2 fade-in`}>
                     {/* Header */}
                     <div className="bg-gray-900 p-4 flex items-center justify-between text-white border-b border-gray-800">
                         <div className="flex items-center space-x-2">
@@ -128,15 +149,17 @@ export const Calculator: React.FC = () => {
             )}
 
             {/* Floating Button */}
-            <button
-                onClick={() => setIsOpen(!isOpen)}
-                className={`flex items-center justify-center w-14 h-14 bg-gray-900 text-white rounded-full shadow-lg hover:bg-black hover:scale-105 transition-all duration-300 z-50 ${isOpen ? 'scale-0 opacity-0 absolute' : 'scale-100 opacity-100'}`}
-                style={{
-                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.1)'
-                }}
-            >
-                <CalcIcon className="w-5 h-5 text-gray-100" />
-            </button>
+            {finalShowFloatingButton && (
+                <button
+                    onClick={() => setIsOpen(!isOpen)}
+                    className={`flex items-center justify-center w-14 h-14 bg-gray-900 text-white rounded-full shadow-lg hover:bg-black hover:scale-105 transition-all duration-300 z-50 ${isOpen ? 'scale-0 opacity-0 absolute' : 'scale-100 opacity-100'}`}
+                    style={{
+                        boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.1)'
+                    }}
+                >
+                    <CalcIcon className="w-5 h-5 text-gray-100" />
+                </button>
+            )}
         </div>
     );
 };

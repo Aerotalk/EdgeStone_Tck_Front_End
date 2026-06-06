@@ -2,8 +2,26 @@ import React, { useState, useEffect } from 'react';
 import { FileText, X, Save, Edit3, Loader2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
-export const GlobalStickyNote: React.FC = () => {
-    const [isOpen, setIsOpen] = useState(false);
+interface GlobalStickyNoteProps {
+    isOpen?: boolean;
+    onClose?: () => void;
+    showFloatingButton?: boolean;
+}
+
+export const GlobalStickyNote: React.FC<GlobalStickyNoteProps> = ({
+    isOpen: controlledIsOpen,
+    onClose,
+    showFloatingButton
+}) => {
+    const [localIsOpen, setLocalIsOpen] = useState(false);
+    const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : localIsOpen;
+    const setIsOpen = (val: boolean) => {
+        if (controlledIsOpen !== undefined) {
+            if (!val && onClose) onClose();
+        } else {
+            setLocalIsOpen(val);
+        }
+    };
     const [content, setContent] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -77,11 +95,14 @@ export const GlobalStickyNote: React.FC = () => {
         }
     };
 
+    const isControlled = controlledIsOpen !== undefined;
+    const finalShowFloatingButton = showFloatingButton ?? !isControlled;
+
     return (
         <div className="fixed bottom-24 right-6 z-50 flex flex-col items-end">
             {isOpen && (
                 <div
-                    className="bg-[#FFFDF0] border border-yellow-200/60 shadow-2xl rounded-xl w-80 mb-4 overflow-hidden flex flex-col transition-all duration-200 ease-out"
+                    className={`${finalShowFloatingButton ? 'mb-4' : ''} bg-[#FFFDF0] border border-yellow-200/60 shadow-2xl rounded-xl w-80 overflow-hidden flex flex-col transition-all duration-200 ease-out`}
                     style={{
                         boxShadow: '0 20px 40px -10px rgba(253, 224, 71, 0.2), 0 10px 20px -5px rgba(0,0,0,0.05)'
                     }}
@@ -141,13 +162,15 @@ export const GlobalStickyNote: React.FC = () => {
                 </div>
             )}
 
-            <button
-                onClick={toggleOpen}
-                className="w-14 h-14 bg-gradient-to-br from-yellow-400 to-yellow-500 text-white rounded-full flex items-center justify-center shadow-lg shadow-yellow-500/30 hover:scale-105 active:scale-95 transition-all relative overflow-hidden"
-            >
-                <div className="absolute inset-0 bg-white/20 opacity-0 hover:opacity-100 transition-opacity" />
-                <Edit3 size={24} strokeWidth={2.5} />
-            </button>
+            {finalShowFloatingButton && (
+                <button
+                    onClick={toggleOpen}
+                    className="w-14 h-14 bg-gradient-to-br from-yellow-400 to-yellow-500 text-white rounded-full flex items-center justify-center shadow-lg shadow-yellow-500/30 hover:scale-105 active:scale-95 transition-all relative overflow-hidden"
+                >
+                    <div className="absolute inset-0 bg-white/20 opacity-0 hover:opacity-100 transition-opacity" />
+                    <Edit3 size={24} strokeWidth={2.5} />
+                </button>
+            )}
         </div>
     );
 };
