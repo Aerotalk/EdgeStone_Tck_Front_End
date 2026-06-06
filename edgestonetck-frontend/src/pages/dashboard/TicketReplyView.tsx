@@ -14,7 +14,8 @@ import {
     Paperclip,
     Plus,
     Loader2,
-    PenLine
+    PenLine,
+    RotateCw
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { TicketInfoSidebar } from './TicketInfoSidebar';
@@ -43,6 +44,34 @@ interface TicketReplyViewProps {
 
 export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack }) => {
     const [activeTab, setActiveTab] = useState<'client' | 'vendor'>('client');
+    const [isRefreshing, setIsRefreshing] = useState(false);
+
+    const handleRefresh = async () => {
+        try {
+            setIsRefreshing(true);
+            const allTickets = await ticketService.getAllTickets();
+            const updatedTicket = allTickets.find(t => t.id === ticket.id);
+            if (updatedTicket) {
+                if (updatedTicket.replies) {
+                    setReplies(updatedTicket.replies);
+                }
+                if (updatedTicket.status) {
+                    setTicketStatus(updatedTicket.status);
+                }
+                toast.success('Conversation refreshed');
+            } else {
+                toast.error('Ticket not found');
+            }
+        } catch (error: any) {
+            console.error('Failed to refresh ticket:', error);
+            toast.error('Failed to refresh conversation');
+        } finally {
+            setTimeout(() => {
+                setIsRefreshing(false);
+            }, 800);
+        }
+    };
+
     const [showCircuitModal, setShowCircuitModal] = useState(false);
     const [selectedCircuit, setSelectedCircuit] = useState(() => {
         return localStorage.getItem(`confirmed_circuit_id_${ticket.id}`) || ticket.circuitId || 'BA/SNG-TY2/ESPL-003';
@@ -557,8 +586,18 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                         </button>
                     </div>
 
-                    <div className="flex items-center gap-2 bg-[#F5F2F9] text-[#A688C4] text-[11px] font-bold px-2 py-1 rounded-md">
-                        #{ticket.ticketId}
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={handleRefresh}
+                            disabled={isRefreshing}
+                            className="p-1.5 hover:bg-gray-100 text-gray-400 hover:text-gray-900 rounded-lg transition-all border border-transparent hover:border-gray-200 disabled:opacity-50 flex-shrink-0"
+                            title="Refresh Conversation"
+                        >
+                            <RotateCw size={14} className={`transition-transform duration-700 ${isRefreshing ? 'animate-spin' : ''}`} />
+                        </button>
+                        <div className="flex items-center gap-2 bg-[#F5F2F9] text-[#A688C4] text-[11px] font-bold px-2 py-1 rounded-md">
+                            #{ticket.ticketId}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -566,7 +605,15 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
             {/* Main Content Area */}
             <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
                 {/* Left Conversation Area */}
-                <div className="flex-1 min-w-0 flex flex-col p-4 sm:p-8 space-y-6 overflow-y-auto bg-gray-50/30 scrollbar-hide">
+                <div className="flex-1 min-w-0 flex flex-col p-4 sm:p-8 space-y-6 overflow-y-auto bg-gray-50/30 scrollbar-hide relative">
+                    {isRefreshing && (
+                        <div className="absolute inset-0 bg-gray-50/50 backdrop-blur-[2px] z-20 flex items-center justify-center transition-all duration-300 animate-in fade-in">
+                            <div className="bg-white/95 shadow-xl border border-gray-100/80 rounded-2xl p-4 flex items-center gap-3">
+                                <Loader2 className="w-5 h-5 text-brand-red animate-spin" />
+                                <span className="text-[13px] font-bold text-gray-700">Syncing conversation...</span>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Original Client Message (Always visible but maybe distinct based on user preference) */}
                     {activeTab === 'client' && (
