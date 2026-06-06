@@ -1052,7 +1052,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                     value={replyText}
                                     onChange={(e) => setReplyText(e.target.value)}
                                     placeholder="Type your message here..."
-                                    className="w-full min-h-[120px] flex-1 p-6 text-[15px] font-medium text-gray-700 placeholder:text-gray-300 focus:outline-none resize-none bg-transparent"
+                                    className="w-full min-h-[120px] flex-1 pt-6 px-6 pb-16 text-[15px] font-medium text-gray-700 placeholder:text-gray-300 focus:outline-none resize-none bg-transparent"
                                     autoFocus
                                 />
 
