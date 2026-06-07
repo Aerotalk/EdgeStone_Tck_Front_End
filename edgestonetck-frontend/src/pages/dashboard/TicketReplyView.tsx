@@ -202,6 +202,13 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                     } else {
                         setVendorName('EdgeStone Vendor');
                     }
+
+                    // UPDATE SUBJECT TO USE SUPPLIER CIRCUIT ID INSTEAD OF HEADER
+                    const supplierId = matchedCircuit?.supplierCircuitId || 'Unknown Circuit';
+                    const defaultSafeSubject = `Re: [${ticket.ticketId}-V] Issue regarding Circuit ${supplierId}`;
+                    const newExistingSubject = vendorReplies.find(r => r.subject)?.subject || localSub || defaultSafeSubject;
+                    setEmailForm(prev => ({ ...prev, subject: newExistingSubject }));
+
                 }).catch(() => setVendorName('EdgeStone Vendor'));
             }).catch(err => {
                 console.error("Failed to fetch vendor emails", err);
@@ -220,15 +227,28 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
         if (showEmailModal && activeTab === 'vendor') {
             const vendorReplies = replies.filter(r => r && r.category === 'vendor');
             const localSub = localStorage.getItem(`vendor_subject_${ticket.id}`);
-            const existingSubject = vendorReplies.find(r => r.subject)?.subject || localSub || `Re: [${ticket.ticketId}-V] ${ticket.header}`;
-            if (existingSubject) {
-                setEmailForm(prev => ({
-                    ...prev,
-                    subject: existingSubject
-                }));
-            }
+            
+            circuitService.getAllCircuits().then(circuits => {
+                const matchedCircuit = circuits.find(c =>
+                    (confirmedCircuit && c.customerCircuitId === confirmedCircuit) ||
+                    c.customerCircuitId === ticket.header ||
+                    c.customerCircuitId === ticket.circuitId ||
+                    c.id === ticket.circuitId
+                );
+                
+                const supplierId = matchedCircuit?.supplierCircuitId || 'Unknown Circuit';
+                const defaultSafeSubject = `Re: [${ticket.ticketId}-V] Issue regarding Circuit ${supplierId}`;
+                const existingSubject = vendorReplies.find(r => r.subject)?.subject || localSub || defaultSafeSubject;
+                
+                if (existingSubject) {
+                    setEmailForm(prev => ({
+                        ...prev,
+                        subject: existingSubject
+                    }));
+                }
+            }).catch(console.error);
         }
-    }, [showEmailModal, activeTab, replies, ticket.id, ticket.ticketId, ticket.header]);
+    }, [showEmailModal, activeTab, replies, ticket.id, ticket.ticketId, confirmedCircuit, ticket.circuitId]);
 
     // Fetch dynamic circuits depending on current ticket vendor context
     useEffect(() => {
