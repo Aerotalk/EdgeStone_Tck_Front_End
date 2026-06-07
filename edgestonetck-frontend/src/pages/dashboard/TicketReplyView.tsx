@@ -164,14 +164,14 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
             setEmailForm(prev => ({
                 ...prev,
                 to: [ticket.email],
-                subject: `RE: ${ticket.header}`
+                subject: `Re: [${ticket.ticketId}] ${ticket.header}`
             }));
         } else if (activeTab === 'vendor') {
             // Fetch dynamically on vendor tab click
             ticketService.getVendorEmails(ticket.id).then(emails => {
                 const vendorReplies = replies.filter(r => r && r.category === 'vendor');
                 const localSub = localStorage.getItem(`vendor_subject_${ticket.id}`);
-                const existingSubject = vendorReplies.find(r => r.subject)?.subject || localSub || '';
+                const existingSubject = vendorReplies.find(r => r.subject)?.subject || localSub || `Re: [${ticket.ticketId}-V] ${ticket.header}`;
 
                 setEmailForm(prev => ({
                     ...prev,
@@ -220,7 +220,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
         if (showEmailModal && activeTab === 'vendor') {
             const vendorReplies = replies.filter(r => r && r.category === 'vendor');
             const localSub = localStorage.getItem(`vendor_subject_${ticket.id}`);
-            const existingSubject = vendorReplies.find(r => r.subject)?.subject || localSub || '';
+            const existingSubject = vendorReplies.find(r => r.subject)?.subject || localSub || `Re: [${ticket.ticketId}-V] ${ticket.header}`;
             if (existingSubject) {
                 setEmailForm(prev => ({
                     ...prev,
@@ -228,7 +228,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                 }));
             }
         }
-    }, [showEmailModal, activeTab, replies]);
+    }, [showEmailModal, activeTab, replies, ticket.id, ticket.ticketId, ticket.header]);
 
     // Fetch dynamic circuits depending on current ticket vendor context
     useEffect(() => {
