@@ -236,7 +236,8 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
     const handleSaveDate = async () => {
         const offsets: Record<string, string> = { 'UTC': '+0000', 'GMT': '+0000', 'IST': '+0530' };
         const offset = offsets[slaTimeZone] || '+0000';
-        const dateObj = new Date(`${tempDate} ${dynamicSlaClose.time.replace(' hrs', '') || '00:00'} GMT${offset}`);
+        const timePart = dynamicSlaClose.time !== '-' ? dynamicSlaClose.time.replace(' hrs', '') : '00:00';
+        const dateObj = new Date(`${tempDate} ${timePart} GMT${offset}`);
         
         if (!isNaN(dateObj.getTime())) {
             const istDate = formatDateWithTZ(dateObj, 'IST', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -256,7 +257,12 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
     const handleSaveTime = async () => {
         const offsets: Record<string, string> = { 'UTC': '+0000', 'GMT': '+0000', 'IST': '+0530' };
         const offset = offsets[slaTimeZone] || '+0000';
-        const dateObj = new Date(`${dynamicSlaClose.date} ${tempTime} GMT${offset}`);
+        let datePart = dynamicSlaClose.date;
+        if (datePart === '-') {
+            const now = new Date();
+            datePart = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+        }
+        const dateObj = new Date(`${datePart} ${tempTime} GMT${offset}`);
         
         if (!isNaN(dateObj.getTime())) {
             const istDate = formatDateWithTZ(dateObj, 'IST', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -276,7 +282,8 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
     const handleSaveStartDate = async () => {
         const offsets: Record<string, string> = { 'UTC': '+0000', 'GMT': '+0000', 'IST': '+0530' };
         const offset = offsets[slaTimeZone] || '+0000';
-        const dateObj = new Date(`${tempStartDate} ${dynamicSlaStart.time.replace(' hrs', '') || '00:00'} GMT${offset}`);
+        const timePart = dynamicSlaStart.time !== '-' ? dynamicSlaStart.time.replace(' hrs', '') : '00:00';
+        const dateObj = new Date(`${tempStartDate} ${timePart} GMT${offset}`);
         
         if (!isNaN(dateObj.getTime())) {
             const istDate = formatDateWithTZ(dateObj, 'IST', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -296,7 +303,12 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
     const handleSaveStartTime = async () => {
         const offsets: Record<string, string> = { 'UTC': '+0000', 'GMT': '+0000', 'IST': '+0530' };
         const offset = offsets[slaTimeZone] || '+0000';
-        const dateObj = new Date(`${dynamicSlaStart.date} ${tempStartTime} GMT${offset}`);
+        let datePart = dynamicSlaStart.date;
+        if (datePart === '-') {
+            const now = new Date();
+            datePart = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+        }
+        const dateObj = new Date(`${datePart} ${tempStartTime} GMT${offset}`);
         
         if (!isNaN(dateObj.getTime())) {
             const istDate = formatDateWithTZ(dateObj, 'IST', { day: 'numeric', month: 'short', year: 'numeric' });
