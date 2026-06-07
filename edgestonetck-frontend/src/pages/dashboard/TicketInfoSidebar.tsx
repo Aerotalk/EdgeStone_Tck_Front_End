@@ -58,6 +58,7 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
     const [newNote, setNewNote] = useState('');
     const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
 
+    const [slaId, setSlaId] = useState('');
     const [slaCloseDate, setSlaCloseDate] = useState('');
     const [slaCloseTime, setSlaCloseTime] = useState('');
     const [slaCompensation, setSlaCompensation] = useState('-');
@@ -123,18 +124,34 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                 if (!response.ok || response.status === 404) return;
 
                 const result = await response.json();
-                const record = result.data;
-                if (record) {
-                    if (record.startDate) setSlaStartDate(record.startDate);
-                    if (record.startTime) setSlaStartTime(record.startTime);
-                    if (record.closeDate) setSlaCloseDate(record.closeDate);
-                    if (record.closedTime) setSlaCloseTime(record.closedTime);
-                    if (record.timeZone) {
-                        setSlaTimeZone(record.timeZone);
-                        if (onTimeZoneChangeActive) onTimeZoneChangeActive(record.timeZone);
+                const records = result.data; // Array of SLAs
+                if (records && Array.isArray(records)) {
+                    // Match SLA type to active tab (CLIENT vs VENDOR)
+                    const targetType = activeTab === 'vendor' ? 'VENDOR' : 'CLIENT';
+                    const record = records.find(r => r.type === targetType);
+                    
+                    if (record) {
+                        setSlaId(record.id);
+                        setSlaStartDate(record.startDate || '');
+                        setSlaStartTime(record.startTime || '');
+                        setSlaCloseDate(record.closeDate || '');
+                        setSlaCloseTime(record.closedTime || ''); // Note: property is closedTime
+                        if (record.timeZone) {
+                            setSlaTimeZone(record.timeZone);
+                            if (onTimeZoneChangeActive) onTimeZoneChangeActive(record.timeZone);
+                        }
+                        setSlaCompensation(record.compensation || '-');
+                        setSlaStatus(record.status || 'Safe');
+                    } else {
+                        // Reset if no SLA exists for this tab
+                        setSlaId('');
+                        setSlaStartDate('');
+                        setSlaStartTime('');
+                        setSlaCloseDate('');
+                        setSlaCloseTime('');
+                        setSlaCompensation('-');
+                        setSlaStatus('Safe');
                     }
-                    if (record.compensation) setSlaCompensation(record.compensation);
-                    if (record.status) setSlaStatus(record.status);
                 }
             } catch (error) {
                 console.error('Failed to fetch SLA details:', error);
@@ -175,7 +192,7 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
 
         fetchSLARecord();
         fetchCircuitDetails();
-    }, [ticket.id, circuit, ticket.circuitId]);
+    }, [ticket.id, circuit, ticket.circuitId, activeTab]);
 
     const handleAddNote = () => {
         if (!newNote.trim()) return;
@@ -198,8 +215,12 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
     };
 
     const handleManualUpdate = async (payload: any) => {
+        if (!slaId) {
+            toast.error('No active SLA to update');
+            return false;
+        }
         try {
-            const response = await fetch(`${API_URL_SLA}/ticket/${ticket.id}/manual-update`, {
+            const response = await fetch(`${API_URL_SLA}/${slaId}/manual-update`, {
                 method: 'PUT',
                 headers: getAuthHeaders(),
                 body: JSON.stringify(payload)
