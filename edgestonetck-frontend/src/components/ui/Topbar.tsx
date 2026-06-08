@@ -32,9 +32,11 @@ export const Topbar: React.FC<TopbarProps> = ({
                 </div>
             )}
 
-            <div className="w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0 scrollbar-hide flex-shrink-0 mt-4 sm:mt-0 sm:ml-auto flex items-center gap-4">
+            <div className="flex-shrink-0 mt-4 sm:mt-0 sm:ml-auto flex items-center gap-4">
                 <NotificationDropdown />
-                <GlobalClock />
+                <div className="w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0 scrollbar-hide flex items-center">
+                    <GlobalClock />
+                </div>
             </div>
         </div>
     );
