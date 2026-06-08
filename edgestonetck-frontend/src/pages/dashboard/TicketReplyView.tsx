@@ -751,7 +751,10 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                     {replies.filter(r => r && r.category === activeTab).map((reply, idx) => (
                         <div key={idx} className="flex flex-col">
                             <div className="flex gap-4">
-                                <div className="w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold text-sm shadow-sm flex-shrink-0">
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shadow-sm flex-shrink-0 ${
+                                    reply.type === 'agent' ? 'bg-orange-500 text-white' : 
+                                    reply.type === 'client' ? 'bg-indigo-100 text-indigo-600' : 'bg-orange-100 text-orange-600'
+                                }`}>
                                     {reply.author[0].toUpperCase()}
                                 </div>
                                 <div className="flex-1">
@@ -760,10 +763,14 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                             <div className="space-y-0.5">
                                                 <div className="flex items-center gap-1.5">
                                                     <span className="text-[15px] font-bold text-gray-900">{reply.author}</span>
-                                                    <span className="text-[14px] text-gray-400 font-medium">&lt;support@edgestone.in&gt;</span>
+                                                    <span className="text-[14px] text-gray-400 font-medium">
+                                                        &lt;{reply.type === 'agent' ? 'support@edgestone.in' : (reply.to && reply.to.length > 0 ? reply.to[0] : (reply.type === 'client' ? ticket.email : 'vendor@example.com'))}&gt;
+                                                    </span>
                                                 </div>
                                                 <div className="flex flex-col gap-0.5">
-                                                    <p className="text-[12px] text-gray-400 font-medium">To: {reply.to?.join(', ') || (activeTab === 'client' ? ticket.email : 'Vendor NOC')}</p>
+                                                    <p className="text-[12px] text-gray-400 font-medium">
+                                                        To: {reply.type === 'agent' ? (reply.to?.join(', ') || (activeTab === 'client' ? ticket.email : 'Vendor NOC')) : 'support@edgestone.in'}
+                                                    </p>
                                                     {reply.cc && reply.cc.length > 0 && (
                                                         <p className="text-[11px] text-gray-400 font-medium">Cc: {reply.cc.join(', ')}</p>
                                                     )}
