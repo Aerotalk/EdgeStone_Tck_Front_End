@@ -94,6 +94,9 @@ const DashboardLayout: React.FC = () => {
                     playChime();
                     speakNotification(data.message);
 
+                    // Dispatch custom event to trigger Notification panel refresh
+                    window.dispatchEvent(new CustomEvent('new_notification', { detail: data }));
+
                 } catch (error) {
                     console.error('[Keery] Error parsing notification:', error);
                 }

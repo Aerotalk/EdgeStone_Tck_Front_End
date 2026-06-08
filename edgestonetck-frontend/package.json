@@ -13,6 +13,7 @@
   "dependencies": {
     "@types/recharts": "^1.8.29",
     "axios": "^1.13.2",
+    "dayjs": "^1.11.21",
     "lucide-react": "^0.562.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

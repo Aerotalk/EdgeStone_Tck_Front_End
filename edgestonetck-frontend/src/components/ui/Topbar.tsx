@@ -1,6 +1,7 @@
 import React from 'react';
 import { Search } from 'lucide-react';
 import { GlobalClock } from './GlobalClock';
+import { NotificationDropdown } from './NotificationDropdown';
 
 interface TopbarProps {
     title: string;
@@ -31,7 +32,8 @@ export const Topbar: React.FC<TopbarProps> = ({
                 </div>
             )}
 
-            <div className="w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0 scrollbar-hide flex-shrink-0 mt-4 sm:mt-0 sm:ml-auto">
+            <div className="w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0 scrollbar-hide flex-shrink-0 mt-4 sm:mt-0 sm:ml-auto flex items-center gap-4">
+                <NotificationDropdown />
                 <GlobalClock />
             </div>
         </div>
