@@ -28,6 +28,7 @@ export interface SLARecordFilters {
     filter?: string;
     customStart?: string;
     customEnd?: string;
+    type?: string;
 }
 
 export const slaRecordService = {
@@ -38,6 +39,7 @@ export const slaRecordService = {
             if (filters?.filter) query.append('filter', filters.filter);
             if (filters?.customStart) query.append('customStart', filters.customStart);
             if (filters?.customEnd) query.append('customEnd', filters.customEnd);
+            if (filters?.type) query.append('type', filters.type);
 
             const url = query.toString() ? `${API_URL}?${query.toString()}` : API_URL;
             const response = await fetch(url, { headers: getAuthHeaders() });
@@ -59,6 +61,7 @@ export const slaRecordService = {
             if (filters?.filter) query.append('filter', filters.filter);
             if (filters?.customStart) query.append('customStart', filters.customStart);
             if (filters?.customEnd) query.append('customEnd', filters.customEnd);
+            if (filters?.type) query.append('type', filters.type);
 
             const url = query.toString() ? `${API_URL}/export?${query.toString()}` : `${API_URL}/export`;
             const response = await fetch(url, { headers: getAuthHeaders() });

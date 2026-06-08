@@ -47,7 +47,8 @@ const SLAPage: React.FC = () => {
                 search: searchQuery,
                 filter: appliedFilter,
                 customStart: appliedCustomRange.start,
-                customEnd: appliedCustomRange.end
+                customEnd: appliedCustomRange.end,
+                type: activeTab
             });
 
             const adjustedRecords = serverRecords.map(record => {
@@ -130,7 +131,7 @@ const SLAPage: React.FC = () => {
 
     useEffect(() => {
         fetchRecords();
-    }, [searchQuery, appliedFilter, appliedCustomRange]);
+    }, [searchQuery, appliedFilter, appliedCustomRange, activeTab]);
 
 
 
@@ -170,7 +171,8 @@ const SLAPage: React.FC = () => {
                 search: searchQuery,
                 filter: appliedFilter,
                 customStart: appliedCustomRange.start,
-                customEnd: appliedCustomRange.end
+                customEnd: appliedCustomRange.end,
+                type: activeTab
             });
         } catch (error) {
             toast.error("Failed to export SLA records.");
