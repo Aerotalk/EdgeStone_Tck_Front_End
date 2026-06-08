@@ -178,6 +178,14 @@ export const SLARulesModal: React.FC<SLARulesModalProps> = ({ isOpen, onClose })
         setConditions(prev => prev.filter((_, i) => i !== index));
     };
 
+    const loadStandardTemplate = () => {
+        setConditions([
+            { upperLimit: null, upperOperator: '>', lowerLimit: 99.9, lowerOperator: '>=', compensationPercentage: 0 },
+            { upperLimit: 99.9, upperOperator: '<', lowerLimit: 99.0, lowerOperator: '>=', compensationPercentage: 5 },
+            { upperLimit: 99.0, upperOperator: '<', lowerLimit: null, lowerOperator: '>=', compensationPercentage: 15 }
+        ]);
+    };
+
     const updateCondition = (index: number, field: keyof SlaRule, value: any) => {
         setConditions(prev => prev.map((c, i) => {
             if (i !== index) return c;
@@ -744,18 +752,35 @@ export const SLARulesModal: React.FC<SLARulesModalProps> = ({ isOpen, onClose })
                                     />
                                 </div>
 
-                                <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3 px-1">
-                                    Define Availability Factor Ranges
-                                </label>
+                                <div className="flex items-center justify-between mb-3 px-1">
+                                    <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                                        Define Availability Factor Ranges
+                                    </label>
+                                    <button
+                                        onClick={loadStandardTemplate}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-[11px] font-bold transition-all active:scale-95 border border-blue-100"
+                                    >
+                                        <Zap size={14} />
+                                        Load Standard Template (99.9%)
+                                    </button>
+                                </div>
 
-                                <p className="text-[12px] text-gray-500 mb-4 px-1 leading-relaxed">
-                                    Each row defines: <span className="font-bold text-gray-700">Upper Limit</span>{' '}
-                                    <span className="text-brand-red font-bold">[operator]</span>{' '}
-                                    <span className="font-bold text-blue-600">Av</span>{' '}
-                                    <span className="text-brand-red font-bold">[operator]</span>{' '}
-                                    <span className="font-bold text-gray-700">Lower Limit</span>{' '}
-                                    → Compensation %. Leave upper/lower empty for boundary rows.
-                                </p>
+                                <div className="mb-5 p-4 bg-blue-50/50 border border-blue-100 rounded-xl">
+                                   <div className="flex items-start gap-3">
+                                       <Info size={18} className="text-blue-500 flex-shrink-0 mt-0.5" />
+                                       <div className="text-sm text-blue-800">
+                                           <h4 className="font-bold mb-1.5">How to setup an SLA without overlapping errors:</h4>
+                                           <ul className="list-disc list-inside space-y-1 mb-2">
+                                               <li><span className="font-semibold text-gray-700">Safe Tier (0% Credit):</span> Leave Upper Limit blank. Set Lower to <span className="font-mono bg-blue-100 px-1 rounded text-blue-700 font-bold">&ge; 99.9</span></li>
+                                               <li><span className="font-semibold text-gray-700">Minor Breach (5% Credit):</span> Set Upper to <span className="font-mono bg-blue-100 px-1 rounded text-blue-700 font-bold">&lt; 99.9</span> and Lower to <span className="font-mono bg-blue-100 px-1 rounded text-blue-700 font-bold">&ge; 99.0</span></li>
+                                               <li><span className="font-semibold text-gray-700">Major Breach (15% Credit):</span> Set Upper to <span className="font-mono bg-blue-100 px-1 rounded text-blue-700 font-bold">&lt; 99.0</span>. Leave Lower Limit blank.</li>
+                                           </ul>
+                                           <p className="text-[11px] font-semibold text-blue-600 bg-blue-100/50 inline-block px-2 py-1 rounded-md">
+                                               ⚠️ Use &lt; for upper limits and &ge; for lower limits to ensure ranges don't overlap!
+                                           </p>
+                                       </div>
+                                   </div>
+                                </div>
 
                                 <div className="space-y-3 mb-5">
                                     {conditions.map((cond, index) => (
@@ -900,8 +925,8 @@ export const SLARulesModal: React.FC<SLARulesModalProps> = ({ isOpen, onClose })
                                 </button>
                                 <button
                                     onClick={handleSave}
-                                    disabled={conditions.length === 0}
-                                    className={`flex-1 h-[48px] bg-brand-red text-white font-bold rounded-xl shadow-lg shadow-brand-red/20 hover:bg-[#d41c34] transition-all active:scale-[0.98] text-sm flex items-center justify-center gap-2 ${conditions.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    disabled={conditions.length === 0 || conditions.some(c => c.upperLimit === null && c.lowerLimit === null)}
+                                    className={`flex-1 h-[48px] bg-brand-red text-white font-bold rounded-xl shadow-lg shadow-brand-red/20 hover:bg-[#d41c34] transition-all active:scale-[0.98] text-sm flex items-center justify-center gap-2 ${(conditions.length === 0 || conditions.some(c => c.upperLimit === null && c.lowerLimit === null)) ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 >
                                     <Shield size={16} />
                                     Save SLA Rule
