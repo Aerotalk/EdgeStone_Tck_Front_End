@@ -14,7 +14,8 @@ import {
     ArrowLeft,
     AlertCircle,
     Zap,
-    Edit2
+    Edit2,
+    Info
 } from 'lucide-react';
 import { circuitService } from '../../services/circuitService';
 import { slaService } from '../../services/slaRuleService';
