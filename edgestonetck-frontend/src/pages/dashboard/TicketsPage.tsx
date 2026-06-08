@@ -46,7 +46,9 @@ const TicketsPage: React.FC = () => {
 
             const formattedTickets = data.map(t => ({
                 ...t,
-                name: t.email.split('@')[0], // Fallback name
+                name: t.ticketType === 'Vendor' 
+                    ? (t.vendor?.name || t.email.split('@')[0])
+                    : (t.client?.name || t.email.split('@')[0]), // Use actual client or vendor name
                 status: t.status.toLowerCase(), // Ensure lowercase for tab matching
             }));
 

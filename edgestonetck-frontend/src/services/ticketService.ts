@@ -28,6 +28,9 @@ export interface Ticket {
     createdAt: string;
     updatedAt: string;
     isSlaActive?: boolean;
+    ticketType?: string;
+    client?: { name: string };
+    vendor?: { name: string };
     // Add other fields as needed
 }
 
