@@ -251,18 +251,18 @@ const SLAPage: React.FC = () => {
 
             <div className="flex-1 overflow-auto px-4 sm:px-8 py-8 bg-[#F8FAFC]">
                 {/* Table Section */}
-                <div className="overflow-x-auto pb-12">
-                    <table className="w-full text-left border-separate border-spacing-y-3">
+                <div className="overflow-x-auto pb-12 scrollbar-hide">
+                    <table className="w-full min-w-[1200px] text-left border-separate border-spacing-y-3 whitespace-nowrap">
                         <thead>
                             <tr className="uppercase tracking-widest text-[11px] font-extrabold text-gray-400">
-                                <th className="px-6 py-3">Ticket ID</th>
-                                <th className="px-6 py-3">SLA Start Date</th>
-                                <th className="px-6 py-3">SLA Start Time</th>
-                                <th className="px-6 py-3">SLA Closed Time</th>
-                                <th className="px-6 py-3">SLA Close Date</th>
-                                <th className="px-6 py-3">Downtime (min)</th>
-                                <th className="px-6 py-3">SLA Status</th>
-                                <th className="px-6 py-3 text-right">Compensation</th>
+                                <th className="px-6 py-3 bg-white/60 backdrop-blur-xl rounded-l-2xl border-y border-l border-gray-100 shadow-sm">Ticket ID</th>
+                                <th className="px-6 py-3 bg-white/60 backdrop-blur-xl border-y border-gray-100 shadow-sm">SLA Start Date</th>
+                                <th className="px-6 py-3 bg-white/60 backdrop-blur-xl border-y border-gray-100 shadow-sm">SLA Start Time</th>
+                                <th className="px-6 py-3 bg-white/60 backdrop-blur-xl border-y border-gray-100 shadow-sm">SLA Closed Time</th>
+                                <th className="px-6 py-3 bg-white/60 backdrop-blur-xl border-y border-gray-100 shadow-sm">SLA Close Date</th>
+                                <th className="px-6 py-3 bg-white/60 backdrop-blur-xl border-y border-gray-100 shadow-sm">Downtime (min)</th>
+                                <th className="px-6 py-3 bg-white/60 backdrop-blur-xl border-y border-gray-100 shadow-sm">SLA Status</th>
+                                <th className="px-6 py-3 bg-white/60 backdrop-blur-xl rounded-r-2xl border-y border-r border-gray-100 shadow-sm text-right">Compensation</th>
                             </tr>
                         </thead>
                         <tbody>

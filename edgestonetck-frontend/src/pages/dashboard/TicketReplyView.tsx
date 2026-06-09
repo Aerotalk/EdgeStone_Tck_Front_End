@@ -15,10 +15,12 @@ import {
     Plus,
     Loader2,
     PenLine,
-    RotateCw
+    RotateCw,
+    RefreshCw
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { TicketInfoSidebar } from './TicketInfoSidebar';
+import { NotificationDropdown } from '../../components/ui/NotificationDropdown';
 
 import { ticketService, type Reply, type Ticket } from '../../services/ticketService';
 import { signatureService, type Signature } from '../../services/signatureService';
@@ -28,6 +30,7 @@ import { nowDateIST, nowTimeIST, formatDateWithTZ, formatTimeWithTZ } from '../.
 import { vendorService } from '../../services/vendorService';
 import { circuitService } from '../../services/circuitService';
 import { useAuth } from '../../contexts/AuthContext';
+import { useDashboardData } from '../../contexts/DashboardDataContext';
 import { GlobalClock } from '../../components/ui/GlobalClock';
 
 
@@ -43,12 +46,18 @@ interface TicketReplyViewProps {
 }
 
 export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack }) => {
+    const dashboardData = useDashboardData();
     const [activeTab, setActiveTab] = useState<'client' | 'vendor'>('client');
     const [isRefreshing, setIsRefreshing] = useState(false);
 
     const handleRefresh = async () => {
         try {
             setIsRefreshing(true);
+            
+            if (dashboardData?.refresh) {
+                await dashboardData.refresh().catch(console.error);
+            }
+
             const allTickets = await ticketService.getAllTickets();
             const updatedTicket = allTickets.find(t => t.id === ticket.id);
             if (updatedTicket) {
@@ -526,7 +535,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
     return (
         <div className="flex flex-col h-full bg-white relative font-sans">
             {/* Header Area */}
-            <div className="flex flex-col border-b border-gray-100 w-full overflow-hidden">
+            <div className="flex flex-col border-b border-gray-100 w-full relative z-[60]">
                 <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between px-4 sm:px-6 py-4 gap-4 w-full">
                     <div className="flex items-center gap-2 sm:gap-4 text-[16px] sm:text-[18px] text-gray-500 font-medium flex-1 min-w-0 w-full pr-0 xl:pr-4">
                         <button
@@ -546,6 +555,17 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                     </div>
 
                     <div className="flex flex-row items-center gap-3 sm:gap-6 relative flex-shrink-0 w-full xl:w-auto justify-between xl:justify-end">
+                        <div className="flex items-center gap-4">
+                            <button
+                                onClick={handleRefresh}
+                                disabled={isRefreshing}
+                                className="relative p-2.5 bg-white text-gray-500 hover:bg-red-50 hover:text-brand-red shadow-sm hover:shadow-md border border-gray-100 rounded-full transition-all duration-300 focus:outline-none active:scale-95 group hidden sm:block disabled:opacity-50"
+                                title="Refresh Conversation"
+                            >
+                                <RefreshCw size={20} className={`transition-transform duration-700 ${isRefreshing ? 'animate-spin' : 'group-hover:rotate-180'}`} />
+                            </button>
+                            <NotificationDropdown />
+                        </div>
                         <div className="overflow-x-auto scrollbar-hide max-w-full">
                             <GlobalClock />
                         </div>
@@ -616,14 +636,6 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                     </div>
 
                     <div className="flex items-center gap-3">
-                        <button
-                            onClick={handleRefresh}
-                            disabled={isRefreshing}
-                            className="p-1.5 hover:bg-gray-100 text-gray-400 hover:text-gray-900 rounded-lg transition-all border border-transparent hover:border-gray-200 disabled:opacity-50 flex-shrink-0"
-                            title="Refresh Conversation"
-                        >
-                            <RotateCw size={14} className={`transition-transform duration-700 ${isRefreshing ? 'animate-spin' : ''}`} />
-                        </button>
                         <div className="flex items-center gap-2 bg-[#F5F2F9] text-[#A688C4] text-[11px] font-bold px-2 py-1 rounded-md">
                             #{ticket.ticketId}
                         </div>

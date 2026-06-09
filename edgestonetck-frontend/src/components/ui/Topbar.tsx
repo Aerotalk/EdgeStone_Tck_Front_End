@@ -1,7 +1,9 @@
-import React from 'react';
-import { Search } from 'lucide-react';
+import React, { useState } from 'react';
+import { Search, RefreshCw } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { GlobalClock } from './GlobalClock';
 import { NotificationDropdown } from './NotificationDropdown';
+import { useDashboardData } from '../../contexts/DashboardDataContext';
 
 interface TopbarProps {
     title: string;
@@ -16,6 +18,26 @@ export const Topbar: React.FC<TopbarProps> = ({
     searchPlaceholder = "Search",
     onSearch
 }) => {
+    const dashboardData = useDashboardData();
+    const [isRefreshing, setIsRefreshing] = useState(false);
+
+    const handleRefresh = async () => {
+        if (!dashboardData) {
+            window.location.reload();
+            return;
+        }
+        try {
+            setIsRefreshing(true);
+            await dashboardData.refresh();
+            toast.success('System data refreshed successfully');
+        } catch (err) {
+            console.error(err);
+            toast.error('Failed to refresh system data');
+        } finally {
+            setTimeout(() => setIsRefreshing(false), 800);
+        }
+    };
+
     return (
         <div className="sticky top-0 z-20 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 px-4 sm:px-8 py-4 sm:py-6 bg-white/80 backdrop-blur-md border-b border-gray-100">
             <h1 className="text-lg sm:text-xl font-bold text-gray-700 truncate sm:min-w-[120px]">{title}</h1>
@@ -33,6 +55,14 @@ export const Topbar: React.FC<TopbarProps> = ({
             )}
 
             <div className="flex-shrink-0 mt-4 sm:mt-0 sm:ml-auto flex items-center gap-4">
+                <button
+                    onClick={handleRefresh}
+                    disabled={isRefreshing}
+                    className="relative p-2.5 bg-white text-gray-500 hover:bg-red-50 hover:text-brand-red shadow-sm hover:shadow-md border border-gray-100 rounded-full transition-all duration-300 focus:outline-none active:scale-95 group disabled:opacity-50"
+                    title="Refresh Application Data"
+                >
+                    <RefreshCw size={20} className={`transition-transform duration-700 ${isRefreshing ? 'animate-spin' : 'group-hover:rotate-180'}`} />
+                </button>
                 <NotificationDropdown />
                 <div className="w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0 scrollbar-hide flex items-center">
                     <GlobalClock />

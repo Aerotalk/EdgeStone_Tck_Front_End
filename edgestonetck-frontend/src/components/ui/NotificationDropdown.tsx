@@ -77,35 +77,49 @@ export const NotificationDropdown: React.FC = () => {
         <div className="relative" ref={dropdownRef}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="relative p-2 text-gray-500 hover:text-brand-red transition-colors focus:outline-none"
+                className={`relative p-2.5 rounded-full transition-all duration-300 focus:outline-none active:scale-95 ${
+                    isOpen 
+                    ? 'bg-red-50 text-brand-red shadow-inner' 
+                    : 'bg-white text-gray-500 hover:bg-red-50 hover:text-brand-red shadow-sm hover:shadow-md border border-gray-100'
+                }`}
             >
-                <Bell size={24} />
+                <Bell size={20} className={`transition-transform duration-300 ${isOpen ? 'rotate-12' : ''}`} />
                 {unreadCount > 0 && (
-                    <span className="absolute top-1 right-1 flex items-center justify-center w-4 h-4 text-[10px] font-bold text-white bg-red-500 border-2 border-white rounded-full">
+                    <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[20px] h-[20px] px-1.5 text-[10px] font-extrabold text-white bg-gradient-to-r from-red-500 to-[#d41c34] border-2 border-white rounded-full shadow-md shadow-red-500/30 transform scale-100 animate-[pulse_2s_cubic-bezier(0.4,0,0.6,1)_infinite]">
                         {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                 )}
             </button>
 
             {isOpen && (
-                <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden z-50">
-                    <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
-                        <h3 className="font-semibold text-gray-800">Notifications</h3>
+                <div className="absolute right-0 mt-3 w-80 sm:w-[420px] bg-white/95 backdrop-blur-xl rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] border border-gray-100/50 overflow-hidden z-50 transform origin-top-right transition-all duration-300 ring-1 ring-black/5">
+                    <div className="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-gray-50/90 to-white/90 border-b border-gray-100/50 backdrop-blur-md">
+                        <h3 className="font-bold text-gray-900 text-[15px] flex items-center gap-2">
+                            Notifications
+                            {unreadCount > 0 && (
+                                <span className="px-2 py-0.5 rounded-full bg-red-100 text-brand-red text-xs font-extrabold">
+                                    {unreadCount} New
+                                </span>
+                            )}
+                        </h3>
                         {unreadCount > 0 && (
                             <button
                                 onClick={handleMarkAllAsRead}
-                                className="text-xs text-brand-red hover:text-red-700 font-medium flex items-center gap-1"
+                                className="text-xs text-brand-red hover:text-red-700 font-bold flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors"
                             >
-                                <Check size={14} />
+                                <Check size={14} strokeWidth={2.5} />
                                 Mark all as read
                             </button>
                         )}
                     </div>
 
-                    <div className="max-h-96 overflow-y-auto">
+                    <div className="max-h-[400px] overflow-y-auto scrollbar-hide">
                         {notifications.length === 0 ? (
-                            <div className="px-4 py-6 text-center text-sm text-gray-500">
-                                No notifications yet.
+                            <div className="px-4 py-12 text-center flex flex-col items-center gap-3">
+                                <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center text-gray-300">
+                                    <Bell size={28} />
+                                </div>
+                                <p className="text-sm font-medium text-gray-500">No new notifications</p>
                             </div>
                         ) : (
                             notifications.map(notification => (
