@@ -19,12 +19,8 @@ import {
 } from 'lucide-react';
 import { circuitService } from '../../services/circuitService';
 import { slaService } from '../../services/slaRuleService';
-import { vendorService } from '../../services/vendorService';
-import { clientService } from '../../services/clientService';
 import type { Circuit } from '../../services/circuitService';
 import type { Sla, SlaRule } from '../../services/slaRuleService';
-import type { Vendor } from '../../services/vendorService';
-import type { Client } from '../../services/clientService';
 
 interface SLARulesModalProps {
     isOpen: boolean;
