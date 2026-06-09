@@ -15,7 +15,6 @@ import {
     Plus,
     Loader2,
     PenLine,
-    RotateCw,
     RefreshCw
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
