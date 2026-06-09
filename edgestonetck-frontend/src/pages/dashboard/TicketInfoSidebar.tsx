@@ -4,6 +4,7 @@ import { useParams } from 'react-router-dom';
 import { nowDateIST, nowTimeIST, formatDateWithTZ, formatTimeWithTZ } from '../../utils/dateUtils';
 import { getAuthHeaders, API_URL_SLA } from '../../types/sla';
 import { toast } from 'react-hot-toast';
+import { clientService } from '../../services/clientService';
 
 const SUPPORT_AGENTS = [
     { id: 'agent-1', name: 'Soumyajit' },
@@ -69,6 +70,8 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
     const [isSlaActive, setIsSlaActive] = useState(ticket.isSlaActive !== undefined ? ticket.isSlaActive : true);
 
     const [fullCircuitDetails, setFullCircuitDetails] = useState<any>(null);
+    const [clientName, setClientName] = useState('');
+    const [clientEmail, setClientEmail] = useState('');
 
     // Modal states
     const [showDateModal, setShowDateModal] = useState(false);
@@ -181,8 +184,22 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                     const matched = allCircuits.find((c: any) => c.customerCircuitId === currentCircuit || c.id === currentCircuit);
                     if (matched) {
                         setFullCircuitDetails(matched);
+                        if (matched.client) {
+                            setClientName(matched.client.name);
+                            clientService.getAllClients().then(clients => {
+                                const found = clients.find(c => c.id === matched.clientId);
+                                if (found && found.emails && found.emails.length > 0) {
+                                    setClientEmail(found.emails[0]);
+                                }
+                            }).catch(() => {});
+                        } else {
+                            setClientName('');
+                            setClientEmail('');
+                        }
                     } else {
                         setFullCircuitDetails(null);
+                        setClientName('');
+                        setClientEmail('');
                     }
                 }
             } catch (error) {
@@ -391,14 +408,14 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                 <div className="p-8 border-b border-gray-50">
                     <div className="flex items-center gap-4 mb-10">
                         <div className="w-16 h-16 rounded-full bg-[#E5DCC3] flex items-center justify-center text-[#5C5648] font-bold text-2xl shadow-sm flex-shrink-0">
-                            {activeTab === 'vendor' ? (vendorName ? vendorName.slice(0, 2).toUpperCase() : 'VN') : ticket.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                            {activeTab === 'vendor' ? (vendorName ? vendorName.slice(0, 2).toUpperCase() : 'VN') : (clientName ? clientName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : ticket.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2))}
                         </div>
                         <div className="flex flex-col min-w-0">
                             <h3 className="text-[20px] font-bold text-gray-900 leading-tight truncate">
-                                {activeTab === 'vendor' ? (vendorName || 'EdgeStone Vendor') : ticket.name}
+                                {activeTab === 'vendor' ? (vendorName || 'EdgeStone Vendor') : (clientName || ticket.name)}
                             </h3>
                             <p className="text-[13px] text-gray-500 font-medium mt-0.5 truncate">
-                                {activeTab === 'vendor' ? (vendorEmail || 'Fetching vendor...') : ticket.email}
+                                {activeTab === 'vendor' ? (vendorEmail || 'Fetching vendor...') : (clientEmail || ticket.email)}
                             </p>
                         </div>
                     </div>

@@ -28,6 +28,7 @@ import SignaturesPage from './SignaturesPage';
 import { nowDateIST, nowTimeIST, formatDateWithTZ, formatTimeWithTZ } from '../../utils/dateUtils';
 import { vendorService } from '../../services/vendorService';
 import { circuitService } from '../../services/circuitService';
+import { clientService } from '../../services/clientService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDashboardData } from '../../contexts/DashboardDataContext';
 import { GlobalClock } from '../../components/ui/GlobalClock';
@@ -169,11 +170,47 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
     useEffect(() => {
         // Update toEmail when tab or ticket changes
         if (activeTab === 'client') {
-            setEmailForm(prev => ({
-                ...prev,
-                to: [ticket.email],
-                subject: `Re: [${ticket.ticketId}] ${ticket.header}`
-            }));
+            circuitService.getAllCircuits().then(circuits => {
+                const matchedCircuit = circuits.find(c =>
+                    (confirmedCircuit && c.customerCircuitId === confirmedCircuit) ||
+                    c.customerCircuitId === ticket.header ||
+                    c.customerCircuitId === ticket.circuitId ||
+                    c.id === ticket.circuitId
+                );
+                
+                if (matchedCircuit && matchedCircuit.clientId) {
+                    clientService.getAllClients().then(clients => {
+                        const found = clients.find(c => c.id === matchedCircuit.clientId);
+                        if (found && found.emails && found.emails.length > 0) {
+                            setEmailForm(prev => ({
+                                ...prev,
+                                to: [found.emails[0]],
+                                subject: `Re: [${ticket.ticketId}] ${ticket.header}`
+                            }));
+                        } else {
+                            setEmailForm(prev => ({
+                                ...prev,
+                                to: [ticket.email],
+                                subject: `Re: [${ticket.ticketId}] ${ticket.header}`
+                            }));
+                        }
+                    }).catch(() => {
+                        setEmailForm(prev => ({ ...prev, to: [ticket.email], subject: `Re: [${ticket.ticketId}] ${ticket.header}` }));
+                    });
+                } else {
+                    setEmailForm(prev => ({
+                        ...prev,
+                        to: [ticket.email],
+                        subject: `Re: [${ticket.ticketId}] ${ticket.header}`
+                    }));
+                }
+            }).catch(() => {
+                setEmailForm(prev => ({
+                    ...prev,
+                    to: [ticket.email],
+                    subject: `Re: [${ticket.ticketId}] ${ticket.header}`
+                }));
+            });
         } else if (activeTab === 'vendor') {
             // Fetch dynamically on vendor tab click
             ticketService.getVendorEmails(ticket.id).then(emails => {
@@ -429,7 +466,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                     localStorage.setItem(`vendor_subject_${ticket.id}`, emailForm.subject.trim());
                 }
             } else {
-                newReply = await ticketService.replyToTicket(ticket.id, plainBody, fullHtmlContent, processedAttachments);
+                newReply = await ticketService.replyToTicket(ticket.id, plainBody, fullHtmlContent, processedAttachments, emailForm);
             }
 
             // Update local state
