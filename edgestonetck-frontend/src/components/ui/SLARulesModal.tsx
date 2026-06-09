@@ -53,13 +53,10 @@ export const SLARulesModal: React.FC<SLARulesModalProps> = ({ isOpen, onClose })
     const [slas, setSlas] = useState<Sla[]>([]);
     const [groupedSlas, setGroupedSlas] = useState<Record<string, { circuitDisplayId: string; circuitId: string; vendorSlas: Sla[]; customerSlas: Sla[] }>>({});
     const [circuits, setCircuits] = useState<Circuit[]>([]);
-    const [vendors, setVendors] = useState<Vendor[]>([]);
-    const [clients, setClients] = useState<Client[]>([]);
 
     // Loading states
     const [loadingRules, setLoadingRules] = useState(true);
     const [loadingCircuits, setLoadingCircuits] = useState(false);
-    const [loadingEntities, setLoadingEntities] = useState(false);
 
     // View SLA expanded state
     const [expandedRuleId, setExpandedRuleId] = useState<string | null>(null);
@@ -76,7 +73,6 @@ export const SLARulesModal: React.FC<SLARulesModalProps> = ({ isOpen, onClose })
 
     // Dropdown open states
     const [circuitDropdownOpen, setCircuitDropdownOpen] = useState(false);
-    const [entityDropdownOpen, setEntityDropdownOpen] = useState(false);
 
     // Error state
     const [error, setError] = useState('');
@@ -107,7 +103,7 @@ export const SLARulesModal: React.FC<SLARulesModalProps> = ({ isOpen, onClose })
     };
 
     const startAddFlow = async () => {
-        setAddStep('select-circuit');
+        setAddStep('select-type');
         setEditingRuleId(null);
         setSelectedCircuit(null);
         setTargetType(null);
@@ -129,45 +125,25 @@ export const SLARulesModal: React.FC<SLARulesModalProps> = ({ isOpen, onClose })
         }
     };
 
+    const handleTypeSelect = async (type: 'vendor' | 'customer') => {
+        setTargetType(type);
+        setAddStep('select-circuit');
+        setSelectedEntityId('');
+        setSelectedEntityName('');
+    };
+
     const handleCircuitSelect = (circuit: Circuit) => {
         setSelectedCircuit(circuit);
         setCircuitDropdownOpen(false);
-        setAddStep('select-type');
-    };
-
-    const handleTypeSelect = async (type: 'vendor' | 'customer') => {
-        setTargetType(type);
-        setAddStep('select-entity');
-        setSelectedEntityId('');
-        setSelectedEntityName('');
-
-        try {
-            setLoadingEntities(true);
-            
-            // Prevent adding a duplicate SLA rule by filtering out entities that already have one
-            const existingIds = slas
-                .filter(s => s.circuitId === selectedCircuit?.id && s.appliesTo === (type === 'vendor' ? 'VENDOR' : 'CUSTOMER'))
-                .map(s => type === 'vendor' ? s.vendorId! : s.customerId!);
-
-            if (type === 'vendor') {
-                const data = await vendorService.getAllVendors();
-                setVendors(data.filter(v => !existingIds.includes(v.id)));
-            } else {
-                const data = await clientService.getAllClients();
-                setClients(data.filter(c => !existingIds.includes(c.id)));
-            }
-        } catch (err: any) {
-            console.error(`Failed to fetch ${type}s:`, err);
-            setError(`Failed to load ${type}s`);
-        } finally {
-            setLoadingEntities(false);
+        
+        if (targetType === 'vendor' && circuit.vendorId && circuit.vendor) {
+            setSelectedEntityId(circuit.vendorId);
+            setSelectedEntityName(circuit.vendor.name);
+        } else if (targetType === 'customer' && circuit.clientId && circuit.client) {
+            setSelectedEntityId(circuit.clientId);
+            setSelectedEntityName(circuit.client.name);
         }
-    };
-
-    const handleEntitySelect = (id: string, name: string) => {
-        setSelectedEntityId(id);
-        setSelectedEntityName(name);
-        setEntityDropdownOpen(false);
+        
         setAddStep('define-rules');
     };
 
@@ -260,10 +236,9 @@ export const SLARulesModal: React.FC<SLARulesModalProps> = ({ isOpen, onClose })
 
     const goBack = () => {
         switch (addStep) {
-            case 'select-circuit': resetAddFlow(); break;
-            case 'select-type': setAddStep('select-circuit'); break;
-            case 'select-entity': setAddStep('select-type'); break;
-            case 'define-rules': setAddStep('select-entity'); break;
+            case 'select-type': resetAddFlow(); break;
+            case 'select-circuit': setAddStep('select-type'); break;
+            case 'define-rules': setAddStep('select-circuit'); break;
             default: break;
         }
     };
@@ -380,10 +355,9 @@ export const SLARulesModal: React.FC<SLARulesModalProps> = ({ isOpen, onClose })
                                 <h2 className="text-lg font-bold text-gray-900 tracking-tight">SLA Rules</h2>
                                 <p className="text-[12px] text-gray-400 font-medium">
                                     {addStep === 'idle' && 'Manage service level agreement rules'}
-                                    {addStep === 'select-circuit' && 'Step 1 — Select a circuit'}
-                                    {addStep === 'select-type' && 'Step 2 — Vendor or Customer?'}
-                                    {addStep === 'select-entity' && `Step 3 — Select ${targetType}`}
-                                    {addStep === 'define-rules' && 'Step 4 — Define SLA conditions'}
+                                    {addStep === 'select-type' && 'Step 1 — Vendor or Customer?'}
+                                    {addStep === 'select-circuit' && 'Step 2 — Select a circuit'}
+                                    {addStep === 'define-rules' && 'Step 3 — Define SLA conditions'}
                                     {addStep === 'saving' && editingRuleId && 'Updating SLA rule...'}
                                     {addStep === 'saving' && !editingRuleId && 'Saving SLA rule...'}
                                     {addStep === 'saved' && editingRuleId && 'SLA rule updated successfully!'}
@@ -542,78 +516,14 @@ export const SLARulesModal: React.FC<SLARulesModalProps> = ({ isOpen, onClose })
                             </>
                         )}
 
-                        {/* =================== STEP 1: Select Circuit =================== */}
-                        {addStep === 'select-circuit' && (
-                            <div className="sla-slide-enter">
-                                <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2 px-1">
-                                    Select Circuit
-                                </label>
-
-                                {loadingCircuits ? (
-                                    <div className="flex items-center justify-center py-12 gap-3">
-                                        <Loader2 className="w-6 h-6 animate-spin text-brand-red" />
-                                        <p className="text-sm font-medium text-gray-400">Loading circuits...</p>
-                                    </div>
-                                ) : (
-                                    <div className="relative">
-                                        <button
-                                            onClick={() => setCircuitDropdownOpen(!circuitDropdownOpen)}
-                                            className={`w-full h-[56px] border rounded-2xl px-4 flex items-center justify-between transition-all active:scale-[0.98] ${circuitDropdownOpen
-                                                ? 'bg-white border-[#0F172A] ring-4 ring-[#0F172A]/5'
-                                                : 'bg-gray-50/50 border-gray-100 hover:border-gray-200'
-                                                }`}
-                                        >
-                                            <span className={`text-[14px] font-bold truncate ${selectedCircuit ? 'text-gray-900' : 'text-gray-400'}`}>
-                                                {selectedCircuit
-                                                    ? `${selectedCircuit.customerCircuitId} (${selectedCircuit.type === 'PROTECTED' ? 'Protected' : 'Unprotected'})`
-                                                    : 'Choose a circuit...'
-                                                }
-                                            </span>
-                                            <ChevronDown size={18} className={`text-gray-400 transition-transform duration-300 ${circuitDropdownOpen ? 'rotate-180 text-gray-900' : ''}`} />
-                                        </button>
-
-                                        {circuitDropdownOpen && (
-                                            <div className="mt-2 bg-white border border-gray-100 rounded-2xl shadow-lg max-h-[260px] overflow-y-auto p-2 sla-slide-enter">
-                                                {circuits.length === 0 ? (
-                                                    <p className="text-sm text-gray-400 text-center py-4">No circuits found</p>
-                                                ) : (
-                                                    circuits.map(circuit => (
-                                                        <button
-                                                            key={circuit.id}
-                                                            onClick={() => handleCircuitSelect(circuit)}
-                                                            className="w-full px-3.5 py-3 text-left rounded-xl transition-all flex items-center justify-between mb-0.5 last:mb-0 hover:bg-gray-50 active:bg-gray-100"
-                                                        >
-                                                            <div>
-                                                                <span className="text-[13px] font-bold text-gray-900 block">{circuit.customerCircuitId}</span>
-                                                                <span className="text-[11px] text-gray-400 font-medium">{circuit.vendor?.name ?? '—'}</span>
-                                                            </div>
-                                                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${circuit.type === 'PROTECTED'
-                                                                ? 'bg-green-50 text-green-600'
-                                                                : 'bg-orange-50 text-orange-600'
-                                                                }`}>
-                                                                {circuit.type === 'PROTECTED' ? 'Protected' : 'Unprotected'}
-                                                            </span>
-                                                        </button>
-                                                    ))
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        {/* =================== STEP 2: Select Type (Vendor/Customer) =================== */}
+                        {/* =================== STEP 1: Select Type (Vendor/Customer) =================== */}
                         {addStep === 'select-type' && (
                             <div className="sla-slide-enter">
                                 <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2 px-1">
                                     Define SLA for
                                 </label>
                                 <p className="text-sm text-gray-500 mb-5 px-1">
-                                    Circuit: <span className="font-bold text-gray-800">{selectedCircuit?.customerCircuitId}</span>
-                                    <span className={`ml-2 px-2 py-0.5 rounded-md text-[10px] font-bold ${selectedCircuit?.type === 'PROTECTED' ? 'bg-green-50 text-green-600' : 'bg-orange-50 text-orange-600'}`}>
-                                        {selectedCircuit?.type === 'PROTECTED' ? 'Protected' : 'Unprotected'}
-                                    </span>
+                                    Choose whether this SLA rule applies to a Vendor or Customer circuit.
                                 </p>
 
                                 <div className="grid grid-cols-2 gap-4">
@@ -640,85 +550,78 @@ export const SLARulesModal: React.FC<SLARulesModalProps> = ({ isOpen, onClose })
                             </div>
                         )}
 
-                        {/* =================== STEP 3: Select Entity =================== */}
-                        {addStep === 'select-entity' && (
+                        {/* =================== STEP 2: Select Circuit =================== */}
+                        {addStep === 'select-circuit' && (
                             <div className="sla-slide-enter">
                                 <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2 px-1">
-                                    Select {targetType === 'vendor' ? 'Vendor' : 'Customer'}
+                                    Select Circuit
                                 </label>
                                 <p className="text-sm text-gray-500 mb-5 px-1">
-                                    Circuit: <span className="font-bold text-gray-800">{selectedCircuit?.customerCircuitId}</span>
-                                    {' → '}
-                                    <span className="font-bold text-gray-800 capitalize">{targetType}</span>
+                                    Target: <span className="font-bold text-gray-800 capitalize">{targetType}</span>
                                 </p>
 
-                                {loadingEntities ? (
+                                {loadingCircuits ? (
                                     <div className="flex items-center justify-center py-12 gap-3">
                                         <Loader2 className="w-6 h-6 animate-spin text-brand-red" />
-                                        <p className="text-sm font-medium text-gray-400">Loading {targetType}s...</p>
+                                        <p className="text-sm font-medium text-gray-400">Loading circuits...</p>
                                     </div>
                                 ) : (
                                     <div className="relative">
                                         <button
-                                            onClick={() => setEntityDropdownOpen(!entityDropdownOpen)}
-                                            className={`w-full h-[56px] border rounded-2xl px-4 flex items-center justify-between transition-all active:scale-[0.98] ${entityDropdownOpen
+                                            onClick={() => setCircuitDropdownOpen(!circuitDropdownOpen)}
+                                            className={`w-full h-[56px] border rounded-2xl px-4 flex items-center justify-between transition-all active:scale-[0.98] ${circuitDropdownOpen
                                                 ? 'bg-white border-[#0F172A] ring-4 ring-[#0F172A]/5'
                                                 : 'bg-gray-50/50 border-gray-100 hover:border-gray-200'
                                                 }`}
                                         >
-                                            <span className={`text-[14px] font-bold truncate ${selectedEntityName ? 'text-gray-900' : 'text-gray-400'}`}>
-                                                {selectedEntityName || `Choose a ${targetType}...`}
+                                            <span className={`text-[14px] font-bold truncate ${selectedCircuit ? 'text-gray-900' : 'text-gray-400'}`}>
+                                                {selectedCircuit
+                                                    ? `${selectedCircuit.customerCircuitId} (${selectedCircuit.type === 'PROTECTED' ? 'Protected' : 'Unprotected'})`
+                                                    : 'Choose a circuit...'
+                                                }
                                             </span>
-                                            <ChevronDown size={18} className={`text-gray-400 transition-transform duration-300 ${entityDropdownOpen ? 'rotate-180 text-gray-900' : ''}`} />
+                                            <ChevronDown size={18} className={`text-gray-400 transition-transform duration-300 ${circuitDropdownOpen ? 'rotate-180 text-gray-900' : ''}`} />
                                         </button>
 
-                                        {entityDropdownOpen && (
+                                        {circuitDropdownOpen && (
                                             <div className="mt-2 bg-white border border-gray-100 rounded-2xl shadow-lg max-h-[260px] overflow-y-auto p-2 sla-slide-enter">
-                                                {targetType === 'vendor' ? (
-                                                    vendors.length === 0 ? (
-                                                        <p className="text-sm text-gray-400 text-center py-4">
-                                                            All eligible vendors already have an SLA defined.
-                                                        </p>
-                                                    ) : (
-                                                        vendors.map(v => (
-                                                            <button
-                                                                key={v.id}
-                                                                onClick={() => handleEntitySelect(v.id, v.name)}
-                                                                className={`w-full px-3.5 py-3 text-left text-[13px] font-semibold rounded-xl transition-all flex items-center justify-between mb-0.5 last:mb-0 ${selectedEntityId === v.id ? 'bg-gray-50 text-gray-900' : 'text-gray-600 hover:bg-gray-50/80 hover:text-gray-900'}`}
-                                                            >
-                                                                <div className="flex items-center gap-2.5">
-                                                                    <Building2 size={16} className="text-gray-400" />
-                                                                    {v.name}
-                                                                </div>
-                                                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${v.status === 'Active' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
-                                                                    {v.status}
+                                                {(() => {
+                                                    const existingIds = slas
+                                                        .filter(s => s.appliesTo === (targetType === 'vendor' ? 'VENDOR' : 'CUSTOMER'))
+                                                        .map(s => s.circuitId);
+
+                                                    const filteredCircuits = circuits.filter(c => {
+                                                        if (existingIds.includes(c.id)) return false;
+                                                        if (targetType === 'vendor') return !!c.vendorId;
+                                                        if (targetType === 'customer') return !!c.clientId;
+                                                        return true;
+                                                    });
+
+                                                    if (filteredCircuits.length === 0) {
+                                                        return <p className="text-sm text-gray-400 text-center py-4">No eligible circuits found</p>;
+                                                    }
+                                                    
+                                                    return filteredCircuits.map(circuit => (
+                                                        <button
+                                                            key={circuit.id}
+                                                            onClick={() => handleCircuitSelect(circuit)}
+                                                            className="w-full px-3.5 py-3 text-left rounded-xl transition-all flex items-center justify-between mb-0.5 last:mb-0 hover:bg-gray-50 active:bg-gray-100"
+                                                        >
+                                                            <div>
+                                                                <span className="text-[13px] font-bold text-gray-900 block">{circuit.customerCircuitId}</span>
+                                                                <span className="text-[11px] text-gray-400 font-medium">
+                                                                    {targetType === 'vendor' ? (circuit.vendor?.name ?? '—') : (circuit.client?.name ?? '—')}
                                                                 </span>
-                                                            </button>
-                                                        ))
-                                                    )
-                                                ) : (
-                                                    clients.length === 0 ? (
-                                                        <p className="text-sm text-gray-400 text-center py-4">
-                                                            All eligible customers already have an SLA defined.
-                                                        </p>
-                                                    ) : (
-                                                        clients.map(c => (
-                                                            <button
-                                                                key={c.id}
-                                                                onClick={() => handleEntitySelect(c.id, c.name)}
-                                                                className={`w-full px-3.5 py-3 text-left text-[13px] font-semibold rounded-xl transition-all flex items-center justify-between mb-0.5 last:mb-0 ${selectedEntityId === c.id ? 'bg-gray-50 text-gray-900' : 'text-gray-600 hover:bg-gray-50/80 hover:text-gray-900'}`}
-                                                            >
-                                                                <div className="flex items-center gap-2.5">
-                                                                    <User size={16} className="text-gray-400" />
-                                                                    {c.name}
-                                                                </div>
-                                                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${c.status === 'Active' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
-                                                                    {c.status}
-                                                                </span>
-                                                            </button>
-                                                        ))
-                                                    )
-                                                )}
+                                                            </div>
+                                                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${circuit.type === 'PROTECTED'
+                                                                ? 'bg-green-50 text-green-600'
+                                                                : 'bg-orange-50 text-orange-600'
+                                                                }`}>
+                                                                {circuit.type === 'PROTECTED' ? 'Protected' : 'Unprotected'}
+                                                            </span>
+                                                        </button>
+                                                    ));
+                                                })()}
                                             </div>
                                         )}
                                     </div>
