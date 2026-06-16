@@ -8,6 +8,7 @@ import VendorsPage from './pages/dashboard/VendorsPage'
 import AssignAgentsPage from './pages/dashboard/AssignAgentsPage'
 import SLAPage from './pages/dashboard/SLAPage'
 import CircuitsPage from './pages/dashboard/CircuitsPage'
+import TicketRoadmapView from './pages/dashboard/TicketRoadmapView'
 import NotFoundPage from './pages/NotFoundPage'
 import { AuthProvider } from './contexts/AuthContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
@@ -37,6 +38,9 @@ function App() {
             } />
             <Route path="sla" element={<SLAPage />} />
           </Route>
+
+          {/* Roadmap standalone route */}
+          <Route path="/roadmap" element={<TicketRoadmapView />} />
 
           {/* Default Route */}
           <Route path="/" element={<Navigate to="/login" replace />} />
