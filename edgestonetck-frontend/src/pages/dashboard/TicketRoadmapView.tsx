@@ -6,18 +6,17 @@ import {
   Background,
   useNodesState,
   useEdgesState,
-  addEdge,
-  Connection,
-  Edge
+  addEdge
 } from '@xyflow/react';
+import type { Connection, Edge, Node } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { getRoadmapData } from '../../services/roadmapService';
 import { Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const TicketRoadmapView: React.FC = () => {
-    const [nodes, setNodes, onNodesChange] = useNodesState([]);
-    const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+    const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
+    const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
     const [loading, setLoading] = useState<boolean>(true);
 
     const onConnect = useCallback(
