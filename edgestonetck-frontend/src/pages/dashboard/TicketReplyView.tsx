@@ -53,7 +53,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
     const handleRefresh = async () => {
         try {
             setIsRefreshing(true);
-            
+
             if (dashboardData?.refresh) {
                 await dashboardData.refresh().catch(console.error);
             }
@@ -177,7 +177,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                     c.customerCircuitId === ticket.circuitId ||
                     c.id === ticket.circuitId
                 );
-                
+
                 if (matchedCircuit && matchedCircuit.clientId) {
                     clientService.getAllClients().then(clients => {
                         const found = clients.find(c => c.id === matchedCircuit.clientId);
@@ -272,7 +272,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
         if (showEmailModal && activeTab === 'vendor') {
             const vendorReplies = replies.filter(r => r && r.category === 'vendor');
             const localSub = localStorage.getItem(`vendor_subject_${ticket.id}`);
-            
+
             circuitService.getAllCircuits().then(circuits => {
                 const matchedCircuit = circuits.find(c =>
                     (confirmedCircuit && c.customerCircuitId === confirmedCircuit) ||
@@ -280,11 +280,11 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                     c.customerCircuitId === ticket.circuitId ||
                     c.id === ticket.circuitId
                 );
-                
+
                 const supplierId = matchedCircuit?.supplierCircuitId || 'Unknown Circuit';
                 const defaultSafeSubject = `Re: [${ticket.ticketId}-V] Issue regarding Circuit ${supplierId}`;
                 const existingSubject = vendorReplies.find(r => r.subject)?.subject || localSub || defaultSafeSubject;
-                
+
                 if (existingSubject) {
                     setEmailForm(prev => ({
                         ...prev,
@@ -461,7 +461,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                     htmlContent: fullHtmlContent,
                     attachments: processedAttachments
                 });
-                
+
                 if (emailForm.subject.trim()) {
                     localStorage.setItem(`vendor_subject_${ticket.id}`, emailForm.subject.trim());
                 }
@@ -673,7 +673,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
 
                     <div className="flex items-center gap-3">
                         <div className="flex items-center gap-2 bg-[#F5F2F9] text-[#A688C4] text-[11px] font-bold px-2 py-1 rounded-md">
-                            #{ticket.ticketId}
+                            ##{ticket.ticketId}
                         </div>
                     </div>
                 </div>
@@ -808,10 +808,9 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                     {replies.filter(r => r && r.category === activeTab).map((reply, idx) => (
                         <div key={idx} className="flex flex-col">
                             <div className="flex gap-4">
-                                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shadow-sm flex-shrink-0 ${
-                                    reply.type === 'agent' ? 'bg-orange-500 text-white' : 
-                                    reply.type === 'client' ? 'bg-indigo-100 text-indigo-600' : 'bg-orange-100 text-orange-600'
-                                }`}>
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shadow-sm flex-shrink-0 ${reply.type === 'agent' ? 'bg-orange-500 text-white' :
+                                        reply.type === 'client' ? 'bg-indigo-100 text-indigo-600' : 'bg-orange-100 text-orange-600'
+                                    }`}>
                                     {reply.author[0].toUpperCase()}
                                 </div>
                                 <div className="flex-1">
@@ -1154,7 +1153,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                     className="hidden"
                                     multiple
                                 />
-                                
+
                                 <div className="flex items-center gap-3 px-6 py-3.5 bg-gray-50/50 border-t border-gray-100/80 flex-shrink-0">
                                     <button
                                         onClick={() => fileInputRef.current?.click()}

@@ -132,7 +132,7 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                     // Match SLA type to active tab (CLIENT vs VENDOR)
                     const targetType = activeTab === 'vendor' ? 'VENDOR' : 'CLIENT';
                     const record = records.find(r => r.type === targetType);
-                    
+
                     if (record) {
                         setSlaId(record.id);
                         setSlaStartDate(record.startDate || '');
@@ -172,11 +172,11 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                 const userStr = localStorage.getItem('edgestone_user');
                 const user = userStr ? JSON.parse(userStr) : null;
                 const token = user?.token || '';
-                
+
                 const response = await fetch(API_URL, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                
+
                 if (response.ok) {
                     const result = await response.json();
                     const allCircuits = Array.isArray(result) ? result : (result.data || []);
@@ -191,7 +191,7 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                                 if (found && found.emails && found.emails.length > 0) {
                                     setClientEmail(found.emails[0]);
                                 }
-                            }).catch(() => {});
+                            }).catch(() => { });
                         } else {
                             setClientName('');
                             setClientEmail('');
@@ -255,7 +255,7 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
         const offset = offsets[slaTimeZone] || '+0000';
         const timePart = dynamicSlaClose.time !== '-' ? dynamicSlaClose.time.replace(' hrs', '') : '00:00';
         const dateObj = new Date(`${tempDate} ${timePart} GMT${offset}`);
-        
+
         if (!isNaN(dateObj.getTime())) {
             const istDate = formatDateWithTZ(dateObj, 'IST', { day: 'numeric', month: 'short', year: 'numeric' });
             const istTime = formatTimeWithTZ(dateObj, 'IST') + ' hrs';
@@ -280,7 +280,7 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
             datePart = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
         }
         const dateObj = new Date(`${datePart} ${tempTime} GMT${offset}`);
-        
+
         if (!isNaN(dateObj.getTime())) {
             const istDate = formatDateWithTZ(dateObj, 'IST', { day: 'numeric', month: 'short', year: 'numeric' });
             const istTime = formatTimeWithTZ(dateObj, 'IST') + ' hrs';
@@ -301,7 +301,7 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
         const offset = offsets[slaTimeZone] || '+0000';
         const timePart = dynamicSlaStart.time !== '-' ? dynamicSlaStart.time.replace(' hrs', '') : '00:00';
         const dateObj = new Date(`${tempStartDate} ${timePart} GMT${offset}`);
-        
+
         if (!isNaN(dateObj.getTime())) {
             const istDate = formatDateWithTZ(dateObj, 'IST', { day: 'numeric', month: 'short', year: 'numeric' });
             const istTime = formatTimeWithTZ(dateObj, 'IST') + ' hrs';
@@ -326,7 +326,7 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
             datePart = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
         }
         const dateObj = new Date(`${datePart} ${tempStartTime} GMT${offset}`);
-        
+
         if (!isNaN(dateObj.getTime())) {
             const istDate = formatDateWithTZ(dateObj, 'IST', { day: 'numeric', month: 'short', year: 'numeric' });
             const istTime = formatTimeWithTZ(dateObj, 'IST') + ' hrs';
@@ -337,19 +337,19 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                 toast.success('SLA start time updated manually');
             }
         } else {
-             setShowStartTimeModal(false);
-             toast.error('Invalid time format');
+            setShowStartTimeModal(false);
+            toast.error('Invalid time format');
         }
     };
 
     const handleSaveTimeZone = async (zone: string) => {
         setSlaTimeZone(zone);
         if (onTimeZoneChangeActive) onTimeZoneChangeActive(zone);
-        
+
         if (await handleManualUpdate({ timeZone: zone })) {
             toast.success('SLA timezone updated');
         } else {
-             toast.error('Failed to update timezone');
+            toast.error('Failed to update timezone');
         }
     };
 
@@ -458,7 +458,7 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                             </button>
                         </div>
                     </div>
-                    
+
                     <div className={`space-y-4 ${!isSlaActive ? 'opacity-50 pointer-events-none' : ''}`}>
                         <div className="flex justify-between items-center pb-1">
                             <span className="text-[12px] font-bold text-gray-400 uppercase tracking-wider">Circuit ID</span>
@@ -551,17 +551,15 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                         <div className="mt-2 pt-4 border-t border-gray-50">
                             <div className="flex justify-between items-center text-[14px] mb-1">
                                 <span className="text-gray-400 font-medium">SLA Status</span>
-                                <span className={`text-[13px] font-black px-2 py-0.5 rounded-full ${
-                                    slaStatus === 'Breached' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'
-                                }`}>
+                                <span className={`text-[13px] font-black px-2 py-0.5 rounded-full ${slaStatus === 'Breached' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'
+                                    }`}>
                                     {slaStatus}
                                 </span>
                             </div>
                             <div className="flex justify-between items-center text-[14px]">
                                 <span className="text-gray-400 font-medium">Compensation</span>
-                                <span className={`text-[14px] font-black ${
-                                    slaCompensation !== '-' ? 'text-red-600' : 'text-green-600'
-                                }`}>
+                                <span className={`text-[14px] font-black ${slaCompensation !== '-' ? 'text-red-600' : 'text-green-600'
+                                    }`}>
                                     {slaCompensation}
                                 </span>
                             </div>
@@ -611,7 +609,7 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                                     <div className="space-y-1">
                                         <span className="text-[13px] font-bold text-gray-900 block">{log.description}</span>
                                         <div className="flex items-center gap-2">
-                                        <span className="text-[11px] font-bold text-gray-400 uppercase tracking-tight">
+                                            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-tight">
                                                 {log.createdAt ? formatDateWithTZ(log.createdAt, slaTimeZone) : log.date}
                                             </span>
                                             <div className="w-1 h-1 rounded-full bg-gray-200" />

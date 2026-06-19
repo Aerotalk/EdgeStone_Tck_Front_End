@@ -6,13 +6,69 @@ import {
   Background,
   useNodesState,
   useEdgesState,
-  addEdge
+  addEdge,
+  Position
 } from '@xyflow/react';
 import type { Connection, Edge, Node } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import dagre from 'dagre';
 import { getRoadmapData } from '../../services/roadmapService';
 import { Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+
+import CircuitNode from '../../components/roadmap/CircuitNode';
+import TicketNode from '../../components/roadmap/TicketNode';
+import SLANode from '../../components/roadmap/SLANode';
+import ConversationNode from '../../components/roadmap/ConversationNode';
+import AIInsightPanel from '../../components/roadmap/AIInsightPanel';
+
+const nodeTypes = {
+  circuit: CircuitNode,
+  ticket: TicketNode,
+  sla: SLANode,
+  conversation: ConversationNode
+};
+
+const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'TB') => {
+  const dagreGraph = new dagre.graphlib.Graph();
+  dagreGraph.setDefaultEdgeLabel(() => ({}));
+  
+  const isHorizontal = direction === 'LR';
+  dagreGraph.setGraph({ rankdir: direction });
+
+  nodes.forEach((node) => {
+    // Estimating standard node widths based on our custom components
+    let width = 250;
+    let height = 150;
+    if (node.data?.type === 'sla') { width = 180; height = 80; }
+    if (node.data?.type === 'conversation') { width = 120; height = 40; }
+    
+    dagreGraph.setNode(node.id, { width, height });
+  });
+
+  edges.forEach((edge) => {
+    dagreGraph.setEdge(edge.source, edge.target);
+  });
+
+  dagre.layout(dagreGraph);
+
+  nodes.forEach((node) => {
+    const nodeWithPosition = dagreGraph.node(node.id);
+    node.targetPosition = isHorizontal ? Position.Left : Position.Top;
+    node.sourcePosition = isHorizontal ? Position.Right : Position.Bottom;
+
+    // We are shifting the dagre node position (anchor=center center) to the top left
+    // so it matches the React Flow node anchor point (top left).
+    node.position = {
+      x: nodeWithPosition.x - nodeWithPosition.width / 2,
+      y: nodeWithPosition.y - nodeWithPosition.height / 2,
+    };
+
+    return node;
+  });
+
+  return { nodes, edges };
+};
 
 const TicketRoadmapView: React.FC = () => {
     const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
@@ -29,8 +85,20 @@ const TicketRoadmapView: React.FC = () => {
             try {
                 setLoading(true);
                 const data = await getRoadmapData();
-                setNodes(data.nodes || []);
-                setEdges(data.edges || []);
+                
+                // Map the data to properly use custom node types
+                const formattedNodes = (data.nodes || []).map((node: any) => ({
+                    ...node,
+                    type: node.data?.type || 'default' // This triggers our custom node components!
+                }));
+
+                const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
+                    formattedNodes,
+                    data.edges || []
+                );
+
+                setNodes(layoutedNodes);
+                setEdges(layoutedEdges);
             } catch (error) {
                 console.error("Failed to fetch roadmap data", error);
                 toast.error("Failed to load Roadmap Data");
@@ -57,9 +125,13 @@ const TicketRoadmapView: React.FC = () => {
                         <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
                     </div>
                 )}
+                
+                <AIInsightPanel />
+                
                 <ReactFlow
                     nodes={nodes}
                     edges={edges}
+                    nodeTypes={nodeTypes}
                     onNodesChange={onNodesChange}
                     onEdgesChange={onEdgesChange}
                     onConnect={onConnect}
