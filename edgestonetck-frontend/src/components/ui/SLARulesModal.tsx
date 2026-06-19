@@ -572,7 +572,7 @@ export const SLARulesModal: React.FC<SLARulesModalProps> = ({ isOpen, onClose })
                                         >
                                             <span className={`text-[14px] font-bold truncate ${selectedCircuit ? 'text-gray-900' : 'text-gray-400'}`}>
                                                 {selectedCircuit
-                                                    ? `${selectedCircuit.customerCircuitId} (${selectedCircuit.type === 'PROTECTED' ? 'Protected' : 'Unprotected'})`
+                                                    ? `${targetType === 'vendor' ? (selectedCircuit.supplierCircuitId || selectedCircuit.customerCircuitId) : selectedCircuit.customerCircuitId} (${selectedCircuit.type === 'PROTECTED' ? 'Protected' : 'Unprotected'})`
                                                     : 'Choose a circuit...'
                                                 }
                                             </span>
@@ -604,7 +604,7 @@ export const SLARulesModal: React.FC<SLARulesModalProps> = ({ isOpen, onClose })
                                                             className="w-full px-3.5 py-3 text-left rounded-xl transition-all flex items-center justify-between mb-0.5 last:mb-0 hover:bg-gray-50 active:bg-gray-100"
                                                         >
                                                             <div>
-                                                                <span className="text-[13px] font-bold text-gray-900 block">{circuit.customerCircuitId}</span>
+                                                                <span className="text-[13px] font-bold text-gray-900 block">{targetType === 'vendor' ? (circuit.supplierCircuitId || circuit.customerCircuitId) : circuit.customerCircuitId}</span>
                                                                 <span className="text-[11px] text-gray-400 font-medium">
                                                                     {targetType === 'vendor' ? (circuit.vendor?.name ?? '—') : (circuit.client?.name ?? '—')}
                                                                 </span>
@@ -630,7 +630,7 @@ export const SLARulesModal: React.FC<SLARulesModalProps> = ({ isOpen, onClose })
                             <div className="sla-slide-enter">
                                 {/* Summary breadcrumb */}
                                 <div className="flex items-center gap-2 flex-wrap text-[12px] text-gray-400 font-medium mb-5 px-1">
-                                    <span className="font-bold text-gray-600">{selectedCircuit?.customerCircuitId}</span>
+                                    <span className="font-bold text-gray-600">{selectedCircuit ? (targetType === 'vendor' ? (selectedCircuit.supplierCircuitId || selectedCircuit.customerCircuitId) : selectedCircuit.customerCircuitId) : ''}</span>
                                     <ChevronRight size={12} />
                                     <span className="capitalize font-bold text-gray-600">{targetType}</span>
                                     <ChevronRight size={12} />
