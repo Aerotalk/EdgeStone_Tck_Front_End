@@ -12,7 +12,8 @@ const AIInsightPanel = () => {
         const fetchInsights = async () => {
             try {
                 const token = localStorage.getItem('token');
-                const response = await axios.post('http://localhost:5000/api/roadmap/analyze', {}, {
+                const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+                const response = await axios.post(`${API_BASE_URL}/roadmap/analyze`, {}, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 setInsight(response.data.insight);
