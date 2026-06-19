@@ -72,7 +72,7 @@ export const slaRecordService = {
             const downloadUrl = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = downloadUrl;
-            link.download = `SLA_Report_${new Date().toISOString().split('T')[0]}.csv`;
+            link.download = `SLA_Financial_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
