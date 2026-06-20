@@ -304,6 +304,9 @@ const SLAPage: React.FC = () => {
                                 <thead>
                                     <tr className="uppercase tracking-widest text-[11px] font-extrabold text-gray-400">
                                         <th className="px-6 py-3 bg-white/60 backdrop-blur-xl rounded-l-2xl border-y border-l border-gray-100 shadow-sm">Ticket ID</th>
+                                        <th className="px-6 py-3 bg-white/60 backdrop-blur-xl border-y border-gray-100 shadow-sm">Circuit ID</th>
+                                        <th className="px-6 py-3 bg-white/60 backdrop-blur-xl border-y border-gray-100 shadow-sm">Client Name</th>
+                                        <th className="px-6 py-3 bg-white/60 backdrop-blur-xl border-y border-gray-100 shadow-sm">Vendor Name</th>
                                         <th className="px-6 py-3 bg-white/60 backdrop-blur-xl border-y border-gray-100 shadow-sm">SLA Start Date</th>
                                         <th className="px-6 py-3 bg-white/60 backdrop-blur-xl border-y border-gray-100 shadow-sm">SLA Start Time</th>
                                         <th className="px-6 py-3 bg-white/60 backdrop-blur-xl border-y border-gray-100 shadow-sm">SLA Closed Time</th>
@@ -314,17 +317,26 @@ const SLAPage: React.FC = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {records.length > 0 ? records.map((record) => (
+                                    {records.length > 0 ? records.map((record, index) => (
                                         <tr key={record.id} className="bg-white group hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-all duration-300 hover:-translate-y-1 rounded-2xl shadow-sm cursor-default">
                                             <td className="px-6 py-5 rounded-l-2xl">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-red/10 to-brand-red/5 flex items-center justify-center text-brand-red font-bold text-[11px] shadow-inner border border-brand-red/10">
-                                                        #{record.ticketId.replace(/[^0-9]/g, '')}
+                                                        #{index + 1}
                                                     </div>
                                                     <a href="#" className="text-[14px] font-bold text-gray-900 group-hover:text-brand-red transition-colors underline decoration-transparent hover:decoration-brand-red/30 underline-offset-4">
                                                         {record.ticketId}
                                                     </a>
                                                 </div>
+                                            </td>
+                                            <td className="px-6 py-5">
+                                                <span className="text-[14px] font-bold text-gray-900">{record.circuitId}</span>
+                                            </td>
+                                            <td className="px-6 py-5">
+                                                <span className="text-[14px] font-bold text-gray-900">{record.clientName}</span>
+                                            </td>
+                                            <td className="px-6 py-5">
+                                                <span className="text-[14px] font-bold text-gray-900">{record.vendorName}</span>
                                             </td>
                                             <td className="px-6 py-5">
                                                 <div className="flex items-center gap-3 text-[14px] font-semibold text-gray-700">
@@ -416,7 +428,7 @@ const SLAPage: React.FC = () => {
                                         </tr>
                                     )) : (
                                         <tr>
-                                            <td colSpan={8} className="px-6 py-32 text-center">
+                                            <td colSpan={11} className="px-6 py-32 text-center">
                                                 <div className="flex flex-col items-center justify-center gap-4 text-gray-400 font-sans">
                                                     <div className="w-20 h-20 rounded-full bg-white shadow-xl shadow-gray-200/50 flex items-center justify-center mb-2">
                                                         <Filter size={36} strokeWidth={1.5} className="text-brand-red" />

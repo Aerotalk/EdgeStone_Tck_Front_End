@@ -12,6 +12,9 @@ const getAuthHeaders = () => {
 export interface SLARecord {
     id: string;
     ticketId: string;
+    circuitId: string;
+    clientName: string;
+    vendorName: string;
     startDate: string;
     displayStartDate: string;
     startTime: string;
