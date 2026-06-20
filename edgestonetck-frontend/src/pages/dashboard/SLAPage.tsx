@@ -299,7 +299,7 @@ const SLAPage: React.FC = () => {
                 ) : (
                     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                         {/* Table Section */}
-                        <div className="overflow-x-auto pb-12 scrollbar-hide">
+                        <div className="overflow-x-auto pb-12 custom-scrollbar">
                             <table className="w-full min-w-[1200px] text-left border-separate border-spacing-y-3 whitespace-nowrap">
                                 <thead>
                                     <tr className="uppercase tracking-widest text-[11px] font-extrabold text-gray-400">
