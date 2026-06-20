@@ -76,14 +76,12 @@ const SLAPage: React.FC = () => {
                     }
 
                     if (record.startDate && cleanStartTime) {
-                        const startStrISO = record.startDate.includes('-') ? `${record.startDate}T${cleanStartTime}:00Z` : `${record.startDate} ${cleanStartTime}:00Z`;
-                        const start = new Date(startStrISO);
+                        const startStr = record.startDate.includes('-') ? `${record.startDate}T${cleanStartTime}:00` : `${record.startDate} ${cleanStartTime}:00`;
+                        const start = new Date(startStr);
 
                         if (!isNaN(start.getTime())) {
-                            start.setMinutes(start.getMinutes() - 1);
-                            
-                            newStartTime = `${formatTimeIST(start)} hrs`;
-                            newDisplayStartDate = formatDateIST(start, { day: 'numeric', month: 'short', year: 'numeric' });
+                            newStartTime = record.startTime.includes('hrs') ? record.startTime : `${record.startTime} hrs`;
+                            newDisplayStartDate = record.displayStartDate || record.startDate;
                         }
 
                         if (finalCloseDate && cleanEndTime && !isNaN(start.getTime())) {
