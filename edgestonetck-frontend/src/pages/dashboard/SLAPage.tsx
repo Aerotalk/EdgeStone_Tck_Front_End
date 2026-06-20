@@ -17,7 +17,7 @@ import { DatePickerDropdown, type FilterType } from '../../components/ui/DatePic
 import { SLARulesModal } from '../../components/ui/SLARulesModal';
 
 import { slaRecordService, type SLARecord } from '../../services/slaRecordService';
-import { formatDateIST, formatTimeIST } from '../../utils/dateUtils';
+import { formatDateIST } from '../../utils/dateUtils';
 
 
 
