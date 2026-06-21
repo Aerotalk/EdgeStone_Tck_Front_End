@@ -10,29 +10,34 @@ interface TopbarProps {
     showSearch?: boolean;
     searchPlaceholder?: string;
     onSearch?: (query: string) => void;
+    /** Optional extra refresh callback — called when the refresh button is clicked.
+     *  Use this on pages that manage their own data (e.g. SLAPage). */
+    onRefresh?: () => void | Promise<void>;
 }
 
 export const Topbar: React.FC<TopbarProps> = ({
     title,
     showSearch = true,
     searchPlaceholder = "Search",
-    onSearch
+    onSearch,
+    onRefresh,
 }) => {
     const dashboardData = useDashboardData();
     const [isRefreshing, setIsRefreshing] = useState(false);
 
     const handleRefresh = async () => {
-        if (!dashboardData) {
-            window.location.reload();
-            return;
-        }
         try {
             setIsRefreshing(true);
-            await dashboardData.refresh();
-            toast.success('System data refreshed successfully');
+            // Run dashboard-wide refresh and any page-specific refresh in parallel
+            const tasks: Promise<void>[] = [];
+            if (dashboardData) tasks.push(dashboardData.refresh());
+            if (onRefresh) tasks.push(Promise.resolve(onRefresh()));
+            if (tasks.length === 0) { window.location.reload(); return; }
+            await Promise.all(tasks);
+            toast.success('Data refreshed successfully');
         } catch (err) {
             console.error(err);
-            toast.error('Failed to refresh system data');
+            toast.error('Failed to refresh data');
         } finally {
             setTimeout(() => setIsRefreshing(false), 800);
         }
