@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Topbar } from '../../components/ui/Topbar';
 import {
     Calendar,
@@ -20,6 +20,64 @@ import { slaRecordService, type SLARecord } from '../../services/slaRecordServic
 import { formatDateIST } from '../../utils/dateUtils';
 
 
+
+/** Wraps the SLA table and only shows the horizontal scrollbar when content overflows.
+ *  Left / right fade shadows give a visual hint that more columns exist. */
+const TableScrollWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [canScrollLeft, setCanScrollLeft] = useState(false);
+    const [canScrollRight, setCanScrollRight] = useState(false);
+    const [isOverflowing, setIsOverflowing] = useState(false);
+
+    const update = useCallback(() => {
+        const el = containerRef.current;
+        if (!el) return;
+        const overflow = el.scrollWidth > el.clientWidth;
+        setIsOverflowing(overflow);
+        setCanScrollLeft(el.scrollLeft > 0);
+        setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+    }, []);
+
+    useEffect(() => {
+        const el = containerRef.current;
+        if (!el) return;
+        update();
+        el.addEventListener('scroll', update, { passive: true });
+        const ro = new ResizeObserver(update);
+        ro.observe(el);
+        return () => {
+            el.removeEventListener('scroll', update);
+            ro.disconnect();
+        };
+    }, [update]);
+
+    return (
+        <div className="relative">
+            {/* Left fade shadow */}
+            <div
+                className="pointer-events-none absolute left-0 top-0 bottom-0 w-12 z-10 transition-opacity duration-300"
+                style={{
+                    opacity: canScrollLeft ? 1 : 0,
+                    background: 'linear-gradient(to right, rgba(255,255,255,0.95), transparent)',
+                }}
+            />
+            {/* Right fade shadow */}
+            <div
+                className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 z-10 transition-opacity duration-300"
+                style={{
+                    opacity: canScrollRight ? 1 : 0,
+                    background: 'linear-gradient(to left, rgba(255,255,255,0.95), transparent)',
+                }}
+            />
+            <div
+                ref={containerRef}
+                className={`overflow-x-auto ${isOverflowing ? 'sla-dynamic-scrollbar' : 'overflow-x-hidden'}`}
+            >
+                {children}
+            </div>
+        </div>
+    );
+};
 
 
 const SLAPage: React.FC = () => {
@@ -182,7 +240,7 @@ const SLAPage: React.FC = () => {
 
     return (
         <div className="flex flex-col h-full overflow-hidden bg-[#F9FAFB]">
-            <Topbar title="SLA" showSearch={true} searchPlaceholder="Search by ticket id..." onSearch={(q) => setSearchQuery(q)} />
+            <Topbar title="SLA" showSearch={true} searchPlaceholder="Search by ticket id..." onSearch={(q) => setSearchQuery(q)} onRefresh={fetchRecords} />
 
             {/* SLA Rules Button Bar */}
             <div className="bg-white border-b border-gray-50 flex-shrink-0 z-10">
@@ -299,7 +357,7 @@ const SLAPage: React.FC = () => {
                 ) : (
                     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                         {/* Table Section */}
-                        <div className="overflow-x-auto pb-12 custom-scrollbar">
+                        <TableScrollWrapper>
                             <table className="w-full min-w-[1200px] text-left border-separate border-spacing-y-3 whitespace-nowrap">
                                 <thead>
                                     <tr className="uppercase tracking-widest text-[11px] font-extrabold text-gray-400">
@@ -451,7 +509,7 @@ const SLAPage: React.FC = () => {
                                     )}
                                 </tbody>
                             </table>
-                        </div>
+                        </TableScrollWrapper>
                     </div>
                 )}
             </div>
