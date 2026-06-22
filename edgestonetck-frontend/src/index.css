@@ -24,27 +24,21 @@
         background-color: #d1d5db;
     }
 
-    /* SLA table container — hides native scrollbar; sticky mirror bar is used instead */
-    .sla-no-scrollbar {
-        scrollbar-width: none;        /* Firefox */
-        -ms-overflow-style: none;     /* IE/Edge */
-    }
-    .sla-no-scrollbar::-webkit-scrollbar {
-        display: none;                /* Chrome / Safari */
-    }
-
-    /* SLA sticky mirror scrollbar (rendered below table, sticks to viewport bottom) */
+    /* SLA table scrollbar — both H and V, always visible at the edges of the table viewport */
     .sla-dynamic-scrollbar {
         scrollbar-width: thin;
-        scrollbar-color: #e5303b transparent;
+        scrollbar-color: #e5303b #f3f4f6;
     }
     .sla-dynamic-scrollbar::-webkit-scrollbar {
         height: 8px;
+        width: 8px;
     }
     .sla-dynamic-scrollbar::-webkit-scrollbar-track {
         background: #f3f4f6;
         border-radius: 99px;
-        margin: 0 16px;
+    }
+    .sla-dynamic-scrollbar::-webkit-scrollbar-corner {
+        background: #f3f4f6;
     }
     .sla-dynamic-scrollbar::-webkit-scrollbar-thumb {
         background: linear-gradient(90deg, #e5303b 0%, #f87171 100%);
