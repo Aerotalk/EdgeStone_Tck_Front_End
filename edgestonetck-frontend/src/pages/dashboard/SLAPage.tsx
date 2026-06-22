@@ -21,35 +21,76 @@ import { formatDateIST } from '../../utils/dateUtils';
 
 
 
-/** Wraps the SLA table and only shows the horizontal scrollbar when content overflows.
- *  Left / right fade shadows give a visual hint that more columns exist. */
+/** Wraps the SLA table and provides:
+ *  1. Left/right fade shadows hinting at hidden columns.
+ *  2. A sticky mirror scrollbar fixed to the bottom of the viewport,
+ *     so users can scroll horizontally without scrolling all the way
+ *     down to the real scrollbar. */
 const TableScrollWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const containerRef = useRef<HTMLDivElement>(null);
-    const [canScrollLeft, setCanScrollLeft] = useState(false);
-    const [canScrollRight, setCanScrollRight] = useState(false);
-    const [isOverflowing, setIsOverflowing] = useState(false);
+    const mirrorRef   = useRef<HTMLDivElement>(null);
+    const phantomRef  = useRef<HTMLDivElement>(null);
+    const isSyncingContainer = useRef(false);
+    const isSyncingMirror    = useRef(false);
 
-    const update = useCallback(() => {
+    const [canScrollLeft,  setCanScrollLeft]  = useState(false);
+    const [canScrollRight, setCanScrollRight] = useState(false);
+    const [isOverflowing,  setIsOverflowing]  = useState(false);
+    const [scrollWidth,    setScrollWidth]    = useState(0);
+
+    // Keep shadow / overflow state in sync
+    const updateState = useCallback(() => {
         const el = containerRef.current;
         if (!el) return;
         const overflow = el.scrollWidth > el.clientWidth;
         setIsOverflowing(overflow);
         setCanScrollLeft(el.scrollLeft > 0);
         setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+        setScrollWidth(el.scrollWidth);
     }, []);
 
     useEffect(() => {
         const el = containerRef.current;
         if (!el) return;
-        update();
-        el.addEventListener('scroll', update, { passive: true });
-        const ro = new ResizeObserver(update);
+        updateState();
+        el.addEventListener('scroll', updateState, { passive: true });
+        const ro = new ResizeObserver(updateState);
         ro.observe(el);
         return () => {
-            el.removeEventListener('scroll', update);
+            el.removeEventListener('scroll', updateState);
             ro.disconnect();
         };
-    }, [update]);
+    }, [updateState]);
+
+    // Sync: table → mirror bar
+    useEffect(() => {
+        const el = containerRef.current;
+        const mr = mirrorRef.current;
+        if (!el || !mr) return;
+        const onTableScroll = () => {
+            if (isSyncingMirror.current) return;
+            isSyncingContainer.current = true;
+            mr.scrollLeft = el.scrollLeft;
+            requestAnimationFrame(() => { isSyncingContainer.current = false; });
+        };
+        el.addEventListener('scroll', onTableScroll, { passive: true });
+        return () => el.removeEventListener('scroll', onTableScroll);
+    }, []);
+
+    // Sync: mirror bar → table
+    useEffect(() => {
+        const el = containerRef.current;
+        const mr = mirrorRef.current;
+        if (!el || !mr) return;
+        const onMirrorScroll = () => {
+            if (isSyncingContainer.current) return;
+            isSyncingMirror.current = true;
+            el.scrollLeft = mr.scrollLeft;
+            requestAnimationFrame(() => { isSyncingMirror.current = false; });
+        };
+        mr.addEventListener('scroll', onMirrorScroll, { passive: true });
+        return () => mr.removeEventListener('scroll', onMirrorScroll);
+    }, []);
 
     return (
         <div className="relative">
@@ -69,12 +110,29 @@ const TableScrollWrapper: React.FC<{ children: React.ReactNode }> = ({ children 
                     background: 'linear-gradient(to left, rgba(255,255,255,0.95), transparent)',
                 }}
             />
+
+            {/* Actual table — hidden native scrollbar */}
             <div
                 ref={containerRef}
-                className={`overflow-x-auto ${isOverflowing ? 'sla-dynamic-scrollbar' : 'overflow-x-hidden'}`}
+                className="overflow-x-auto sla-hide-native-scrollbar"
             >
                 {children}
             </div>
+
+            {/* ── Sticky mirror scrollbar ── */}
+            {isOverflowing && (
+                <div
+                    ref={mirrorRef}
+                    className="sticky bottom-0 overflow-x-auto sla-dynamic-scrollbar z-20"
+                    style={{ background: 'transparent' }}
+                >
+                    {/* phantom element whose width equals the table's scroll width */}
+                    <div
+                        ref={phantomRef}
+                        style={{ width: scrollWidth, height: 1 }}
+                    />
+                </div>
+            )}
         </div>
     );
 };

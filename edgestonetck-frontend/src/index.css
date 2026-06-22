@@ -24,13 +24,21 @@
         background-color: #d1d5db;
     }
 
-    /* SLA table — dynamic scrollbar (only rendered when content overflows) */
+    /* SLA table — hide native scrollbar on the container (replaced by sticky mirror) */
+    .sla-hide-native-scrollbar {
+        scrollbar-width: none; /* Firefox */
+    }
+    .sla-hide-native-scrollbar::-webkit-scrollbar {
+        display: none; /* Chrome/Safari/Edge */
+    }
+
+    /* SLA sticky mirror scrollbar at the bottom of the viewport */
     .sla-dynamic-scrollbar {
         scrollbar-width: thin;
         scrollbar-color: #d1d5db transparent;
     }
     .sla-dynamic-scrollbar::-webkit-scrollbar {
-        height: 6px;
+        height: 8px;
     }
     .sla-dynamic-scrollbar::-webkit-scrollbar-track {
         background: #f3f4f6;
