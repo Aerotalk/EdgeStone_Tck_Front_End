@@ -23,22 +23,21 @@ import { formatDateIST } from '../../utils/dateUtils';
 
 /** Wraps the SLA table and provides:
  *  1. Left/right fade shadows hinting at hidden columns.
- *  2. A sticky mirror scrollbar fixed to the bottom of the viewport,
- *     so users can scroll horizontally without scrolling all the way
- *     down to the real scrollbar. */
+ *  2. A sticky mirror scrollbar pinned to the bottom of the viewport,
+ *     so users can scroll horizontally at ANY time without having to
+ *     scroll all the way down to the bottom of the table first. */
 const TableScrollWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const containerRef = useRef<HTMLDivElement>(null);
-    const mirrorRef   = useRef<HTMLDivElement>(null);
-    const phantomRef  = useRef<HTMLDivElement>(null);
-    const isSyncingContainer = useRef(false);
-    const isSyncingMirror    = useRef(false);
+    const mirrorRef    = useRef<HTMLDivElement>(null);
+    const syncingFromTable  = useRef(false);
+    const syncingFromMirror = useRef(false);
 
     const [canScrollLeft,  setCanScrollLeft]  = useState(false);
     const [canScrollRight, setCanScrollRight] = useState(false);
     const [isOverflowing,  setIsOverflowing]  = useState(false);
-    const [scrollWidth,    setScrollWidth]    = useState(0);
+    const [tableScrollWidth, setTableScrollWidth] = useState(0);
 
-    // Keep shadow / overflow state in sync
+    // Update shadow/overflow state whenever table scrolls or resizes
     const updateState = useCallback(() => {
         const el = containerRef.current;
         if (!el) return;
@@ -46,7 +45,7 @@ const TableScrollWrapper: React.FC<{ children: React.ReactNode }> = ({ children 
         setIsOverflowing(overflow);
         setCanScrollLeft(el.scrollLeft > 0);
         setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
-        setScrollWidth(el.scrollWidth);
+        setTableScrollWidth(el.scrollWidth);
     }, []);
 
     useEffect(() => {
@@ -62,35 +61,35 @@ const TableScrollWrapper: React.FC<{ children: React.ReactNode }> = ({ children 
         };
     }, [updateState]);
 
-    // Sync: table → mirror bar
+    // Sync: table scrolls → move mirror bar
     useEffect(() => {
         const el = containerRef.current;
         const mr = mirrorRef.current;
         if (!el || !mr) return;
-        const onTableScroll = () => {
-            if (isSyncingMirror.current) return;
-            isSyncingContainer.current = true;
+        const handler = () => {
+            if (syncingFromMirror.current) return;
+            syncingFromTable.current = true;
             mr.scrollLeft = el.scrollLeft;
-            requestAnimationFrame(() => { isSyncingContainer.current = false; });
+            requestAnimationFrame(() => { syncingFromTable.current = false; });
         };
-        el.addEventListener('scroll', onTableScroll, { passive: true });
-        return () => el.removeEventListener('scroll', onTableScroll);
-    }, []);
+        el.addEventListener('scroll', handler, { passive: true });
+        return () => el.removeEventListener('scroll', handler);
+    }, [isOverflowing]);
 
-    // Sync: mirror bar → table
+    // Sync: mirror bar dragged → scroll table
     useEffect(() => {
         const el = containerRef.current;
         const mr = mirrorRef.current;
         if (!el || !mr) return;
-        const onMirrorScroll = () => {
-            if (isSyncingContainer.current) return;
-            isSyncingMirror.current = true;
+        const handler = () => {
+            if (syncingFromTable.current) return;
+            syncingFromMirror.current = true;
             el.scrollLeft = mr.scrollLeft;
-            requestAnimationFrame(() => { isSyncingMirror.current = false; });
+            requestAnimationFrame(() => { syncingFromMirror.current = false; });
         };
-        mr.addEventListener('scroll', onMirrorScroll, { passive: true });
-        return () => mr.removeEventListener('scroll', onMirrorScroll);
-    }, []);
+        mr.addEventListener('scroll', handler, { passive: true });
+        return () => mr.removeEventListener('scroll', handler);
+    }, [isOverflowing]);
 
     return (
         <div className="relative">
@@ -111,26 +110,22 @@ const TableScrollWrapper: React.FC<{ children: React.ReactNode }> = ({ children 
                 }}
             />
 
-            {/* Actual table — hidden native scrollbar */}
+            {/* Table — native scrollbar hidden; mirror bar is used instead */}
             <div
                 ref={containerRef}
-                className="overflow-x-auto sla-hide-native-scrollbar"
+                className="overflow-x-auto sla-no-scrollbar"
             >
                 {children}
             </div>
 
-            {/* ── Sticky mirror scrollbar ── */}
+            {/* Sticky mirror scrollbar — always visible at bottom of viewport */}
             {isOverflowing && (
                 <div
                     ref={mirrorRef}
                     className="sticky bottom-0 overflow-x-auto sla-dynamic-scrollbar z-20"
-                    style={{ background: 'transparent' }}
                 >
-                    {/* phantom element whose width equals the table's scroll width */}
-                    <div
-                        ref={phantomRef}
-                        style={{ width: scrollWidth, height: 1 }}
-                    />
+                    {/* Phantom element matching the table's full scroll width */}
+                    <div style={{ width: tableScrollWidth, height: 1 }} />
                 </div>
             )}
         </div>
