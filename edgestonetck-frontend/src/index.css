@@ -27,7 +27,7 @@
     /* SLA table scrollbar — both H and V, always visible at the edges of the table viewport */
     .sla-dynamic-scrollbar {
         scrollbar-width: thin;
-        scrollbar-color: #e5303b #f3f4f6;
+        scrollbar-color: rgba(229, 48, 59, 0.35) #f3f4f6;
     }
     .sla-dynamic-scrollbar::-webkit-scrollbar {
         height: 8px;
@@ -41,11 +41,11 @@
         background: #f3f4f6;
     }
     .sla-dynamic-scrollbar::-webkit-scrollbar-thumb {
-        background: linear-gradient(90deg, #e5303b 0%, #f87171 100%);
+        background: rgba(229, 48, 59, 0.35);
         border-radius: 99px;
         transition: background 0.2s;
     }
     .sla-dynamic-scrollbar::-webkit-scrollbar-thumb:hover {
-        background: linear-gradient(90deg, #c01830 0%, #e5303b 100%);
+        background: rgba(229, 48, 59, 0.6);
     }
 }
