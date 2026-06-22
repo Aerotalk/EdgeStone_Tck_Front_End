@@ -21,78 +21,38 @@ import { formatDateIST } from '../../utils/dateUtils';
 
 
 
-/** Wraps the SLA table and provides:
- *  1. Left/right fade shadows hinting at hidden columns.
- *  2. A sticky mirror scrollbar pinned to the bottom of the viewport,
- *     so users can scroll horizontally at ANY time without having to
- *     scroll all the way down to the bottom of the table first. */
+/** Wraps the SLA table.
+ *  - Fills all remaining height (flex-1).
+ *  - Scrolls both axes within that fixed area — scrollbars always at visible edges.
+ *  - Left/right fade shadows hint that more columns exist. */
 const TableScrollWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const containerRef = useRef<HTMLDivElement>(null);
-    const mirrorRef    = useRef<HTMLDivElement>(null);
-    const syncingFromTable  = useRef(false);
-    const syncingFromMirror = useRef(false);
-
-    const [canScrollLeft,  setCanScrollLeft]  = useState(false);
+    const [canScrollLeft, setCanScrollLeft] = useState(false);
     const [canScrollRight, setCanScrollRight] = useState(false);
-    const [isOverflowing,  setIsOverflowing]  = useState(false);
-    const [tableScrollWidth, setTableScrollWidth] = useState(0);
 
-    // Update shadow/overflow state whenever table scrolls or resizes
-    const updateState = useCallback(() => {
+    const update = useCallback(() => {
         const el = containerRef.current;
         if (!el) return;
-        const overflow = el.scrollWidth > el.clientWidth;
-        setIsOverflowing(overflow);
         setCanScrollLeft(el.scrollLeft > 0);
         setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
-        setTableScrollWidth(el.scrollWidth);
     }, []);
 
     useEffect(() => {
         const el = containerRef.current;
         if (!el) return;
-        updateState();
-        el.addEventListener('scroll', updateState, { passive: true });
-        const ro = new ResizeObserver(updateState);
+        update();
+        el.addEventListener('scroll', update, { passive: true });
+        const ro = new ResizeObserver(update);
         ro.observe(el);
         return () => {
-            el.removeEventListener('scroll', updateState);
+            el.removeEventListener('scroll', update);
             ro.disconnect();
         };
-    }, [updateState]);
-
-    // Sync: table scrolls → move mirror bar
-    useEffect(() => {
-        const el = containerRef.current;
-        const mr = mirrorRef.current;
-        if (!el || !mr) return;
-        const handler = () => {
-            if (syncingFromMirror.current) return;
-            syncingFromTable.current = true;
-            mr.scrollLeft = el.scrollLeft;
-            requestAnimationFrame(() => { syncingFromTable.current = false; });
-        };
-        el.addEventListener('scroll', handler, { passive: true });
-        return () => el.removeEventListener('scroll', handler);
-    }, [isOverflowing]);
-
-    // Sync: mirror bar dragged → scroll table
-    useEffect(() => {
-        const el = containerRef.current;
-        const mr = mirrorRef.current;
-        if (!el || !mr) return;
-        const handler = () => {
-            if (syncingFromTable.current) return;
-            syncingFromMirror.current = true;
-            el.scrollLeft = mr.scrollLeft;
-            requestAnimationFrame(() => { syncingFromMirror.current = false; });
-        };
-        mr.addEventListener('scroll', handler, { passive: true });
-        return () => mr.removeEventListener('scroll', handler);
-    }, [isOverflowing]);
+    }, [update]);
 
     return (
-        <div className="relative">
+        /* fill all available height; clip content so scrollbars stay inside the card */
+        <div className="relative flex-1 flex flex-col overflow-hidden">
             {/* Left fade shadow */}
             <div
                 className="pointer-events-none absolute left-0 top-0 bottom-0 w-12 z-10 transition-opacity duration-300"
@@ -109,28 +69,18 @@ const TableScrollWrapper: React.FC<{ children: React.ReactNode }> = ({ children 
                     background: 'linear-gradient(to left, rgba(255,255,255,0.95), transparent)',
                 }}
             />
-
-            {/* Table — native scrollbar hidden; mirror bar is used instead */}
+            {/* The actual scrollable table area — both axes, scrollbars at visible edges */}
             <div
                 ref={containerRef}
-                className="overflow-x-auto sla-no-scrollbar"
+                className="flex-1 overflow-auto sla-dynamic-scrollbar"
+                onScroll={update}
             >
                 {children}
             </div>
-
-            {/* Sticky mirror scrollbar — always visible at bottom of viewport */}
-            {isOverflowing && (
-                <div
-                    ref={mirrorRef}
-                    className="sticky bottom-0 overflow-x-auto sla-dynamic-scrollbar z-20"
-                >
-                    {/* Phantom element matching the table's full scroll width */}
-                    <div style={{ width: tableScrollWidth, height: 1 }} />
-                </div>
-            )}
         </div>
     );
 };
+
 
 
 const SLAPage: React.FC = () => {
@@ -371,10 +321,11 @@ const SLAPage: React.FC = () => {
                 </div>
             </div>
 
-            <div className="flex-1 overflow-auto bg-gray-50/50 p-6">
+            <div className="flex-1 overflow-hidden bg-gray-50/50 p-6 flex flex-col">
                 {activeTab === 'Export' ? (
-                    <div className="max-w-4xl mx-auto mt-10">
-                        <div className="bg-white rounded-2xl p-10 border border-gray-100 shadow-sm text-center">
+                    <div className="overflow-auto flex-1">
+                        <div className="max-w-4xl mx-auto mt-10">
+                            <div className="bg-white rounded-2xl p-10 border border-gray-100 shadow-sm text-center">
                             <div className="w-20 h-20 bg-green-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
                                 <FileSpreadsheet className="text-green-600" size={40} strokeWidth={2} />
                             </div>
@@ -405,10 +356,11 @@ const SLAPage: React.FC = () => {
                                     <p className="text-xs text-gray-500">Uptime, Downtime, and actual SLA Availability mathematically mapped.</p>
                                 </div>
                             </div>
-                        </div>
+                            </div>  {/* end bg-white card */}
+                        </div>  {/* end max-w-4xl */}
                     </div>
                 ) : (
-                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm flex-1 flex flex-col overflow-hidden">
                         {/* Table Section */}
                         <TableScrollWrapper>
                             <table className="w-full min-w-[1200px] text-left border-separate border-spacing-y-3 whitespace-nowrap">
