@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Topbar } from '../../components/ui/Topbar';
 import {
     Calendar,
@@ -84,6 +85,8 @@ const TableScrollWrapper: React.FC<{ children: React.ReactNode }> = ({ children 
 
 
 const SLAPage: React.FC = () => {
+    const navigate = useNavigate();
+    const { id } = useParams<{ id: string }>();
     const [activeTab, setActiveTab] = useState<'Client' | 'Vendor' | 'Export'>('Client');
     const [searchQuery, setSearchQuery] = useState('');
     const [isSLARulesModalOpen, setIsSLARulesModalOpen] = useState(false);
@@ -387,7 +390,7 @@ const SLAPage: React.FC = () => {
                                                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-red/10 to-brand-red/5 flex items-center justify-center text-brand-red font-bold text-[11px] shadow-inner border border-brand-red/10">
                                                         #{index + 1}
                                                     </div>
-                                                    <a href="#" className="text-[14px] font-bold text-gray-900 group-hover:text-brand-red transition-colors underline decoration-transparent hover:decoration-brand-red/30 underline-offset-4">
+                                                    <a href="#" onClick={(e) => { e.preventDefault(); navigate(`/dashboard/${id}/tickets?ticketId=${encodeURIComponent(record.ticketId)}`); }} className="text-[14px] font-bold text-gray-900 group-hover:text-brand-red transition-colors underline decoration-transparent hover:decoration-brand-red/30 underline-offset-4">
                                                         {record.ticketId}
                                                     </a>
                                                 </div>

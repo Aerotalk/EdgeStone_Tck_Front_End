@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { TicketReplyView } from './TicketReplyView';
 import { Topbar } from '../../components/ui/Topbar';
 import { SubHeader } from '../../components/ui/SubHeader';
@@ -20,7 +21,10 @@ interface UITicket extends Ticket {
 
 const TicketsPage: React.FC = () => {
     const { refresh: refreshDashboard } = useDashboardData();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const urlTicketId = searchParams.get('ticketId');
     const [activeTab, setActiveTab] = useState('open');
+    const [searchQuery, setSearchQuery] = useState('');
     const [appliedFilter, setAppliedFilter] = useState<FilterType>('all');
     const [appliedCustomRange, setAppliedCustomRange] = useState({ start: '', end: '' });
     const [tickets, setTickets] = useState<UITicket[]>([]);
@@ -84,11 +88,32 @@ const TicketsPage: React.FC = () => {
 
     const [selectedTicket, setSelectedTicket] = useState<UITicket | null>(null);
 
+    useEffect(() => {
+        if (urlTicketId && tickets.length > 0) {
+            const cleanUrlId = urlTicketId.toLowerCase().replace(/^#+/, '');
+            const matched = tickets.find(t => t.ticketId && t.ticketId.toLowerCase().replace(/^#+/, '') === cleanUrlId);
+            if (matched) {
+                setSelectedTicket(matched);
+                if (matched.status) {
+                    setActiveTab(matched.status.toLowerCase().replace(/\s+/g, '-'));
+                }
+            }
+        }
+    }, [urlTicketId, tickets]);
+
     const filteredTickets = tickets.filter(t => {
         // Use DB status as source of truth — normalise "In Progress" → "in-progress"
         const currentStatus = (t.status || '').toLowerCase().replace(/\s+/g, '-');
 
         if (!currentStatus || currentStatus !== activeTab) return false;
+
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase().trim();
+            const cleanQuery = query.replace(/^#+/, '');
+            const matchesId = t.ticketId ? t.ticketId.toLowerCase().replace(/^#+/, '').includes(cleanQuery) : false;
+            const matchesName = t.name ? t.name.toLowerCase().includes(query) : false;
+            if (!matchesId && !matchesName) return false;
+        }
 
         // Date filter — all comparisons done in IST to avoid UTC midnight shift bugs.
         // We derive a comparable YYYY-MM-DD string in IST for both the ticket and today.
@@ -133,6 +158,10 @@ const TicketsPage: React.FC = () => {
                     ticket={selectedTicket}
                     onBack={() => {
                         setSelectedTicket(null);
+                        if (searchParams.has('ticketId')) {
+                            searchParams.delete('ticketId');
+                            setSearchParams(searchParams);
+                        }
                         fetchTickets(); // Refresh local list
                         refreshDashboard(); // Sync dashboard counts
                     }}
@@ -143,7 +172,7 @@ const TicketsPage: React.FC = () => {
 
     return (
         <div className="flex flex-col h-full overflow-hidden bg-[#F9FAFB]">
-            <Topbar title="Tickets" searchPlaceholder="Search tickets..." />
+            <Topbar title="Tickets" searchPlaceholder="Search tickets..." onSearch={setSearchQuery} />
 
             <SubHeader
                 tabs={tabs}
