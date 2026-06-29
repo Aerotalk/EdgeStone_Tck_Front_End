@@ -117,20 +117,20 @@ const SLAPage: React.FC = () => {
             });
 
             const adjustedRecords = serverRecords.map(record => {
-                let finalClosedTime = record.closedTime || '';
-                if (finalClosedTime && !finalClosedTime.includes('hrs')) {
+                let finalClosedTime = (record.closedTime || '').replace(/^24:/, '00:');
+                if (finalClosedTime && finalClosedTime !== '-' && !finalClosedTime.includes('hrs')) {
                     finalClosedTime = `${finalClosedTime} hrs`;
                 }
 
-                let newStartTime = record.startTime;
+                let newStartTime = (record.startTime || '').replace(/^24:/, '00:');
                 let newDisplayStartDate = record.displayStartDate || record.startDate;
                 let downtimeStr = record.downtime || '-';
                 
                 let finalCloseDate = record.closeDate || '';
 
                 try {
-                    const cleanStartTime = record.startTime?.replace(' hrs', '').trim();
-                    const cleanEndTime = record.closedTime?.replace(' hrs', '').trim();
+                    const cleanStartTime = record.startTime?.replace(' hrs', '').trim().replace(/^24:/, '00:');
+                    const cleanEndTime = record.closedTime?.replace(' hrs', '').trim().replace(/^24:/, '00:');
 
                     // Overwrite DB placeholder unset dates
                     if (finalCloseDate && (finalCloseDate.includes('2000') || finalCloseDate.includes('1970'))) {
@@ -144,7 +144,7 @@ const SLAPage: React.FC = () => {
                         const start = new Date(startStr);
 
                         if (!isNaN(start.getTime())) {
-                            newStartTime = record.startTime.includes('hrs') ? record.startTime : `${record.startTime} hrs`;
+                            newStartTime = newStartTime.includes('hrs') ? newStartTime : `${newDisplayStartDate ? newStartTime : newStartTime + ' hrs'}`;
                             newDisplayStartDate = record.displayStartDate || record.startDate;
                         }
 
