@@ -316,8 +316,26 @@ const CircuitsPage: React.FC = () => {
     };
 
     // ── Add handlers ───────────────────────────────────────────────────────
-    const handleAddChange = (key: keyof CreateCircuitData, value: any) =>
-        setAddForm(prev => ({ ...prev, [key]: value }));
+    const handleAddChange = (key: keyof CreateCircuitData, value: any) => {
+        setAddForm(prev => {
+            const next = { ...prev, [key]: value };
+            
+            // Auto-fill logic for temporary circuit
+            if (next.isTemporary && next.customerCircuitId && (key === 'isTemporary' || key === 'customerCircuitId')) {
+                const existing = circuits.find(c => c.customerCircuitId === next.customerCircuitId);
+                if (existing) {
+                    const mapped = circuitToForm(existing);
+                    return {
+                        ...mapped,
+                        customerCircuitId: next.customerCircuitId,
+                        supplierCircuitId: next.supplierCircuitId || mapped.supplierCircuitId,
+                        isTemporary: true,
+                    };
+                }
+            }
+            return next;
+        });
+    };
 
     const handleAddSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
