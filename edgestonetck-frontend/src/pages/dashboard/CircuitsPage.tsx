@@ -322,7 +322,8 @@ const CircuitsPage: React.FC = () => {
             
             // Auto-fill logic for temporary circuit
             if (next.isTemporary && next.customerCircuitId && (key === 'isTemporary' || key === 'customerCircuitId')) {
-                const existing = circuits.find(c => c.customerCircuitId === next.customerCircuitId);
+                const searchId = next.customerCircuitId.trim().toLowerCase();
+                const existing = circuits.find(c => c.customerCircuitId.trim().toLowerCase() === searchId);
                 if (existing) {
                     const mapped = circuitToForm(existing);
                     return {
