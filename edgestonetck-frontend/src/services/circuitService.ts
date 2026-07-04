@@ -27,6 +27,7 @@ export interface Circuit {
 export interface CreateCircuitData {
     customerCircuitId: string;
     supplierCircuitId?: string | null;
+    isTemporary?: boolean;
     type?: 'PROTECTED' | 'UNPROTECTED';
     vendorId?: string | null;
     clientId?: string | null;

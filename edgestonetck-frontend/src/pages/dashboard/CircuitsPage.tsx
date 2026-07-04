@@ -30,6 +30,7 @@ const blankForm = (): CreateCircuitData => ({
     supplierMrc: undefined,
     nrc: undefined,
     supplierNrc: undefined,
+    isTemporary: false,
 });
 
 const circuitToForm = (c: Circuit): CreateCircuitData => ({
@@ -122,6 +123,20 @@ const CircuitFormModal: React.FC<CircuitFormModalProps> = ({
                                     className={inputCls}
                                 />
                             </Field>
+                            {mode === 'add' && (
+                                <div className="sm:col-span-2 flex items-center gap-2 mt-2">
+                                    <input
+                                        type="checkbox"
+                                        id="isTemporary"
+                                        checked={form.isTemporary ?? false}
+                                        onChange={e => onChange('isTemporary', e.target.checked)}
+                                        className="w-4 h-4 text-brand-red border-gray-300 rounded focus:ring-brand-red cursor-pointer"
+                                    />
+                                    <label htmlFor="isTemporary" className="text-sm font-medium text-gray-700 cursor-pointer select-none">
+                                        Temporary Circuit
+                                    </label>
+                                </div>
+                            )}
                         </div>
                     </div>
 
