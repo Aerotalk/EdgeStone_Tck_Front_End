@@ -31,6 +31,8 @@ const blankForm = (): CreateCircuitData => ({
     nrc: undefined,
     supplierNrc: undefined,
     isTemporary: false,
+    isMultiVendor: false,
+    vendorCircuits: [],
 });
 
 const circuitToForm = (c: Circuit): CreateCircuitData => ({
@@ -52,6 +54,8 @@ const circuitToForm = (c: Circuit): CreateCircuitData => ({
     supplierMrc:                c.supplierMrc,
     nrc:                        c.nrc ?? undefined,
     supplierNrc:                c.supplierNrc ?? undefined,
+    isMultiVendor:              c.isMultiVendor ?? false,
+    vendorCircuits:             c.vendorCircuits ?? [],
 });
 
 // ─── Reusable labeled input ───────────────────────────────────────────────────
@@ -82,7 +86,29 @@ interface CircuitFormModalProps {
 
 const CircuitFormModal: React.FC<CircuitFormModalProps> = ({
     mode, form, onChange, onSubmit, onClose, submitting, vendors, clients
-}) => (
+}) => {
+    const [activeTab, setActiveTab] = React.useState(0);
+
+    const addVendorTab = () => {
+        const newVc = { supplierMrc: 800 };
+        onChange('vendorCircuits', [...(form.vendorCircuits || []), newVc]);
+        setActiveTab((form.vendorCircuits?.length || 0));
+    };
+
+    const updateVendor = (idx: number, key: string, value: any) => {
+        const arr = [...(form.vendorCircuits || [])];
+        arr[idx] = { ...arr[idx], [key]: value };
+        onChange('vendorCircuits', arr);
+    };
+
+    const removeVendor = (idx: number) => {
+        const arr = [...(form.vendorCircuits || [])];
+        arr.splice(idx, 1);
+        onChange('vendorCircuits', arr);
+        if (activeTab >= arr.length) setActiveTab(Math.max(0, arr.length - 1));
+    };
+
+    return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px]">
         <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
             {/* Header */}
@@ -137,6 +163,18 @@ const CircuitFormModal: React.FC<CircuitFormModalProps> = ({
                                     </label>
                                 </div>
                             )}
+                            <div className="sm:col-span-2 flex items-center gap-2 mt-2">
+                                <input
+                                    type="checkbox"
+                                    id="isMultiVendor"
+                                    checked={form.isMultiVendor ?? false}
+                                    onChange={e => onChange('isMultiVendor', e.target.checked)}
+                                    className="w-4 h-4 text-brand-red border-gray-300 rounded focus:ring-brand-red cursor-pointer"
+                                />
+                                <label htmlFor="isMultiVendor" className="text-sm font-medium text-gray-700 cursor-pointer select-none">
+                                    Multi-Vendor Circuit
+                                </label>
+                            </div>
                         </div>
                     </div>
 
@@ -164,12 +202,14 @@ const CircuitFormModal: React.FC<CircuitFormModalProps> = ({
                     <div>
                         <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Associations</p>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <Field label="Vendor">
-                                <select value={form.vendorId ?? ''} onChange={e => onChange('vendorId', e.target.value)} className={selectCls}>
-                                    <option value="">Select a Vendor</option>
-                                    {vendors.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
-                                </select>
-                            </Field>
+                            {!form.isMultiVendor && (
+                                <Field label="Vendor">
+                                    <select value={form.vendorId ?? ''} onChange={e => onChange('vendorId', e.target.value)} className={selectCls}>
+                                        <option value="">Select a Vendor</option>
+                                        {vendors.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+                                    </select>
+                                </Field>
+                            )}
                             <Field label="Client">
                                 <select value={form.clientId ?? ''} onChange={e => onChange('clientId', e.target.value)} className={selectCls}>
                                     <option value="">Select a Client</option>
@@ -205,32 +245,97 @@ const CircuitFormModal: React.FC<CircuitFormModalProps> = ({
                     </div>
 
                     {/* ── Section: Supplier Contract Details ───────────── */}
-                    <div>
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Supplier Contract</p>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <Field label="Supplier PO Number">
-                                <input type="text" value={form.supplierPoNumber ?? ''} onChange={e => onChange('supplierPoNumber', e.target.value)} placeholder="SUP-PO-XXXXX" className={inputCls} />
-                            </Field>
-                            <Field label="Supplier Contract Type">
-                                <input type="text" value={form.supplierContractType ?? ''} onChange={e => onChange('supplierContractType', e.target.value)} placeholder="e.g. Annual" className={inputCls} />
-                            </Field>
-                            <Field label="Supplier Contract Term (Months)">
-                                <input type="number" min={1} value={form.supplierContractTermMonths ?? ''} onChange={e => onChange('supplierContractTermMonths', e.target.value ? Number(e.target.value) : null)} placeholder="12" className={inputCls} />
-                            </Field>
-                            <Field label="Supplier MRC">
-                                <input type="number" min={0} step="0.01" value={form.supplierMrc ?? ''} onChange={e => onChange('supplierMrc', e.target.value ? Number(e.target.value) : null)} placeholder="800.00" className={inputCls} />
-                            </Field>
-                            <Field label="Supplier NRC">
-                                <input type="number" min={0} step="0.01" value={form.supplierNrc ?? ''} onChange={e => onChange('supplierNrc', e.target.value ? Number(e.target.value) : null)} placeholder="40.00" className={inputCls} />
-                            </Field>
-                            <Field label="Billing Start Date">
-                                <input type="date" value={form.billingStartDate ?? ''} onChange={e => onChange('billingStartDate', e.target.value)} className={inputCls} />
-                            </Field>
-                            <Field label="Supplier Service Description">
-                                <input type="text" value={form.supplierServiceDescription ?? ''} onChange={e => onChange('supplierServiceDescription', e.target.value)} placeholder="Supplier service description" className={inputCls} />
-                            </Field>
+                    {!form.isMultiVendor ? (
+                        <div>
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Supplier Contract</p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <Field label="Supplier PO Number">
+                                    <input type="text" value={form.supplierPoNumber ?? ''} onChange={e => onChange('supplierPoNumber', e.target.value)} placeholder="SUP-PO-XXXXX" className={inputCls} />
+                                </Field>
+                                <Field label="Supplier Contract Type">
+                                    <input type="text" value={form.supplierContractType ?? ''} onChange={e => onChange('supplierContractType', e.target.value)} placeholder="e.g. Annual" className={inputCls} />
+                                </Field>
+                                <Field label="Supplier Contract Term (Months)">
+                                    <input type="number" min={1} value={form.supplierContractTermMonths ?? ''} onChange={e => onChange('supplierContractTermMonths', e.target.value ? Number(e.target.value) : null)} placeholder="12" className={inputCls} />
+                                </Field>
+                                <Field label="Supplier MRC">
+                                    <input type="number" min={0} step="0.01" value={form.supplierMrc ?? ''} onChange={e => onChange('supplierMrc', e.target.value ? Number(e.target.value) : null)} placeholder="800.00" className={inputCls} />
+                                </Field>
+                                <Field label="Supplier NRC">
+                                    <input type="number" min={0} step="0.01" value={form.supplierNrc ?? ''} onChange={e => onChange('supplierNrc', e.target.value ? Number(e.target.value) : null)} placeholder="40.00" className={inputCls} />
+                                </Field>
+                                <Field label="Billing Start Date">
+                                    <input type="date" value={form.billingStartDate ?? ''} onChange={e => onChange('billingStartDate', e.target.value)} className={inputCls} />
+                                </Field>
+                                <Field label="Supplier Service Description">
+                                    <input type="text" value={form.supplierServiceDescription ?? ''} onChange={e => onChange('supplierServiceDescription', e.target.value)} placeholder="Supplier service description" className={inputCls} />
+                                </Field>
+                            </div>
                         </div>
-                    </div>
+                    ) : (
+                        <div className="bg-gray-50/50 p-4 rounded-xl border border-gray-100">
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Multi-Vendor Suppliers</p>
+                            
+                            <div className="flex flex-wrap gap-2 mb-4">
+                                {form.vendorCircuits?.map((vc, idx) => (
+                                    <div key={idx} className="relative group">
+                                        <button
+                                            type="button"
+                                            onClick={() => setActiveTab(idx)}
+                                            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === idx ? 'bg-white shadow-sm border border-gray-200 text-brand-red' : 'bg-transparent text-gray-500 hover:bg-gray-100'}`}
+                                        >
+                                            Vendor {idx + 1}
+                                        </button>
+                                        <button type="button" onClick={() => removeVendor(idx)} className="absolute -top-1 -right-1 bg-red-100 text-red-500 rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <X size={12} />
+                                        </button>
+                                    </div>
+                                ))}
+                                <button
+                                    type="button"
+                                    onClick={addVendorTab}
+                                    className="px-4 py-2 rounded-lg text-sm font-semibold text-brand-red bg-red-50 hover:bg-red-100 transition-colors flex items-center gap-1"
+                                >
+                                    <Plus size={14} /> Add Vendor
+                                </button>
+                            </div>
+
+                            {form.vendorCircuits && form.vendorCircuits.length > 0 && form.vendorCircuits[activeTab] && (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-white rounded-xl border border-gray-200 shadow-sm">
+                                    <Field label="Vendor *">
+                                        <select value={form.vendorCircuits[activeTab].vendorId ?? ''} onChange={e => updateVendor(activeTab, 'vendorId', e.target.value)} className={selectCls} required>
+                                            <option value="">Select a Vendor</option>
+                                            {vendors.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+                                        </select>
+                                    </Field>
+                                    <Field label="Supplier Circuit ID">
+                                        <input type="text" value={form.vendorCircuits[activeTab].supplierCircuitId ?? ''} onChange={e => updateVendor(activeTab, 'supplierCircuitId', e.target.value)} placeholder="Auto-generated if blank" className={inputCls} />
+                                    </Field>
+                                    <Field label="Supplier PO Number">
+                                        <input type="text" value={form.vendorCircuits[activeTab].supplierPoNumber ?? ''} onChange={e => updateVendor(activeTab, 'supplierPoNumber', e.target.value)} placeholder="SUP-PO-XXXXX" className={inputCls} />
+                                    </Field>
+                                    <Field label="Supplier Contract Type">
+                                        <input type="text" value={form.vendorCircuits[activeTab].supplierContractType ?? ''} onChange={e => updateVendor(activeTab, 'supplierContractType', e.target.value)} placeholder="e.g. Annual" className={inputCls} />
+                                    </Field>
+                                    <Field label="Supplier Contract Term (Months)">
+                                        <input type="number" min={1} value={form.vendorCircuits[activeTab].supplierContractTermMonths ?? ''} onChange={e => updateVendor(activeTab, 'supplierContractTermMonths', e.target.value ? Number(e.target.value) : null)} placeholder="12" className={inputCls} />
+                                    </Field>
+                                    <Field label="Supplier MRC">
+                                        <input type="number" min={0} step="0.01" value={form.vendorCircuits[activeTab].supplierMrc ?? ''} onChange={e => updateVendor(activeTab, 'supplierMrc', e.target.value ? Number(e.target.value) : null)} placeholder="800.00" className={inputCls} />
+                                    </Field>
+                                    <Field label="Supplier NRC">
+                                        <input type="number" min={0} step="0.01" value={form.vendorCircuits[activeTab].supplierNrc ?? ''} onChange={e => updateVendor(activeTab, 'supplierNrc', e.target.value ? Number(e.target.value) : null)} placeholder="40.00" className={inputCls} />
+                                    </Field>
+                                    <Field label="Billing Start Date">
+                                        <input type="date" value={form.vendorCircuits[activeTab].billingStartDate ?? ''} onChange={e => updateVendor(activeTab, 'billingStartDate', e.target.value)} className={inputCls} />
+                                    </Field>
+                                    <Field label="Supplier Service Description">
+                                        <input type="text" value={form.vendorCircuits[activeTab].supplierServiceDescription ?? ''} onChange={e => updateVendor(activeTab, 'supplierServiceDescription', e.target.value)} placeholder="Supplier service description" className={`${inputCls} sm:col-span-2`} />
+                                    </Field>
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                 </div>
 
@@ -258,6 +363,7 @@ const CircuitFormModal: React.FC<CircuitFormModalProps> = ({
         </div>
     </div>
 );
+};
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 const CircuitsPage: React.FC = () => {
@@ -390,7 +496,8 @@ const CircuitsPage: React.FC = () => {
         return (
             c.customerCircuitId.toLowerCase().includes(q) ||
             (c.vendor?.name?.toLowerCase().includes(q) ?? false) ||
-            (c.client?.name?.toLowerCase().includes(q) ?? false)
+            (c.client?.name?.toLowerCase().includes(q) ?? false) ||
+            (c.isMultiVendor && c.vendorCircuits?.some(vc => vc.vendor?.name?.toLowerCase().includes(q)))
         );
     });
 
@@ -503,16 +610,28 @@ const CircuitsPage: React.FC = () => {
                                     <div className="flex flex-col gap-2 pt-2 border-t border-gray-50">
                                         <div className="flex justify-between items-center text-sm">
                                             <span className="text-gray-500 font-medium">Vendor:</span>
-                                            <span className="font-bold text-gray-800">{circuit.vendor?.name || '—'}</span>
+                                            <span className="font-bold text-gray-800">
+                                                {circuit.isMultiVendor
+                                                    ? <span className="text-brand-red">Multi-Vendor ({circuit.vendorCircuits?.length || 0})</span>
+                                                    : circuit.vendor?.name || '—'}
+                                            </span>
                                         </div>
                                         <div className="flex justify-between items-center text-sm">
                                             <span className="text-gray-500 font-medium">Client:</span>
                                             <span className="font-bold text-gray-800">{circuit.client?.name || '—'}</span>
                                         </div>
-                                        {circuit.mrc > 0 && (
+                                        {circuit.mrc > 0 && !circuit.isMultiVendor && (
                                             <div className="flex justify-between items-center text-sm">
                                                 <span className="text-gray-500 font-medium">MRC:</span>
                                                 <span className="font-bold text-gray-800">${circuit.mrc.toLocaleString()}</span>
+                                            </div>
+                                        )}
+                                        {circuit.isMultiVendor && (
+                                            <div className="flex justify-between items-center text-sm">
+                                                <span className="text-gray-500 font-medium">Total MRC:</span>
+                                                <span className="font-bold text-gray-800">
+                                                    ${circuit.vendorCircuits?.reduce((sum, vc) => sum + (vc.supplierMrc || 0), 0).toLocaleString() || 0}
+                                                </span>
                                             </div>
                                         )}
                                     </div>
@@ -551,9 +670,13 @@ const CircuitsPage: React.FC = () => {
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 text-sm font-semibold text-gray-700">
-                                                    {circuit.vendor?.name
-                                                        ? <span className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-indigo-400" />{circuit.vendor.name}</span>
-                                                        : <span className="text-gray-400 font-normal italic">None</span>}
+                                                    {circuit.isMultiVendor ? (
+                                                        <span className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-brand-red" />Multi-Vendor ({circuit.vendorCircuits?.length || 0})</span>
+                                                    ) : circuit.vendor?.name ? (
+                                                        <span className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-indigo-400" />{circuit.vendor.name}</span>
+                                                    ) : (
+                                                        <span className="text-gray-400 font-normal italic">None</span>
+                                                    )}
                                                 </td>
                                                 <td className="px-6 py-4 text-sm font-semibold text-gray-700">
                                                     {circuit.client?.name
@@ -561,7 +684,9 @@ const CircuitsPage: React.FC = () => {
                                                         : <span className="text-gray-400 font-normal italic">None</span>}
                                                 </td>
                                                 <td className="px-6 py-4 text-sm text-gray-600">
-                                                    {circuit.mrc ? `$${circuit.mrc.toLocaleString()}` : '—'}
+                                                    {circuit.isMultiVendor 
+                                                        ? `$${circuit.vendorCircuits?.reduce((sum, vc) => sum + (vc.supplierMrc || 0), 0).toLocaleString() || 0}`
+                                                        : (circuit.mrc ? `$${circuit.mrc.toLocaleString()}` : '—')}
                                                 </td>
                                                 {isSuperAdmin() && (
                                                     <td className="px-6 py-4">

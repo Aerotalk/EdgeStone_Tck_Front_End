@@ -22,6 +22,22 @@ export interface Circuit {
     supplierMrc: number;
     nrc?: number;
     supplierNrc?: number;
+    isMultiVendor?: boolean;
+    vendorCircuits?: VendorCircuitData[];
+}
+
+export interface VendorCircuitData {
+    id?: string;
+    vendorId?: string | null;
+    vendor?: { id: string; name: string; status: string } | null;
+    supplierCircuitId?: string | null;
+    supplierPoNumber?: string | null;
+    supplierServiceDescription?: string | null;
+    supplierContractTermMonths?: number | null;
+    supplierContractType?: string | null;
+    billingStartDate?: string | null;
+    supplierMrc?: number;
+    supplierNrc?: number;
 }
 
 export interface CreateCircuitData {
@@ -44,6 +60,8 @@ export interface CreateCircuitData {
     supplierMrc?: number;
     nrc?: number;
     supplierNrc?: number;
+    isMultiVendor?: boolean;
+    vendorCircuits?: VendorCircuitData[];
 }
 
 export type UpdateCircuitData = Partial<CreateCircuitData>;
