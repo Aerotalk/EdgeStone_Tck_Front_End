@@ -47,7 +47,8 @@ interface TicketReplyViewProps {
 
 export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack }) => {
     const dashboardData = useDashboardData();
-    const [activeTab, setActiveTab] = useState<'client' | 'vendor'>('client');
+    const [activeTab, setActiveTab] = useState<string>('client');
+    const [ticketCircuit, setTicketCircuit] = useState<any>(null);
     const [isRefreshing, setIsRefreshing] = useState(false);
 
     const handleRefresh = async () => {
@@ -122,6 +123,19 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
         cc: '',
         bcc: ''
     });
+
+    
+    useEffect(() => {
+        circuitService.getAllCircuits().then(circuits => {
+            const matchedCircuit = circuits.find(c =>
+                (confirmedCircuit && c.customerCircuitId === confirmedCircuit) ||
+                c.customerCircuitId === ticket.header ||
+                c.customerCircuitId === ticket.circuitId ||
+                c.id === ticket.circuitId
+            );
+            if (matchedCircuit) setTicketCircuit(matchedCircuit);
+        }).catch(console.error);
+    }, [confirmedCircuit, ticket.header, ticket.circuitId]);
 
     const [confirmedCircuit, setConfirmedCircuit] = useState(() => {
         return localStorage.getItem(`confirmed_circuit_id_${ticket.id}`) || ticket.circuitId || '';
@@ -211,10 +225,10 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                     subject: `Re: [${ticket.ticketId}] ${ticket.header}`
                 }));
             });
-        } else if (activeTab === 'vendor') {
+        } else if (activeTab.startsWith('vendor')) {
             // Fetch dynamically on vendor tab click
             ticketService.getVendorEmails(ticket.id).then(emails => {
-                const vendorReplies = replies.filter(r => r && r.category === 'vendor');
+                const vendorReplies = replies.filter(r => r && r.category === activeTab);
                 const localSub = localStorage.getItem(`vendor_subject_${ticket.id}`);
                 const existingSubject = vendorReplies.find(r => r.subject)?.subject || localSub || `Re: [${ticket.ticketId}-V] ${ticket.header}`;
 
@@ -233,7 +247,30 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                         c.id === ticket.circuitId
                     );
 
-                    if (matchedCircuit && matchedCircuit.vendor) {
+                    if (matchedCircuit) {
+                        // Extract specific vendor if activeTab is vendor_[vendorId]
+                        const isSpecificVendor = activeTab.startsWith('vendor_');
+                        const specificVendorId = isSpecificVendor ? activeTab.replace('vendor_', '') : null;
+                        
+                        let targetVendor = null;
+                        if (specificVendorId && matchedCircuit.isMultiVendor && matchedCircuit.vendorCircuits) {
+                            const vc = matchedCircuit.vendorCircuits.find((v: any) => v.vendorId === specificVendorId);
+                            if (vc && vc.vendor) targetVendor = vc.vendor;
+                        } else if (matchedCircuit.vendor) {
+                            targetVendor = matchedCircuit.vendor;
+                        }
+
+                        if (targetVendor) {
+                            setVendorName(targetVendor.name);
+                            vendorService.getAllVendors().then(vendors => {
+                                const fullVendor = vendors.find(v => v.id === targetVendor!.id || v.name === targetVendor!.name);
+                                if (fullVendor && fullVendor.emails && fullVendor.emails.length > 0) {
+                                    setEmailForm(prev => ({ ...prev, to: fullVendor.emails }));
+                                }
+                            }).catch(console.error);
+                        } else {
+                            setVendorName('EdgeStone Vendor');
+                        }
                         setVendorName(matchedCircuit.vendor.name);
 
                         // Override the dummy ticketService email with the actual vendor's mapped email
@@ -269,8 +306,8 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
 
     // Autofill subject line for vendor replies when opening the email modal
     useEffect(() => {
-        if (showEmailModal && activeTab === 'vendor') {
-            const vendorReplies = replies.filter(r => r && r.category === 'vendor');
+        if (showEmailModal && activeTab.startsWith('vendor')) {
+            const vendorReplies = replies.filter(r => r && r.category === activeTab);
             const localSub = localStorage.getItem(`vendor_subject_${ticket.id}`);
 
             circuitService.getAllCircuits().then(circuits => {
@@ -304,7 +341,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
 
             // Just filter dynamically on client side or pass to backend
             const filtered = circuits.filter(c => {
-                if (activeTab === 'vendor' && vendorId) return c.vendorId === vendorId;
+                if (activeTab.startsWith('vendor') && vendorId) return c.vendorId === vendorId;
                 return true; // client context sees all or maybe specific ones
             });
             setDynamicCircuitOptions(filtered.map(c => c.customerCircuitId).filter(Boolean));
@@ -655,6 +692,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
 
                 <div className="flex items-center justify-between px-6">
                     <div className="flex items-center gap-8">
+                        
                         <button
                             onClick={() => setActiveTab('client')}
                             className={`flex items-center gap-2 py-4 text-[14px] font-bold transition-all border-b-2 ${activeTab === 'client' ? 'border-gray-900 text-gray-900' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
@@ -662,13 +700,27 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                             <User size={18} />
                             Client
                         </button>
-                        <button
-                            onClick={() => setActiveTab('vendor')}
-                            className={`flex items-center gap-2 py-4 text-[14px] font-bold transition-all border-b-2 ${activeTab === 'vendor' ? 'border-gray-900 text-gray-900' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
-                        >
-                            <User size={18} />
-                            Vendor
-                        </button>
+                        {ticketCircuit?.isMultiVendor && ticketCircuit?.vendorCircuits ? (
+                            ticketCircuit.vendorCircuits.map((vc: any, idx: number) => (
+                                <button
+                                    key={vc.vendorId || idx}
+                                    onClick={() => setActiveTab(`vendor_${vc.vendorId}`)}
+                                    className={`flex items-center gap-2 py-4 text-[14px] font-bold transition-all border-b-2 ${activeTab === `vendor_${vc.vendorId}` ? 'border-gray-900 text-gray-900' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
+                                >
+                                    <User size={18} />
+                                    {vc.vendor?.name || `Vendor ${idx + 1}`}
+                                </button>
+                            ))
+                        ) : (
+                            <button
+                                onClick={() => setActiveTab('vendor')}
+                                className={`flex items-center gap-2 py-4 text-[14px] font-bold transition-all border-b-2 ${activeTab === 'vendor' ? 'border-gray-900 text-gray-900' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
+                            >
+                                <User size={18} />
+                                Vendor
+                            </button>
+                        )}
+
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -745,7 +797,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                             <p className="text-[13px] text-gray-400 font-medium">To: support@edgestone.in</p>
                                         </div>
                                         <div className="flex items-center gap-4 text-gray-400">
-                                            <span className="text-[13px] font-medium">Vendor Communication Thread</span>
+                                            {ticketCircuit?.isMultiVendor ? <span className="text-[13px] font-medium">{vendorName || 'Vendor'} Communication Thread</span> : <span className="text-[13px] font-medium">Vendor Communication Thread</span>}
                                             <div className="flex items-center gap-2.5">
                                                 <button className="hover:text-gray-600" onClick={() => setShowEmailModal(true)}><ReplyIcon size={16} className="-scale-x-100" /></button>
                                                 <button className="hover:text-gray-600"><MoreVertical size={16} /></button>
