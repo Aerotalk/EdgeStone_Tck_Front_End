@@ -277,7 +277,7 @@ const CircuitFormModal: React.FC<CircuitFormModalProps> = ({
                             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Multi-Vendor Suppliers</p>
                             
                             <div className="flex flex-wrap gap-2 mb-4">
-                                {form.vendorCircuits?.map((vc, idx) => (
+                                {form.vendorCircuits?.map((_, idx) => (
                                     <div key={idx} className="relative group">
                                         <button
                                             type="button"
