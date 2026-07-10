@@ -717,7 +717,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                 className={`flex items-center gap-2 py-4 text-[14px] font-bold transition-all border-b-2 ${activeTab === 'vendor' ? 'border-gray-900 text-gray-900' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
                             >
                                 <User size={18} />
-                                Vendor
+                                {`Vendor (Debug: isMV=${ticketCircuit?.isMultiVendor}, vcs=${ticketCircuit?.vendorCircuits?.length}, id=${ticketCircuit?.customerCircuitId})`}
                             </button>
                         )}
 
