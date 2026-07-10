@@ -467,12 +467,14 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
 
             // Send to client or vendor based on the active tab
             let newReply;
-            if (activeTab === 'vendor') {
+            if (activeTab.startsWith('vendor')) {
+                const vendorId = activeTab.replace('vendor_', '');
                 newReply = await ticketService.replyToVendor(ticket.id, {
                     ...emailForm,
                     message: plainBody,
                     htmlContent: fullHtmlContent,
-                    attachments: uploadedAttachments
+                    attachments: uploadedAttachments,
+                    vendorId: vendorId !== 'vendor' ? vendorId : undefined
                 });
 
                 if (emailForm.subject.trim()) {
@@ -757,7 +759,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                         </div>
                     )}
 
-                    {activeTab === 'vendor' && (
+                    {activeTab.startsWith('vendor') && (
                         <div className="flex gap-4 group">
                             <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold text-sm shadow-sm flex-shrink-0">
                                 {vendorName ? vendorName.slice(0, 2).toUpperCase() : 'VN'}
@@ -911,7 +913,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                 className="flex items-center gap-2 px-6 py-2.5 border border-gray-900 rounded-lg text-[14px] font-bold text-gray-900 hover:bg-gray-50 transition-all active:scale-95"
                             >
                                 <Mail size={16} />
-                                Reply {activeTab === 'vendor' ? 'to Vendor' : ''}
+                                Reply {activeTab.startsWith('vendor') ? 'to Vendor' : ''}
                             </button>
                         )}
                     </div>
@@ -1057,7 +1059,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                 </div>
                                 <div>
                                     <h3 className="text-[18px] font-bold text-gray-900 leading-none mb-1">Send Email</h3>
-                                    <p className="text-[12px] text-gray-400 font-medium">Communicating with {activeTab === 'vendor' ? 'Vendor' : 'Client'}</p>
+                                    <p className="text-[12px] text-gray-400 font-medium">Communicating with {activeTab.startsWith('vendor') ? 'Vendor' : 'Client'}</p>
                                 </div>
                             </div>
                             <button
