@@ -92,6 +92,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
     const [showEmailModal, setShowEmailModal] = useState(false);
     const [replies, setReplies] = useState<Reply[]>([]);
     const [attachments, setAttachments] = useState<File[]>([]);
+
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [showCc, setShowCc] = useState(false);
     const [isSending, setIsSending] = useState(false);
@@ -124,7 +125,10 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
         bcc: ''
     });
 
-    
+    const [confirmedCircuit, setConfirmedCircuit] = useState(() => {
+        return localStorage.getItem(`confirmed_circuit_id_${ticket.id}`) || ticket.circuitId || '';
+    });
+
     useEffect(() => {
         circuitService.getAllCircuits().then(circuits => {
             const matchedCircuit = circuits.find(c =>
@@ -136,10 +140,6 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
             if (matchedCircuit) setTicketCircuit(matchedCircuit);
         }).catch(console.error);
     }, [confirmedCircuit, ticket.header, ticket.circuitId]);
-
-    const [confirmedCircuit, setConfirmedCircuit] = useState(() => {
-        return localStorage.getItem(`confirmed_circuit_id_${ticket.id}`) || ticket.circuitId || '';
-    });
 
     useEffect(() => {
         const storedCircuit = localStorage.getItem(`confirmed_circuit_id_${ticket.id}`);
@@ -263,7 +263,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                         if (targetVendor) {
                             setVendorName(targetVendor.name);
                             vendorService.getAllVendors().then(vendors => {
-                                const fullVendor = vendors.find(v => v.id === targetVendor!.id || v.name === targetVendor!.name);
+                                const fullVendor = vendors.find(v => v.id === targetVendor?.id || v.name === targetVendor?.name);
                                 if (fullVendor && fullVendor.emails && fullVendor.emails.length > 0) {
                                     setEmailForm(prev => ({ ...prev, to: fullVendor.emails }));
                                 }
@@ -271,26 +271,16 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                         } else {
                             setVendorName('EdgeStone Vendor');
                         }
-                        setVendorName(matchedCircuit.vendor.name);
 
-                        // Override the dummy ticketService email with the actual vendor's mapped email
-                        vendorService.getAllVendors().then(vendors => {
-                            const fullVendor = vendors.find(v => v.id === matchedCircuit.vendor!.id || v.name === matchedCircuit.vendor!.name);
-                            if (fullVendor && fullVendor.emails && fullVendor.emails.length > 0) {
-                                setEmailForm(prev => ({ ...prev, to: fullVendor.emails }));
-                            }
-                        }).catch(console.error);
+                        // UPDATE SUBJECT TO USE SUPPLIER CIRCUIT ID INSTEAD OF HEADER
+                        const supplierId = matchedCircuit?.supplierCircuitId || 'Unknown Circuit';
+                        const defaultSafeSubject = `Re: [${ticket.ticketId}-V] Issue regarding Circuit ${supplierId}`;
+                        const newExistingSubject = vendorReplies.find(r => r.subject)?.subject || localSub || defaultSafeSubject;
+                        setEmailForm(prev => ({ ...prev, subject: newExistingSubject }));
 
                     } else {
                         setVendorName('EdgeStone Vendor');
                     }
-
-                    // UPDATE SUBJECT TO USE SUPPLIER CIRCUIT ID INSTEAD OF HEADER
-                    const supplierId = matchedCircuit?.supplierCircuitId || 'Unknown Circuit';
-                    const defaultSafeSubject = `Re: [${ticket.ticketId}-V] Issue regarding Circuit ${supplierId}`;
-                    const newExistingSubject = vendorReplies.find(r => r.subject)?.subject || localSub || defaultSafeSubject;
-                    setEmailForm(prev => ({ ...prev, subject: newExistingSubject }));
-
                 }).catch(() => setVendorName('EdgeStone Vendor'));
             }).catch(err => {
                 console.error("Failed to fetch vendor emails", err);
@@ -717,7 +707,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                 className={`flex items-center gap-2 py-4 text-[14px] font-bold transition-all border-b-2 ${activeTab === 'vendor' ? 'border-gray-900 text-gray-900' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
                             >
                                 <User size={18} />
-                                {`Vendor (Debug: isMV=${ticketCircuit?.isMultiVendor}, vcs=${ticketCircuit?.vendorCircuits?.length}, id=${ticketCircuit?.customerCircuitId})`}
+                                Vendor
                             </button>
                         )}
 
