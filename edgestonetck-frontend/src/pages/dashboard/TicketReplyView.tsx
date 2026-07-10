@@ -441,21 +441,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
     };
 
 
-    const fileToBase64 = (file: File): Promise<string> => {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => {
-                if (typeof reader.result === 'string') {
-                    const base64 = reader.result.split(',')[1];
-                    resolve(base64 || '');
-                } else {
-                    resolve('');
-                }
-            };
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-        });
-    };
+
 
     const handleSendReply = async () => {
         if (!replyText.trim() && !signatureHtml && attachments.length === 0) return;
@@ -474,10 +460,10 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
         try {
             setIsSending(true);
 
-            const processedAttachments = await Promise.all(attachments.map(async (file) => ({
-                name: file.name,
-                contentBytes: await fileToBase64(file)
-            })));
+            let uploadedAttachments: any[] = [];
+            if (attachments.length > 0) {
+                uploadedAttachments = await ticketService.uploadAttachments(attachments);
+            }
 
             // Send to client or vendor based on the active tab
             let newReply;
@@ -486,14 +472,14 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                     ...emailForm,
                     message: plainBody,
                     htmlContent: fullHtmlContent,
-                    attachments: processedAttachments
+                    attachments: uploadedAttachments
                 });
 
                 if (emailForm.subject.trim()) {
                     localStorage.setItem(`vendor_subject_${ticket.id}`, emailForm.subject.trim());
                 }
             } else {
-                newReply = await ticketService.replyToTicket(ticket.id, plainBody, fullHtmlContent, processedAttachments, emailForm);
+                newReply = await ticketService.replyToTicket(ticket.id, plainBody, fullHtmlContent, uploadedAttachments, emailForm);
             }
 
             // Update local state
@@ -885,6 +871,16 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                         <div className="text-[14px] text-gray-600 leading-relaxed font-medium whitespace-pre-wrap break-words">
                                             {reply.text}
                                         </div>
+                                        {reply.attachments && reply.attachments.length > 0 && (
+                                            <div className="mt-3 flex flex-col gap-2">
+                                                {reply.attachments.map((att: any, idx: number) => (
+                                                    <a key={idx} href={att.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg hover:bg-gray-100 transition-colors w-fit">
+                                                        <Paperclip size={14} className="text-gray-400" />
+                                                        <span className="text-[13px] font-medium text-blue-600 hover:underline max-w-[200px] truncate">{att.originalName || 'Attachment'}</span>
+                                                    </a>
+                                                ))}
+                                            </div>
+                                        )}
                                         <div className="absolute left-[-17px] top-5 w-4 h-4 bg-white border-l border-b border-gray-100 rotate-45"></div>
                                     </div>
                                 </div>

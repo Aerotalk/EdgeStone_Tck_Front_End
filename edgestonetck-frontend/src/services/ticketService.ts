@@ -10,6 +10,7 @@ export interface Reply {
     cc?: string[];
     bcc?: string[];
     subject?: string;
+    attachments?: any[];
     createdAt: string;
 }
 
@@ -97,6 +98,36 @@ export const ticketService = {
 
         const result = await response.json();
         return result.reply;
+    },
+
+    uploadAttachments: async (files: File[]): Promise<any[]> => {
+        const formData = new FormData();
+        files.forEach((file) => {
+            formData.append('files', file);
+        });
+
+        // Use standard non-JSON headers for multipart/form-data
+        const userStr = localStorage.getItem('edgestone_user');
+        const user = userStr ? JSON.parse(userStr) : null;
+        
+        const headers: HeadersInit = {
+            'Authorization': `Bearer ${user?.token || ''}`
+        };
+
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/upload/attachments`, {
+            method: 'POST',
+            headers,
+            body: formData,
+        });
+
+        if (!response.ok) {
+            if (response.status === 401) throw new Error('Unauthorized');
+            const error = await response.json().catch(() => ({ message: 'Failed to upload attachments' }));
+            throw new Error(error.message);
+        }
+
+        const result = await response.json();
+        return result.attachments;
     },
 
     updateTicket: async (id: string, data: Partial<Ticket>): Promise<Ticket> => {
