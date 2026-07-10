@@ -873,12 +873,18 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                         </div>
                                         {reply.attachments && reply.attachments.length > 0 && (
                                             <div className="mt-3 flex flex-col gap-2">
-                                                {reply.attachments.map((att: any, idx: number) => (
-                                                    <a key={idx} href={att.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg hover:bg-gray-100 transition-colors w-fit">
+                                                {reply.attachments.map((att: any, idx: number) => {
+                                                    const fileName = att.originalName || att.filename || att.name || 'Attachment';
+                                                    const isLegacy = !att.url && att.contentBytes;
+                                                    const href = att.url || (isLegacy ? `data:${att.mimeType || 'application/octet-stream'};base64,${att.contentBytes}` : '#');
+                                                    
+                                                    return (
+                                                    <a key={idx} href={href} target="_blank" rel="noreferrer" download={isLegacy ? fileName : undefined} className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg hover:bg-gray-100 transition-colors w-fit">
                                                         <Paperclip size={14} className="text-gray-400" />
-                                                        <span className="text-[13px] font-medium text-blue-600 hover:underline max-w-[200px] truncate">{att.originalName || 'Attachment'}</span>
+                                                        <span className="text-[13px] font-medium text-blue-600 hover:underline max-w-[200px] truncate">{fileName}</span>
                                                     </a>
-                                                ))}
+                                                    );
+                                                })}
                                             </div>
                                         )}
                                         <div className="absolute left-[-17px] top-5 w-4 h-4 bg-white border-l border-b border-gray-100 rotate-45"></div>
