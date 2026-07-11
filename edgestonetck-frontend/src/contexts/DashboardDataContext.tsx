@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { ticketService, type Ticket } from '../services/ticketService';
 import { clientService, type Client } from '../services/clientService';
 import { vendorService, type Vendor } from '../services/vendorService';
@@ -73,19 +73,21 @@ export const DashboardDataProvider: React.FC<{ children: React.ReactNode }> = ({
     const totalClients = clients.length;
     const totalVendors = vendors.length;
 
+    const value = useMemo(() => ({
+        tickets,
+        clients,
+        vendors,
+        circuits,
+        openCount,
+        inProgressCount,
+        totalClients,
+        totalVendors,
+        loading,
+        refresh: fetchAll,
+    }), [tickets, clients, vendors, circuits, openCount, inProgressCount, totalClients, totalVendors, loading, fetchAll]);
+
     return (
-        <DashboardDataContext.Provider value={{
-            tickets,
-            clients,
-            vendors,
-            circuits,
-            openCount,
-            inProgressCount,
-            totalClients,
-            totalVendors,
-            loading,
-            refresh: fetchAll,
-        }}>
+        <DashboardDataContext.Provider value={value}>
             {children}
         </DashboardDataContext.Provider>
     );

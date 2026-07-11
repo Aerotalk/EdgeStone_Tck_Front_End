@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useTransition } from 'react';
 
 import {
     ChevronLeft,
@@ -47,6 +47,7 @@ interface TicketReplyViewProps {
 
 export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack }) => {
     const dashboardData = useDashboardData();
+    const [, startTransition] = useTransition();
     const [activeTab, setActiveTab] = useState<string>('client');
     const [ticketCircuit, setTicketCircuit] = useState<any>(null);
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -672,7 +673,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                     <div className="flex items-center gap-8">
                         
                         <button
-                            onClick={() => setActiveTab('client')}
+                            onClick={() => startTransition(() => setActiveTab('client'))}
                             className={`flex items-center gap-2 py-4 text-[14px] font-bold transition-all border-b-2 ${activeTab === 'client' ? 'border-gray-900 text-gray-900' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
                         >
                             <User size={18} />
@@ -682,7 +683,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                             ticketCircuit.vendorCircuits.map((vc: any, idx: number) => (
                                 <button
                                     key={vc.vendorId || idx}
-                                    onClick={() => setActiveTab(`vendor_${vc.vendorId}`)}
+                                    onClick={() => startTransition(() => setActiveTab(`vendor_${vc.vendorId}`))}
                                     className={`flex items-center gap-2 py-4 text-[14px] font-bold transition-all border-b-2 ${activeTab === `vendor_${vc.vendorId}` ? 'border-gray-900 text-gray-900' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
                                 >
                                     <User size={18} />
@@ -691,7 +692,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                             ))
                         ) : (
                             <button
-                                onClick={() => setActiveTab('vendor')}
+                                onClick={() => startTransition(() => setActiveTab('vendor'))}
                                 className={`flex items-center gap-2 py-4 text-[14px] font-bold transition-all border-b-2 ${activeTab === 'vendor' ? 'border-gray-900 text-gray-900' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
                             >
                                 <User size={18} />
