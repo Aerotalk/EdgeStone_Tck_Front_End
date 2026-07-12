@@ -130,7 +130,7 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                 const records = result.data; // Array of SLAs
                 if (records && Array.isArray(records)) {
                     // Match SLA type to active tab (CLIENT vs VENDOR)
-                    const targetType = activeTab === 'vendor' ? 'VENDOR' : 'CLIENT';
+                    const targetType = activeTab?.startsWith('vendor') ? 'VENDOR' : 'CLIENT';
                     const record = records.find(r => r.type === targetType);
 
                     if (record) {
@@ -408,14 +408,14 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                 <div className="p-8 border-b border-gray-50">
                     <div className="flex items-center gap-4 mb-10">
                         <div className="w-16 h-16 rounded-full bg-[#E5DCC3] flex items-center justify-center text-[#5C5648] font-bold text-2xl shadow-sm flex-shrink-0">
-                            {activeTab === 'vendor' ? (vendorName ? vendorName.slice(0, 2).toUpperCase() : 'VN') : (clientName ? clientName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : ticket.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2))}
+                            {activeTab?.startsWith('vendor') ? (vendorName ? vendorName.slice(0, 2).toUpperCase() : 'VN') : (clientName ? clientName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : ticket.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2))}
                         </div>
                         <div className="flex flex-col min-w-0">
                             <h3 className="text-[20px] font-bold text-gray-900 leading-tight truncate">
-                                {activeTab === 'vendor' ? (vendorName || 'EdgeStone Vendor') : (clientName || ticket.name)}
+                                {activeTab?.startsWith('vendor') ? (vendorName || 'EdgeStone Vendor') : (clientName || ticket.name)}
                             </h3>
                             <p className="text-[13px] text-gray-500 font-medium mt-0.5 truncate">
-                                {activeTab === 'vendor' ? (vendorEmail || 'Fetching vendor...') : (clientEmail || ticket.email)}
+                                {activeTab?.startsWith('vendor') ? (vendorEmail || 'Fetching vendor...') : (clientEmail || ticket.email)}
                             </p>
                         </div>
                     </div>
@@ -423,7 +423,7 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                     <div className="space-y-5">
                         <div className="flex justify-between items-center text-[14px]">
                             <span className="text-gray-400 font-medium">Profile</span>
-                            <span className="text-gray-600 font-bold">{activeTab === 'vendor' ? 'Vendor' : 'Customer'}</span>
+                            <span className="text-gray-600 font-bold">{activeTab?.startsWith('vendor') ? 'Vendor' : 'Customer'}</span>
                         </div>
                         <div className="flex justify-between items-center text-[14px]">
                             <span className="text-gray-400 font-medium">Date</span>
@@ -463,14 +463,14 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                         <div className="flex justify-between items-center pb-1">
                             <span className="text-[12px] font-bold text-gray-400 uppercase tracking-wider">Circuit ID</span>
                             <span className={`text-[14px] font-bold ${circuit || ticket.circuitId ? 'text-gray-900' : 'text-gray-400'}`}>
-                                {activeTab === 'vendor'
+                                {activeTab?.startsWith('vendor')
                                     ? (fullCircuitDetails?.supplierCircuitId || circuit || ticket.circuitId || 'None')
                                     : (fullCircuitDetails?.customerCircuitId || circuit || ticket.circuitId || 'None')
                                 }
                             </span>
                         </div>
 
-                        {activeTab !== 'vendor' && (
+                        {!activeTab?.startsWith('vendor') && (
                             <div className="flex justify-between items-center pb-1">
                                 <span className="text-[12px] font-bold text-orange-400 uppercase tracking-wider">Supplier ID</span>
                                 <span className={`text-[14px] font-bold ${fullCircuitDetails?.supplierCircuitId ? 'text-gray-900' : 'text-gray-400'}`}>

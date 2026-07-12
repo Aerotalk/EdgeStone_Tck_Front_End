@@ -229,7 +229,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
         } else if (activeTab.startsWith('vendor')) {
             // Fetch dynamically on vendor tab click
             ticketService.getVendorEmails(ticket.id).then(emails => {
-                const vendorReplies = replies.filter(r => r && r.category === activeTab);
+                const vendorReplies = replies.filter(r => r && (r.category === activeTab || (activeTab.startsWith('vendor') && r.category === 'vendor')));
                 const localSub = localStorage.getItem(`vendor_subject_${ticket.id}`);
                 const existingSubject = vendorReplies.find(r => r.subject)?.subject || localSub || `Re: [${ticket.ticketId}-V] ${ticket.header}`;
 
@@ -298,7 +298,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
     // Autofill subject line for vendor replies when opening the email modal
     useEffect(() => {
         if (showEmailModal && activeTab.startsWith('vendor')) {
-            const vendorReplies = replies.filter(r => r && r.category === activeTab);
+            const vendorReplies = replies.filter(r => r && (r.category === activeTab || (activeTab.startsWith('vendor') && r.category === 'vendor')));
             const localSub = localStorage.getItem(`vendor_subject_${ticket.id}`);
 
             circuitService.getAllCircuits().then(circuits => {
@@ -836,7 +836,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                     {activeTab === 'client' && <div className="ml-5 border-l-2 border-gray-100 py-1"></div>}
 
                     {/* Persistent Agent Replies (Filtered by category) */}
-                    {replies.filter(r => r && r.category === activeTab).map((reply, idx) => (
+                    {replies.filter(r => r && (r.category === activeTab || (activeTab.startsWith('vendor') && r.category === 'vendor'))).map((reply, idx) => (
                         <div key={idx} className="flex flex-col">
                             <div className="flex gap-4">
                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shadow-sm flex-shrink-0 ${reply.type === 'agent' ? 'bg-orange-500 text-white' :
