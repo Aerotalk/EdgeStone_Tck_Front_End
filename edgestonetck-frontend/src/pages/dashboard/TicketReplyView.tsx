@@ -886,8 +886,37 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                                         href = href.replace('http://localhost:5000', import.meta.env.VITE_API_BASE_URL);
                                                     }
 
+                                                    const handleDownload = async (e: React.MouseEvent) => {
+                                                        e.preventDefault();
+                                                        if (isLegacy) {
+                                                            const link = document.createElement('a');
+                                                            link.href = href;
+                                                            link.download = fileName;
+                                                            link.click();
+                                                            return;
+                                                        }
+                                                        try {
+                                                            const response = await fetch(href);
+                                                            if (!response.ok) {
+                                                                throw new Error(`Server returned ${response.status}: File not found or unavailable`);
+                                                            }
+                                                            const blob = await response.blob();
+                                                            const url = window.URL.createObjectURL(blob);
+                                                            const link = document.createElement('a');
+                                                            link.href = url;
+                                                            link.download = fileName;
+                                                            document.body.appendChild(link);
+                                                            link.click();
+                                                            document.body.removeChild(link);
+                                                            window.URL.revokeObjectURL(url);
+                                                        } catch (error) {
+                                                            console.error('Download failed:', error);
+                                                            alert(`Unable to download file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                                                        }
+                                                    };
+
                                                     return (
-                                                    <a key={idx} href={href} download={isLegacy ? fileName : undefined} className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg hover:bg-gray-100 transition-colors w-fit">
+                                                    <a key={idx} href={href} onClick={handleDownload} className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg hover:bg-gray-100 transition-colors w-fit cursor-pointer">
                                                         <Paperclip size={14} className="text-gray-400" />
                                                         <span className="text-[13px] font-medium text-blue-600 hover:underline max-w-[200px] truncate">{fileName}</span>
                                                     </a>
