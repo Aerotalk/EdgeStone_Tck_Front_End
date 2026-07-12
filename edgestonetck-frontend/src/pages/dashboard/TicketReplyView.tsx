@@ -881,34 +881,8 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                                     const isLegacy = !att.url && att.contentBytes;
                                                     const href = att.url || (isLegacy ? `data:${att.mimeType || 'application/octet-stream'};base64,${att.contentBytes}` : '#');
                                                     
-                                                    const handleDownload = async (e: React.MouseEvent) => {
-                                                        e.preventDefault();
-                                                        if (isLegacy) {
-                                                            const link = document.createElement('a');
-                                                            link.href = href;
-                                                            link.download = fileName;
-                                                            link.click();
-                                                            return;
-                                                        }
-                                                        try {
-                                                            const response = await fetch(href);
-                                                            const blob = await response.blob();
-                                                            const url = window.URL.createObjectURL(blob);
-                                                            const link = document.createElement('a');
-                                                            link.href = url;
-                                                            link.download = fileName;
-                                                            document.body.appendChild(link);
-                                                            link.click();
-                                                            document.body.removeChild(link);
-                                                            window.URL.revokeObjectURL(url);
-                                                        } catch (error) {
-                                                            console.error('Download failed:', error);
-                                                            window.open(href, '_blank');
-                                                        }
-                                                    };
-
                                                     return (
-                                                    <a key={idx} href={href} onClick={handleDownload} className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg hover:bg-gray-100 transition-colors w-fit cursor-pointer">
+                                                    <a key={idx} href={href} target="_blank" rel="noreferrer" download={isLegacy ? fileName : undefined} className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg hover:bg-gray-100 transition-colors w-fit">
                                                         <Paperclip size={14} className="text-gray-400" />
                                                         <span className="text-[13px] font-medium text-blue-600 hover:underline max-w-[200px] truncate">{fileName}</span>
                                                     </a>
