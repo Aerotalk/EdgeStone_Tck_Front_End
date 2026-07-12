@@ -879,10 +879,15 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                                 {reply.attachments.map((att: any, idx: number) => {
                                                     const fileName = att.originalName || att.filename || att.name || 'Attachment';
                                                     const isLegacy = !att.url && att.contentBytes;
-                                                    const href = att.url || (isLegacy ? `data:${att.mimeType || 'application/octet-stream'};base64,${att.contentBytes}` : '#');
+                                                    let href = att.url || (isLegacy ? `data:${att.mimeType || 'application/octet-stream'};base64,${att.contentBytes}` : '#');
                                                     
+                                                    // Fix hardcoded localhost from email attachments to use the actual API base URL
+                                                    if (href.startsWith('http://localhost:5000') && import.meta.env.VITE_API_BASE_URL) {
+                                                        href = href.replace('http://localhost:5000', import.meta.env.VITE_API_BASE_URL);
+                                                    }
+
                                                     return (
-                                                    <a key={idx} href={href} target="_blank" rel="noreferrer" download={isLegacy ? fileName : undefined} className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg hover:bg-gray-100 transition-colors w-fit">
+                                                    <a key={idx} href={href} download={isLegacy ? fileName : undefined} className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg hover:bg-gray-100 transition-colors w-fit">
                                                         <Paperclip size={14} className="text-gray-400" />
                                                         <span className="text-[13px] font-medium text-blue-600 hover:underline max-w-[200px] truncate">{fileName}</span>
                                                     </a>
