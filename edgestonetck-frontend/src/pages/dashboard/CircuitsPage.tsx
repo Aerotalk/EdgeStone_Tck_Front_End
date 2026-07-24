@@ -620,7 +620,7 @@ const CircuitsPage: React.FC = () => {
                                             <span className="text-gray-500 font-medium">Client:</span>
                                             <span className="font-bold text-gray-800">{circuit.client?.name || '—'}</span>
                                         </div>
-                                        {circuit.mrc > 0 && !circuit.isMultiVendor && (
+                                        {circuit.mrc !== null && circuit.mrc !== undefined && !circuit.isMultiVendor && (
                                             <div className="flex justify-between items-center text-sm">
                                                 <span className="text-gray-500 font-medium">MRC:</span>
                                                 <span className="font-bold text-gray-800">${circuit.mrc.toLocaleString()}</span>
@@ -686,7 +686,7 @@ const CircuitsPage: React.FC = () => {
                                                 <td className="px-6 py-4 text-sm text-gray-600">
                                                     {circuit.isMultiVendor 
                                                         ? `$${circuit.vendorCircuits?.reduce((sum, vc) => sum + (vc.supplierMrc || 0), 0).toLocaleString() || 0}`
-                                                        : (circuit.mrc ? `$${circuit.mrc.toLocaleString()}` : '—')}
+                                                        : (circuit.mrc !== null && circuit.mrc !== undefined ? `$${circuit.mrc.toLocaleString()}` : '—')}
                                                 </td>
                                                 {isSuperAdmin() && (
                                                     <td className="px-6 py-4">
