@@ -60,6 +60,7 @@ const SignatureEditor: React.FC<SignatureEditorProps> = ({ initialContent, onCha
     const [showFontMenu, setShowFontMenu] = useState(false);
     const [showFontFamilyMenu, setShowFontFamilyMenu] = useState(false);
     const [uploadingImg, setUploadingImg] = useState(false);
+    const [selectedImage, setSelectedImage] = useState<HTMLImageElement | null>(null);
     const savedRange = useRef<Range | null>(null);
 
     useEffect(() => {
@@ -68,10 +69,21 @@ const SignatureEditor: React.FC<SignatureEditorProps> = ({ initialContent, onCha
         }
     }, [initialContent]);
 
-    const saveSelection = () => {
+    const saveSelection = (e?: React.MouseEvent | React.TouchEvent | React.KeyboardEvent) => {
         const sel = window.getSelection();
         if (sel && sel.rangeCount > 0) {
             savedRange.current = sel.getRangeAt(0).cloneRange();
+        }
+        
+        if (e && e.target) {
+            const target = e.target as HTMLElement;
+            if (target.tagName === 'IMG') {
+                setSelectedImage(target as HTMLImageElement);
+            } else {
+                setSelectedImage(null);
+            }
+        } else {
+            setSelectedImage(null);
         }
     };
 
@@ -114,7 +126,7 @@ const SignatureEditor: React.FC<SignatureEditorProps> = ({ initialContent, onCha
             const url = await onImageUpload(file);
             restoreSelection();
             editorRef.current?.focus();
-            exec('insertHTML', `<img src="${url}" alt="signature-image" style="max-width:300px;height:auto;display:inline-block;" />`);
+            exec('insertHTML', `<img src="${url}" alt="signature-image" style="width:300px;height:auto;display:inline-block;" width="300" />`);
             onChange(editorRef.current?.innerHTML || '');
         } catch {
             toast.error('Failed to upload image');
@@ -225,7 +237,6 @@ const SignatureEditor: React.FC<SignatureEditorProps> = ({ initialContent, onCha
 
                 <div className="w-px h-5 bg-gray-200 mx-1" />
 
-                {/* Image Upload */}
                 <ToolbarButton
                     onClick={() => { saveSelection(); imgInputRef.current?.click(); }}
                     title="Insert Image"
@@ -234,6 +245,29 @@ const SignatureEditor: React.FC<SignatureEditorProps> = ({ initialContent, onCha
                     {uploadingImg ? <Loader2 size={15} className="animate-spin" /> : <ImageIcon size={15} />}
                 </ToolbarButton>
                 <ToolbarButton onClick={handleLink} title="Insert Link"><Link size={15} /></ToolbarButton>
+
+                {selectedImage && (
+                    <>
+                        <div className="w-px h-5 bg-gray-200 mx-1" />
+                        <span className="text-[12px] text-gray-500 font-medium ml-1">Size:</span>
+                        <input
+                            type="range"
+                            min="20"
+                            max="600"
+                            value={parseInt(selectedImage.style.width || selectedImage.getAttribute('width') || '300', 10)}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                selectedImage.style.width = `${val}px`;
+                                selectedImage.style.maxWidth = 'none';
+                                selectedImage.style.height = 'auto';
+                                selectedImage.setAttribute('width', val);
+                                onChange(cleanHtmlForEmail(editorRef.current?.innerHTML || ''));
+                            }}
+                            className="w-20 accent-orange-500"
+                            title="Adjust Image Size"
+                        />
+                    </>
+                )}
 
                 <input ref={imgInputRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml" className="hidden" onChange={handleImageSelect} />
             </div>
