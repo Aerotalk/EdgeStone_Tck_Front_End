@@ -6,6 +6,8 @@ import { Toaster } from 'react-hot-toast'
 
 // Lazy load pages for code splitting
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'))
+const ForgotPasswordPage = lazy(() => import('./pages/auth/ForgotPasswordPage'))
+const ResetPasswordPage = lazy(() => import('./pages/auth/ResetPasswordPage'))
 const DashboardLayout = lazy(() => import('./layouts/DashboardLayout'))
 const OverviewPage = lazy(() => import('./pages/dashboard/OverviewPage'))
 const TicketsPage = lazy(() => import('./pages/dashboard/TicketsPage'))
@@ -32,6 +34,8 @@ function App() {
           <Routes>
             {/* Auth Routes */}
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
 
             {/* Dashboard Routes */}
             <Route path="/dashboard/:id" element={<DashboardLayout />}>
