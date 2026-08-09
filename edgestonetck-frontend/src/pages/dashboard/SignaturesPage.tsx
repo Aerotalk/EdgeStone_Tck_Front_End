@@ -64,26 +64,20 @@ const SignatureEditor: React.FC<SignatureEditorProps> = ({ initialContent, onCha
     const savedRange = useRef<Range | null>(null);
 
     useEffect(() => {
-        if (editorRef.current && initialContent !== editorRef.current.innerHTML) {
-            editorRef.current.innerHTML = initialContent;
+        if (editorRef.current) {
+            if (initialContent !== editorRef.current.innerHTML) {
+                editorRef.current.innerHTML = initialContent;
+            }
+            // Automatically detect if an image is in the editor to show the slider
+            const img = editorRef.current.querySelector('img');
+            setSelectedImage(img as HTMLImageElement | null);
         }
     }, [initialContent]);
 
-    const saveSelection = (e?: React.MouseEvent | React.TouchEvent | React.KeyboardEvent) => {
+    const saveSelection = () => {
         const sel = window.getSelection();
         if (sel && sel.rangeCount > 0) {
             savedRange.current = sel.getRangeAt(0).cloneRange();
-        }
-        
-        if (e && e.target) {
-            const target = e.target as HTMLElement;
-            if (target.tagName === 'IMG') {
-                setSelectedImage(target as HTMLImageElement);
-            } else {
-                setSelectedImage(null);
-            }
-        } else {
-            setSelectedImage(null);
         }
     };
 
@@ -249,12 +243,12 @@ const SignatureEditor: React.FC<SignatureEditorProps> = ({ initialContent, onCha
                 {selectedImage && (
                     <>
                         <div className="w-px h-5 bg-gray-200 mx-1" />
-                        <span className="text-[12px] text-gray-500 font-medium ml-1">Size:</span>
+                        <span className="text-[12px] text-gray-500 font-medium ml-1">Img Size:</span>
                         <input
                             type="range"
                             min="20"
                             max="600"
-                            value={parseInt(selectedImage.style.width || selectedImage.getAttribute('width') || '300', 10)}
+                            value={parseInt(selectedImage.style.width || selectedImage.getAttribute('width') || '300', 10) || 300}
                             onChange={(e) => {
                                 const val = e.target.value;
                                 selectedImage.style.width = `${val}px`;
