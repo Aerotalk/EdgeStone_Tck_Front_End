@@ -60,17 +60,15 @@ const SignatureEditor: React.FC<SignatureEditorProps> = ({ initialContent, onCha
     const [showFontMenu, setShowFontMenu] = useState(false);
     const [showFontFamilyMenu, setShowFontFamilyMenu] = useState(false);
     const [uploadingImg, setUploadingImg] = useState(false);
-    const [selectedImage, setSelectedImage] = useState<HTMLImageElement | null>(null);
     const savedRange = useRef<Range | null>(null);
+
+    const hasImg = initialContent.toLowerCase().includes('<img');
 
     useEffect(() => {
         if (editorRef.current) {
             if (initialContent !== editorRef.current.innerHTML) {
                 editorRef.current.innerHTML = initialContent;
             }
-            // Automatically detect if an image is in the editor to show the slider
-            const img = editorRef.current.querySelector('img');
-            setSelectedImage(img as HTMLImageElement | null);
         }
     }, [initialContent]);
 
@@ -240,7 +238,7 @@ const SignatureEditor: React.FC<SignatureEditorProps> = ({ initialContent, onCha
                 </ToolbarButton>
                 <ToolbarButton onClick={handleLink} title="Insert Link"><Link size={15} /></ToolbarButton>
 
-                {selectedImage && (
+                {hasImg && (
                     <>
                         <div className="w-px h-5 bg-gray-200 mx-1" />
                         <span className="text-[12px] text-gray-500 font-medium ml-1">Img Size:</span>
@@ -248,14 +246,17 @@ const SignatureEditor: React.FC<SignatureEditorProps> = ({ initialContent, onCha
                             type="range"
                             min="20"
                             max="600"
-                            value={parseInt(selectedImage.style.width || selectedImage.getAttribute('width') || '300', 10) || 300}
+                            defaultValue="300"
                             onChange={(e) => {
-                                const val = e.target.value;
-                                selectedImage.style.width = `${val}px`;
-                                selectedImage.style.maxWidth = 'none';
-                                selectedImage.style.height = 'auto';
-                                selectedImage.setAttribute('width', val);
-                                onChange(cleanHtmlForEmail(editorRef.current?.innerHTML || ''));
+                                const img = editorRef.current?.querySelector('img');
+                                if (img) {
+                                    const val = e.target.value;
+                                    img.style.width = `${val}px`;
+                                    img.style.maxWidth = 'none';
+                                    img.style.height = 'auto';
+                                    img.setAttribute('width', val);
+                                    onChange(cleanHtmlForEmail(editorRef.current?.innerHTML || ''));
+                                }
                             }}
                             className="w-20 accent-orange-500"
                             title="Adjust Image Size"
