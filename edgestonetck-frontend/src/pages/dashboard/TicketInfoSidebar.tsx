@@ -30,6 +30,7 @@ interface TicketInfoSidebarProps {
         receivedTime?: string;
         createdAt?: string;
         isSlaActive?: boolean;
+        isMaintenance?: boolean;
         circuitId?: string | null;
     };
     priority?: string;
@@ -440,6 +441,30 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                             <span className={`font-bold ${priority ? 'text-gray-900' : 'text-gray-600'}`}>
                                 {priority || '-'}
                             </span>
+                        </div>
+                        <div className="flex justify-between items-center text-[14px]">
+                            <span className="text-gray-400 font-medium">Maintenance Mode</span>
+                            <button
+                                onClick={async () => {
+                                    try {
+                                        const newStatus = !ticket.isMaintenance;
+                                        await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/tickets/${ticket.id}`, {
+                                            method: 'PUT',
+                                            headers: {
+                                                'Content-Type': 'application/json',
+                                                'Authorization': `Bearer ${JSON.parse(localStorage.getItem('edgestone_user') || '{}').token}`
+                                            },
+                                            body: JSON.stringify({ isMaintenance: newStatus })
+                                        });
+                                        toast.success(`Ticket marked as ${newStatus ? 'Maintenance' : 'Normal'}. Please refresh to reflect changes.`);
+                                    } catch(e) {
+                                        toast.error('Failed to update maintenance status');
+                                    }
+                                }}
+                                className={`w-8 h-4 rounded-full transition-colors relative ${ticket.isMaintenance ? 'bg-orange-500' : 'bg-gray-200'}`}
+                            >
+                                <div className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-transform ${ticket.isMaintenance ? 'translate-x-4' : 'translate-x-0'}`} />
+                            </button>
                         </div>
                     </div>
                 </div>

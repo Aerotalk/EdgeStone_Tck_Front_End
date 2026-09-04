@@ -999,7 +999,11 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
 
                     {/* Reply CTA */}
                     <div className="pt-4">
-                        {ticketStatus.toLowerCase() === 'closed' ? (
+                        {ticket.isMaintenance ? (
+                            <div className="flex items-center justify-center p-4 bg-orange-50 border border-orange-100 rounded-xl text-orange-600 text-[14px] font-bold">
+                                🔒 This ticket is in Maintenance Mode (Read-Only)
+                            </div>
+                        ) : ticketStatus.toLowerCase() === 'closed' ? (
                             <button
                                 onClick={handleReopenTicket}
                                 className="flex items-center gap-2 px-6 py-2.5 border border-green-600 rounded-lg text-[14px] font-bold text-green-600 hover:bg-green-50 transition-all active:scale-95"

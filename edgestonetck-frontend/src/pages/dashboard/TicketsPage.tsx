@@ -17,6 +17,7 @@ import { useDashboardData } from '../../contexts/DashboardDataContext';
 
 interface UITicket extends Ticket {
     name: string;
+    isMaintenance?: boolean;
 }
 
 const TicketsPage: React.FC = () => {
@@ -54,6 +55,7 @@ const TicketsPage: React.FC = () => {
                     ? (t.vendor?.name || t.email.split('@')[0])
                     : (t.client?.name || t.email.split('@')[0]), // Use actual client or vendor name
                 status: t.status.toLowerCase(), // Ensure lowercase for tab matching
+                isMaintenance: (t as any).isMaintenance // Map isMaintenance field from backend
             }));
 
             setTickets(formattedTickets);
@@ -109,12 +111,12 @@ const TicketsPage: React.FC = () => {
         const currentStatus = (t.status || '').toLowerCase().replace(/\s+/g, '-');
 
         if (activeTab === 'maintenance') {
-            if (t.ticketType !== 'Vendor' && currentStatus !== 'maintenance') return false;
+            if (!t.isMaintenance) return false;
         } else if (activeTab === 'spam' || activeTab === 'others') {
-            if (t.ticketType === 'Vendor') return false;
+            if (t.isMaintenance) return false;
             if (currentStatus !== activeTab) return false;
         } else {
-            if (t.ticketType === 'Vendor') return false;
+            if (t.isMaintenance) return false;
             if (currentStatus !== activeTab) return false;
         }
 
