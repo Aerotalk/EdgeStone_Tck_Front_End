@@ -60,15 +60,12 @@ const SignatureEditor: React.FC<SignatureEditorProps> = ({ initialContent, onCha
     const [showFontMenu, setShowFontMenu] = useState(false);
     const [showFontFamilyMenu, setShowFontFamilyMenu] = useState(false);
     const [uploadingImg, setUploadingImg] = useState(false);
+    const [selectedImage, setSelectedImage] = useState<HTMLImageElement | null>(null);
     const savedRange = useRef<Range | null>(null);
 
-    const hasImg = initialContent.toLowerCase().includes('<img');
-
     useEffect(() => {
-        if (editorRef.current) {
-            if (initialContent !== editorRef.current.innerHTML) {
-                editorRef.current.innerHTML = initialContent;
-            }
+        if (editorRef.current && initialContent !== editorRef.current.innerHTML) {
+            editorRef.current.innerHTML = initialContent;
         }
     }, [initialContent]);
 
@@ -88,7 +85,6 @@ const SignatureEditor: React.FC<SignatureEditorProps> = ({ initialContent, onCha
     };
 
     const cleanHtmlForEmail = (html: string) => {
-        // Outlook ignores <font color="..."> tags. Convert them to <span style="color: ...">
         if (!editorRef.current) return html;
         const fonts = editorRef.current.querySelectorAll('font[color]');
         fonts.forEach(font => {
@@ -118,7 +114,7 @@ const SignatureEditor: React.FC<SignatureEditorProps> = ({ initialContent, onCha
             const url = await onImageUpload(file);
             restoreSelection();
             editorRef.current?.focus();
-            exec('insertHTML', `<img src="${url}" alt="signature-image" style="width:300px;height:auto;display:inline-block;" width="300" />`);
+            exec('insertHTML', `<img src="${url}" alt="signature-image" style="max-width:300px;width:300px;height:auto;display:inline-block;" />`);
             onChange(editorRef.current?.innerHTML || '');
         } catch {
             toast.error('Failed to upload image');
@@ -158,10 +154,28 @@ const SignatureEditor: React.FC<SignatureEditorProps> = ({ initialContent, onCha
         execAndFocus('fontName', font);
     };
 
+    const handleEditorClick = (e: React.MouseEvent<HTMLDivElement>) => {
+        const target = e.target as HTMLElement;
+        if (target.tagName.toLowerCase() === 'img') {
+            setSelectedImage(target as HTMLImageElement);
+        } else {
+            setSelectedImage(null);
+        }
+    };
+
+    const handleImageResize = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (selectedImage) {
+            const width = e.target.value;
+            selectedImage.style.width = `${width}px`;
+            selectedImage.style.maxWidth = 'none';
+            onChange(cleanHtmlForEmail(editorRef.current?.innerHTML || ''));
+        }
+    };
+
     return (
         <div className="border border-gray-100 rounded-2xl overflow-hidden bg-white ring-4 ring-gray-900/5 focus-within:border-gray-300 transition-all">
             {/* Toolbar */}
-            <div className="flex items-center flex-wrap gap-1 px-3 py-2 bg-gray-50 border-b border-gray-100">
+            <div className="flex items-center flex-wrap gap-1 px-3 py-2 bg-gray-50 border-b border-gray-100 relative">
                 {/* Font Family */}
                 <div className="relative">
                     <button
@@ -229,6 +243,7 @@ const SignatureEditor: React.FC<SignatureEditorProps> = ({ initialContent, onCha
 
                 <div className="w-px h-5 bg-gray-200 mx-1" />
 
+                {/* Image Upload */}
                 <ToolbarButton
                     onClick={() => { saveSelection(); imgInputRef.current?.click(); }}
                     title="Insert Image"
@@ -238,33 +253,22 @@ const SignatureEditor: React.FC<SignatureEditorProps> = ({ initialContent, onCha
                 </ToolbarButton>
                 <ToolbarButton onClick={handleLink} title="Insert Link"><Link size={15} /></ToolbarButton>
 
-                {hasImg && (
-                    <>
-                        <div className="w-px h-5 bg-gray-200 mx-1" />
-                        <span className="text-[12px] text-gray-500 font-medium ml-1">Img Size:</span>
-                        <input
-                            type="range"
-                            min="20"
-                            max="600"
-                            defaultValue="300"
-                            onChange={(e) => {
-                                const img = editorRef.current?.querySelector('img');
-                                if (img) {
-                                    const val = e.target.value;
-                                    img.style.width = `${val}px`;
-                                    img.style.maxWidth = 'none';
-                                    img.style.height = 'auto';
-                                    img.setAttribute('width', val);
-                                    onChange(cleanHtmlForEmail(editorRef.current?.innerHTML || ''));
-                                }
-                            }}
-                            className="w-20 accent-orange-500"
-                            title="Adjust Image Size"
-                        />
-                    </>
-                )}
-
                 <input ref={imgInputRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml" className="hidden" onChange={handleImageSelect} />
+
+                {/* Image Resizer Control */}
+                {selectedImage && (
+                    <div className="ml-auto flex items-center gap-2 px-3 py-1 bg-white border border-gray-200 rounded-lg shadow-sm animate-in fade-in zoom-in duration-200">
+                        <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Image Size:</span>
+                        <input 
+                            type="range" 
+                            min="20" 
+                            max="800" 
+                            value={parseInt(selectedImage.style.width || selectedImage.width.toString() || '300')}
+                            onChange={handleImageResize}
+                            className="w-24 h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-orange-500"
+                        />
+                    </div>
+                )}
             </div>
 
             {/* Editable Content Area */}
@@ -277,7 +281,8 @@ const SignatureEditor: React.FC<SignatureEditorProps> = ({ initialContent, onCha
                 onKeyUp={handleInput}
                 onMouseUp={saveSelection}
                 onKeyDown={saveSelection}
-                className="min-h-[220px] p-6 text-[14px] text-gray-800 leading-relaxed focus:outline-none"
+                onClick={handleEditorClick}
+                className="min-h-[220px] p-6 text-[14px] text-gray-800 leading-relaxed focus:outline-none [&_img]:cursor-pointer [&_img]:outline-2 [&_img]:outline-transparent [&_img:active]:outline-orange-500"
                 style={{ fontFamily: 'Arial' }}
                 data-placeholder="Type your signature here..."
             />

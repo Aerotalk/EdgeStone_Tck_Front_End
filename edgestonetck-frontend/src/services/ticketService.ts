@@ -155,5 +155,24 @@ export const ticketService = {
         if (!response.ok) return [];
         const data = await response.json();
         return data.emails || [];
+    },
+
+    sendAutoReply: async (id: string, toEmails: string[]): Promise<Ticket> => {
+        const response = await fetch(`${API_URL}/${id}/auto-reply`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ toEmails }),
+        });
+
+        if (!response.ok) {
+            if (response.status === 401) {
+                throw new Error('Unauthorized');
+            }
+            const error = await response.json().catch(() => ({ message: 'Failed to send auto-reply' }));
+            throw new Error(error.message);
+        }
+
+        const result = await response.json();
+        return result.ticket;
     }
 };

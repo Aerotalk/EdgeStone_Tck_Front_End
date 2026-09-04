@@ -3,7 +3,6 @@ import { Outlet, useParams, Navigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { Plus, Calculator as CalcIcon, Edit3 } from 'lucide-react';
 import { Sidebar } from '../components/ui/Sidebar';
-import { Chatbot, KeerySvg } from '../components/ui/Chatbot';
 import { Calculator } from '../components/ui/Calculator';
 import { GlobalStickyNote } from '../components/ui/GlobalStickyNote';
 import { useAuth } from '../contexts/AuthContext';
@@ -14,7 +13,7 @@ const DashboardLayout: React.FC = () => {
     const { user, isLoading } = useAuth();
 
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const [activeWidget, setActiveWidget] = useState<'chatbot' | 'calculator' | 'stickynote' | null>(null);
+    const [activeWidget, setActiveWidget] = useState<'calculator' | 'stickynote' | null>(null);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     useEffect(() => {
@@ -49,29 +48,6 @@ const DashboardLayout: React.FC = () => {
             } catch (_) { /* AudioContext may be blocked before user interaction */ }
         };
 
-        const speakNotification = (message: string) => {
-            if (!('speechSynthesis' in window)) return;
-            const utterance = new SpeechSynthesisUtterance(`Keery says: ${message}`);
-            const setVoiceAndSpeak = () => {
-                const voices = window.speechSynthesis.getVoices();
-                const maleVoice = voices.find(v =>
-                    v.name.toLowerCase().includes('male') ||
-                    v.name.toLowerCase().includes('david') ||
-                    v.name.toLowerCase().includes('guy') ||
-                    v.name.toLowerCase().includes('mark')
-                );
-                if (maleVoice) utterance.voice = maleVoice;
-                utterance.pitch = 0.85;
-                utterance.rate = 1.0;
-                window.speechSynthesis.speak(utterance);
-            };
-            if (window.speechSynthesis.getVoices().length > 0) {
-                setVoiceAndSpeak();
-            } else {
-                window.speechSynthesis.onvoiceschanged = setVoiceAndSpeak;
-            }
-        };
-
         const connect = () => {
             eventSource = new EventSource(`${apiBase}/api/notifications/stream`);
 
@@ -90,9 +66,8 @@ const DashboardLayout: React.FC = () => {
                         style: { background: '#1e1e2e', color: '#fff', borderRadius: '12px', fontWeight: '600' }
                     });
 
-                    // Chime + Voice
+                    // Chime
                     playChime();
-                    speakNotification(data.message);
 
                     // Dispatch custom event to trigger Notification panel refresh
                     window.dispatchEvent(new CustomEvent('new_notification', { detail: data }));
@@ -115,7 +90,6 @@ const DashboardLayout: React.FC = () => {
         return () => {
             eventSource?.close();
             if (reconnectTimer) clearTimeout(reconnectTimer);
-            if ('speechSynthesis' in window) window.speechSynthesis.onvoiceschanged = null;
         };
     }, []);
 
@@ -163,11 +137,6 @@ const DashboardLayout: React.FC = () => {
                 onClose={() => setActiveWidget(null)}
                 showFloatingButton={false}
             />
-            <Chatbot
-                isOpen={activeWidget === 'chatbot'}
-                onClose={() => setActiveWidget(null)}
-                showFloatingButton={false}
-            />
             <GlobalStickyNote
                 isOpen={activeWidget === 'stickynote'}
                 onClose={() => setActiveWidget(null)}
@@ -205,18 +174,6 @@ const DashboardLayout: React.FC = () => {
                             className="w-12 h-12 bg-slate-800 hover:bg-slate-900 text-white rounded-full flex items-center justify-center shadow-lg shadow-slate-900/30 hover:scale-110 active:scale-95 transition-all duration-200 border border-slate-700"
                         >
                             <CalcIcon className="w-5 h-5 text-gray-100" />
-                        </button>
-                    </div>
-
-                    {/* Keery AI Chatbot Button */}
-                    <div className="flex items-center gap-3 group cursor-pointer" onClick={() => { setActiveWidget(activeWidget === 'chatbot' ? null : 'chatbot'); setIsMenuOpen(false); }}>
-                        <span className="opacity-0 group-hover:opacity-100 bg-slate-900 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg shadow-lg transition-opacity duration-200 whitespace-nowrap border border-slate-800">
-                            Chat with Keery
-                        </span>
-                        <button
-                            className="w-12 h-12 bg-brand-red text-white rounded-full flex items-center justify-center shadow-lg shadow-brand-red/30 hover:scale-110 active:scale-95 transition-all duration-200 overflow-hidden ring-4 ring-brand-red/25"
-                        >
-                            <KeerySvg size={48} className="w-full h-full object-cover" />
                         </button>
                     </div>
                 </div>

@@ -57,25 +57,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const isSuperAdmin = (): boolean => {
-        if (!user || !user.role) return false;
-        const role = user.role.toLowerCase();
-        return role === 'super admin' || role === 'super_admin' || role === 'superadmin';
+        // Fallback or explicit check
+        return user?.role === 'Super admin' || user?.role === 'super_admin' as any;
     };
 
     const isManager = (): boolean => {
-        if (!user || !user.role) return false;
-        return user.role.toLowerCase() === 'manager';
+        return user?.role === 'Manager';
     };
 
     const isSupportCrew = (): boolean => {
-        if (!user || !user.role) return false;
-        const role = user.role.toLowerCase();
-        return role === 'support crew' || role === 'support_crew' || role === 'agent';
+        return user?.role === 'Support crew' || user?.role === 'agent' as any;
     };
 
     const isAgent = (): boolean => {
-        if (!user || !user.role) return false;
-        return user.role.toLowerCase() === 'agent';
+        return user?.role === 'agent';
     };
 
     const getCurrentUser = (): User | null => {

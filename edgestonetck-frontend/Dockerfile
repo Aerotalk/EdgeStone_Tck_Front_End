@@ -1,39 +1,30 @@
-# =========================
-# Build Stage
-# =========================
 FROM node:20-slim AS builder
 
 WORKDIR /app
 
-# Install dependencies
+# Copy package files
 COPY package*.json ./
+
+# Install dependencies
 RUN npm ci
 
-# Copy source
+# Copy the rest of the application code
 COPY . .
 
-# Build Vite app
+# Build the Vite application
 RUN npm run build
 
-# =========================
-# Production Stage
-# =========================
+# Use Nginx to serve the static files
 FROM nginx:1.27-alpine
 
-# Remove default nginx page
-RUN rm -rf /usr/share/nginx/html/*
+# Copy the built files from the builder stage to Nginx's default directory
+COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copy built files
-COPY --from=builder /app/dist/ /usr/share/nginx/html/
-
-# Copy nginx configuration
+# Copy the frontend-specific nginx configuration for client-side routing
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Nginx listens on port 80
+# Expose port 80
 EXPOSE 80
 
-# Healthcheck (optional)
-HEALTHCHECK --interval=30s --timeout=5s \
-  CMD wget -q --spider http://localhost/ || exit 1
-
+# Start Nginx
 CMD ["nginx", "-g", "daemon off;"]

@@ -108,6 +108,28 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
     const [showSigDropdown, setShowSigDropdown] = useState(false);
     const [showSignatureModal, setShowSignatureModal] = useState(false);
 
+    // Auto-reply Modal State
+    const [showAutoReplyModal, setShowAutoReplyModal] = useState(false);
+    const [isSendingAutoReply, setIsSendingAutoReply] = useState(false);
+
+    const handleSendAutoReply = async () => {
+        try {
+            setIsSendingAutoReply(true);
+            await ticketService.sendAutoReply(ticket.id, [ticket.email]);
+            toast.success('Auto-reply sent successfully');
+            setShowAutoReplyModal(false);
+            
+            // If it was Spam or Others, move it back to Support (Open)
+            if (ticketStatus.toLowerCase() === 'spam' || ticketStatus.toLowerCase() === 'others') {
+                await handleStatusChange('Open');
+            }
+        } catch (err: any) {
+            toast.error('Failed to send auto-reply');
+        } finally {
+            setIsSendingAutoReply(false);
+        }
+    };
+
     // Dynamic Circuit Options
     const [dynamicCircuitOptions, setDynamicCircuitOptions] = useState<string[]>([]);
 
@@ -608,6 +630,14 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
 
                     <div className="flex flex-row items-center gap-3 sm:gap-6 relative flex-shrink-0 w-full xl:w-auto justify-between xl:justify-end">
                         <div className="flex items-center gap-4">
+                            {ticket.ticketType !== 'Vendor' && (
+                                <button
+                                    onClick={() => setShowAutoReplyModal(true)}
+                                    className="relative px-3 py-1.5 bg-brand-red text-white text-[13px] font-bold rounded-lg shadow-sm hover:shadow-md transition-all duration-300 focus:outline-none active:scale-95"
+                                >
+                                    Tag as Support & Auto Reply
+                                </button>
+                            )}
                             <button
                                 onClick={handleRefresh}
                                 disabled={isRefreshing}
@@ -622,49 +652,76 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                             <GlobalClock />
                         </div>
                         <div className="relative flex-shrink-0">
-                            <button
-                                onClick={() => !isUpdatingStatus && setShowStatusDropdown(!showStatusDropdown)}
-                                disabled={isUpdatingStatus}
-                                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] font-bold border transition-all whitespace-nowrap ${ticketStatus.toLowerCase() === 'closed'
-                                    ? 'bg-green-100/50 text-green-600 border-green-200/30 hover:bg-green-100'
-                                    : 'bg-orange-100/50 text-orange-600 border-orange-200/30 hover:bg-orange-100'
-                                    } ${isUpdatingStatus ? 'opacity-70 cursor-wait' : ''}`}
-                            >
-                                {isUpdatingStatus ? (
-                                    <>
-                                        <Loader2 size={14} className="animate-spin" />
-                                        Updating...
-                                    </>
-                                ) : (
-                                    <>
-                                        {ticketStatus}
-                                        <ChevronDown size={14} />
-                                    </>
-                                )}
-                            </button>
+                            {ticket.ticketType !== 'Vendor' && (
+                                <>
+                                    <button
+                                        onClick={() => !isUpdatingStatus && setShowStatusDropdown(!showStatusDropdown)}
+                                        disabled={isUpdatingStatus}
+                                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] font-bold border transition-all whitespace-nowrap ${ticketStatus.toLowerCase() === 'closed'
+                                            ? 'bg-green-100/50 text-green-600 border-green-200/30 hover:bg-green-100'
+                                            : ticketStatus.toLowerCase() === 'spam' || ticketStatus.toLowerCase() === 'others'
+                                            ? 'bg-gray-100/50 text-gray-600 border-gray-200/30 hover:bg-gray-100'
+                                            : 'bg-orange-100/50 text-orange-600 border-orange-200/30 hover:bg-orange-100'
+                                            } ${isUpdatingStatus ? 'opacity-70 cursor-wait' : ''}`}
+                                    >
+                                        {isUpdatingStatus ? (
+                                            <>
+                                                <Loader2 size={14} className="animate-spin" />
+                                                Updating...
+                                            </>
+                                        ) : (
+                                            <>
+                                                {ticketStatus}
+                                                <ChevronDown size={14} />
+                                            </>
+                                        )}
+                                    </button>
 
-                            {showStatusDropdown && (
-                                <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-100 rounded-xl shadow-xl z-[110] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                                    {ticketStatus.toLowerCase() !== 'closed' ? (
-                                        <button
-                                            onClick={() => handleStatusChange('Closed')}
-                                            className="w-full px-4 py-2.5 text-left text-[13px] font-bold text-green-600 hover:bg-green-50 transition-colors flex items-center justify-between"
-                                        >
-                                            Close Ticket
-                                        </button>
-                                    ) : (
-                                        <button
-                                            onClick={() => handleStatusChange('In Progress')}
-                                            className="w-full px-4 py-2.5 text-left text-[13px] font-bold text-orange-600 hover:bg-orange-50 transition-colors flex items-center justify-between"
-                                        >
-                                            Re-Open Ticket
-                                        </button>
+                                    {showStatusDropdown && (
+                                        <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-xl shadow-xl z-[110] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                                            {ticketStatus.toLowerCase() !== 'closed' && ticketStatus.toLowerCase() !== 'spam' && ticketStatus.toLowerCase() !== 'others' ? (
+                                                <button
+                                                    onClick={() => handleStatusChange('Closed')}
+                                                    className="w-full px-4 py-2.5 text-left text-[13px] font-bold text-green-600 hover:bg-green-50 transition-colors flex items-center justify-between"
+                                                >
+                                                    Close Ticket
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    onClick={() => handleStatusChange('In Progress')}
+                                                    className="w-full px-4 py-2.5 text-left text-[13px] font-bold text-orange-600 hover:bg-orange-50 transition-colors flex items-center justify-between"
+                                                >
+                                                    Re-Open Ticket as Support
+                                                </button>
+                                            )}
+                                            {ticketStatus.toLowerCase() !== 'spam' && (
+                                                <button
+                                                    onClick={() => handleStatusChange('Spam')}
+                                                    className="w-full px-4 py-2.5 text-left text-[13px] font-bold text-gray-600 hover:bg-gray-50 transition-colors flex items-center justify-between"
+                                                >
+                                                    Mark as Spam
+                                                </button>
+                                            )}
+                                            {ticketStatus.toLowerCase() !== 'others' && (
+                                                <button
+                                                    onClick={() => handleStatusChange('Others')}
+                                                    className="w-full px-4 py-2.5 text-left text-[13px] font-bold text-gray-600 hover:bg-gray-50 transition-colors flex items-center justify-between"
+                                                >
+                                                    Mark as Others
+                                                </button>
+                                            )}
+                                        </div>
                                     )}
+
+                                    {/* Overlay to close dropdown */}
+                                    {showStatusDropdown && <div className="fixed inset-0 z-[105]" onClick={() => setShowStatusDropdown(false)} />}
+                                </>
+                            )}
+                            {ticket.ticketType === 'Vendor' && (
+                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] font-bold border border-gray-200 bg-gray-50 text-gray-600">
+                                    Maintenance (Read-Only)
                                 </div>
                             )}
-
-                            {/* Overlay to close dropdown */}
-                            {showStatusDropdown && <div className="fixed inset-0 z-[105]" onClick={() => setShowStatusDropdown(false)} />}
                         </div>
                     </div>
                 </div>
@@ -1371,6 +1428,65 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                             <X size={20} />
                         </button>
                         <SignaturesPage />
+                    </div>
+                </div>
+            )}
+
+            {/* Auto-Reply Confirmation Modal */}
+            {showAutoReplyModal && (
+                <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-[200] flex items-center justify-center p-4 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50/50">
+                            <h3 className="text-[16px] font-bold text-gray-900 flex items-center gap-2">
+                                <Mail size={18} className="text-brand-red" />
+                                Tag as Support & Send Auto Reply
+                            </h3>
+                            <button 
+                                onClick={() => setShowAutoReplyModal(false)}
+                                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all"
+                            >
+                                <X size={18} strokeWidth={2.5} />
+                            </button>
+                        </div>
+                        <div className="p-6">
+                            <p className="text-[14px] text-gray-600 mb-4 leading-relaxed font-medium">
+                                Are you sure you want to tag this ticket as <strong>Support</strong> and send an automated reply to the following recipient(s)?
+                            </p>
+                            <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 mb-6">
+                                <div className="text-[12px] font-bold text-orange-600 uppercase tracking-wider mb-2">Recipients</div>
+                                <div className="flex flex-col gap-2">
+                                    <div className="flex items-center gap-2 text-[14px] font-medium text-gray-900 bg-white px-3 py-2 rounded-lg border border-orange-200/50 shadow-sm">
+                                        <Mail size={14} className="text-orange-400" />
+                                        {ticket.email}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex items-center justify-end gap-3 pt-2">
+                                <button
+                                    onClick={() => setShowAutoReplyModal(false)}
+                                    className="px-5 py-2.5 text-[14px] font-bold text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-all"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleSendAutoReply}
+                                    disabled={isSendingAutoReply}
+                                    className="flex items-center gap-2 px-5 py-2.5 bg-brand-red hover:bg-red-600 text-white text-[14px] font-bold rounded-xl shadow-md hover:shadow-lg transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+                                >
+                                    {isSendingAutoReply ? (
+                                        <>
+                                            <Loader2 size={16} className="animate-spin" />
+                                            Sending...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Send size={16} />
+                                            Send Auto-Reply
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

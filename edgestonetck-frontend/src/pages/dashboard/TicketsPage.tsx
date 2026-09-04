@@ -84,6 +84,9 @@ const TicketsPage: React.FC = () => {
         { id: 'open', label: 'Open', icon: Rows2 },
         { id: 'in-progress', label: 'In Progress', icon: Columns2 },
         { id: 'closed', label: 'Closed', icon: CheckSquare },
+        { id: 'spam', label: 'Spam', icon: Filter },
+        { id: 'others', label: 'Others', icon: Filter },
+        { id: 'maintenance', label: 'Maintenance', icon: Filter },
     ];
 
     const [selectedTicket, setSelectedTicket] = useState<UITicket | null>(null);
@@ -105,7 +108,15 @@ const TicketsPage: React.FC = () => {
         // Use DB status as source of truth — normalise "In Progress" → "in-progress"
         const currentStatus = (t.status || '').toLowerCase().replace(/\s+/g, '-');
 
-        if (!currentStatus || currentStatus !== activeTab) return false;
+        if (activeTab === 'maintenance') {
+            if (t.ticketType !== 'Vendor') return false;
+        } else if (activeTab === 'spam' || activeTab === 'others') {
+            if (t.ticketType === 'Vendor') return false;
+            if (currentStatus !== activeTab) return false;
+        } else {
+            if (t.ticketType === 'Vendor') return false;
+            if (currentStatus !== activeTab) return false;
+        }
 
         if (searchQuery.trim()) {
             const query = searchQuery.toLowerCase().trim();

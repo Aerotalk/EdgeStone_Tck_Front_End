@@ -1,14 +1,12 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { ticketService, type Ticket } from '../services/ticketService';
 import { clientService, type Client } from '../services/clientService';
 import { vendorService, type Vendor } from '../services/vendorService';
-import { circuitService, type Circuit } from '../services/circuitService';
 
 interface DashboardDataContextType {
     tickets: Ticket[];
     clients: Client[];
     vendors: Vendor[];
-    circuits: Circuit[];
     openCount: number;
     inProgressCount: number;
     totalClients: number;
@@ -25,7 +23,6 @@ export const DashboardDataProvider: React.FC<{ children: React.ReactNode }> = ({
     const [tickets, setTickets] = useState<Ticket[]>([]);
     const [clients, setClients] = useState<Client[]>([]);
     const [vendors, setVendors] = useState<Vendor[]>([]);
-    const [circuits, setCircuits] = useState<Circuit[]>([]);
     const [loading, setLoading] = useState(true);
     const mountedRef = useRef(true);
 
@@ -36,17 +33,15 @@ export const DashboardDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const fetchAll = useCallback(async () => {
         try {
-            const [ticketData, clientData, vendorData, circuitData] = await Promise.all([
+            const [ticketData, clientData, vendorData] = await Promise.all([
                 ticketService.getAllTickets(),
                 clientService.getAllClients(),
                 vendorService.getAllVendors(),
-                circuitService.getAllCircuits(),
             ]);
             if (!mountedRef.current) return;
             setTickets(ticketData);
             setClients(clientData);
             setVendors(vendorData);
-            setCircuits(circuitData);
         } catch (err) {
             console.error('[DashboardData] Failed to fetch dashboard data:', err);
         } finally {
@@ -73,21 +68,18 @@ export const DashboardDataProvider: React.FC<{ children: React.ReactNode }> = ({
     const totalClients = clients.length;
     const totalVendors = vendors.length;
 
-    const value = useMemo(() => ({
-        tickets,
-        clients,
-        vendors,
-        circuits,
-        openCount,
-        inProgressCount,
-        totalClients,
-        totalVendors,
-        loading,
-        refresh: fetchAll,
-    }), [tickets, clients, vendors, circuits, openCount, inProgressCount, totalClients, totalVendors, loading, fetchAll]);
-
     return (
-        <DashboardDataContext.Provider value={value}>
+        <DashboardDataContext.Provider value={{
+            tickets,
+            clients,
+            vendors,
+            openCount,
+            inProgressCount,
+            totalClients,
+            totalVendors,
+            loading,
+            refresh: fetchAll,
+        }}>
             {children}
         </DashboardDataContext.Provider>
     );

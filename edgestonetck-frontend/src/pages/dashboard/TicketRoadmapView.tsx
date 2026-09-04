@@ -20,8 +20,6 @@ import CircuitNode from '../../components/roadmap/CircuitNode';
 import TicketNode from '../../components/roadmap/TicketNode';
 import SLANode from '../../components/roadmap/SLANode';
 import ConversationNode from '../../components/roadmap/ConversationNode';
-import AIInsightPanel from '../../components/roadmap/AIInsightPanel';
-
 const nodeTypes = {
   circuit: CircuitNode,
   ticket: TicketNode,
@@ -125,8 +123,6 @@ const TicketRoadmapView: React.FC = () => {
                         <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
                     </div>
                 )}
-                
-                <AIInsightPanel />
                 
                 <ReactFlow
                     nodes={nodes}

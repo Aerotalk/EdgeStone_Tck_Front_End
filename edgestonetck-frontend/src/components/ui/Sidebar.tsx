@@ -31,7 +31,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ agentName, isMobileOpen, onClo
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const navigate = useNavigate();
     const { id } = useParams<{ id: string }>();
-    const { isSuperAdmin, isManager, isSupportCrew, logout, user } = useAuth();
+    const { isSuperAdmin, isManager, logout, user } = useAuth();
     
     const agentId = user?.id;
     const { avatarUrl } = useAvatar(agentId);
@@ -39,19 +39,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ agentName, isMobileOpen, onClo
     const allMenuItems = [
         { icon: PieChart, label: 'Dashboard', path: 'overview' },
         { icon: Files, label: 'Tickets', path: 'tickets' },
-        { icon: UserIcon, label: 'Client', path: 'clients' },
-        { icon: Building2, label: 'Vendor', path: 'vendors' },
-        { icon: Zap, label: 'Circuits', path: 'circuits' },
-        { icon: UserPlus, label: 'Assign agent', path: 'assign-agents' },
-        { icon: FileText, label: 'SLA', path: 'sla' },
+        { icon: UserIcon, label: 'Client', path: 'clients', restricted: true },
+        { icon: Building2, label: 'Vendor', path: 'vendors', restricted: true },
+        { icon: Zap, label: 'Circuits', path: 'circuits', restricted: true },
+        { icon: UserPlus, label: 'Assign agent', path: 'assign-agents', superAdminOnly: true },
+        { icon: FileText, label: 'SLA', path: 'sla', restricted: true },
     ];
 
     // Filter menu items based on user role
     const menuItems = allMenuItems.filter(item => {
-        if (isSuperAdmin()) return true;
-        if (isManager() && item.path !== 'assign-agents') return true;
-        if (isSupportCrew() && (item.path === 'overview' || item.path === 'tickets')) return true;
-        return false;
+        if (item.superAdminOnly) return isSuperAdmin();
+        if (item.restricted) return isSuperAdmin() || isManager();
+        return true;
     });
 
     const handleLogoutTrigger = () => {

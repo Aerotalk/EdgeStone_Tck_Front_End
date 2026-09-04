@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { Input } from '../../components/ui/Input'
 import { Button } from '../../components/ui/Button'
@@ -132,9 +132,9 @@ export default function LoginPage() {
                                 <label htmlFor="password" title="Password" className="text-[14px] font-medium text-gray-600 ml-0.5">
                                     Password
                                 </label>
-                                <Link to="/forgot-password" className="text-[14px] font-medium text-gray-400 hover:text-brand-red transition-colors">
+                                <a href="#" className="text-[14px] font-medium text-gray-400 hover:text-brand-red transition-colors">
                                     Forget Password?
-                                </Link>
+                                </a>
                             </div>
                             <Input
                                 type={showPassword ? "text" : "password"}
