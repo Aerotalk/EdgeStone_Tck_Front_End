@@ -659,7 +659,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                         disabled={isUpdatingStatus}
                                         className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] font-bold border transition-all whitespace-nowrap ${ticketStatus.toLowerCase() === 'closed'
                                             ? 'bg-green-100/50 text-green-600 border-green-200/30 hover:bg-green-100'
-                                            : ticketStatus.toLowerCase() === 'spam' || ticketStatus.toLowerCase() === 'others'
+                                            : ticketStatus.toLowerCase() === 'spam' || ticketStatus.toLowerCase() === 'others' || ticketStatus.toLowerCase() === 'maintenance'
                                             ? 'bg-gray-100/50 text-gray-600 border-gray-200/30 hover:bg-gray-100'
                                             : 'bg-orange-100/50 text-orange-600 border-orange-200/30 hover:bg-orange-100'
                                             } ${isUpdatingStatus ? 'opacity-70 cursor-wait' : ''}`}
@@ -679,7 +679,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
 
                                     {showStatusDropdown && (
                                         <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-xl shadow-xl z-[110] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                                            {ticketStatus.toLowerCase() !== 'closed' && ticketStatus.toLowerCase() !== 'spam' && ticketStatus.toLowerCase() !== 'others' ? (
+                                            {ticketStatus.toLowerCase() !== 'closed' && ticketStatus.toLowerCase() !== 'spam' && ticketStatus.toLowerCase() !== 'others' && ticketStatus.toLowerCase() !== 'maintenance' ? (
                                                 <button
                                                     onClick={() => handleStatusChange('Closed')}
                                                     className="w-full px-4 py-2.5 text-left text-[13px] font-bold text-green-600 hover:bg-green-50 transition-colors flex items-center justify-between"
@@ -708,6 +708,14 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                                     className="w-full px-4 py-2.5 text-left text-[13px] font-bold text-gray-600 hover:bg-gray-50 transition-colors flex items-center justify-between"
                                                 >
                                                     Mark as Others
+                                                </button>
+                                            )}
+                                            {ticketStatus.toLowerCase() !== 'maintenance' && (
+                                                <button
+                                                    onClick={() => handleStatusChange('Maintenance')}
+                                                    className="w-full px-4 py-2.5 text-left text-[13px] font-bold text-gray-600 hover:bg-gray-50 transition-colors flex items-center justify-between"
+                                                >
+                                                    Mark as Maintenance
                                                 </button>
                                             )}
                                         </div>

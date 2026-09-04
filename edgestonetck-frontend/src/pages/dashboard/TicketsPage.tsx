@@ -109,7 +109,7 @@ const TicketsPage: React.FC = () => {
         const currentStatus = (t.status || '').toLowerCase().replace(/\s+/g, '-');
 
         if (activeTab === 'maintenance') {
-            if (t.ticketType !== 'Vendor') return false;
+            if (t.ticketType !== 'Vendor' && currentStatus !== 'maintenance') return false;
         } else if (activeTab === 'spam' || activeTab === 'others') {
             if (t.ticketType === 'Vendor') return false;
             if (currentStatus !== activeTab) return false;
