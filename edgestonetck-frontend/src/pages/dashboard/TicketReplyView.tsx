@@ -248,6 +248,8 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                     subject: `Re: [${ticket.ticketId}] ${ticket.header}`
                 }));
             });
+        
+
         } else if (activeTab.startsWith('vendor')) {
             // Fetch dynamically on vendor tab click
             ticketService.getVendorEmails(ticket.id).then(emails => {
@@ -315,7 +317,25 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                 setVendorName('EdgeStone Vendor');
             });
         }
-    }, [activeTab, ticket.email, ticket.header, ticket.id, confirmedCircuit, ticket.circuitId]);
+
+        // Aggregate CCs from ticket and its replies globally
+        const allCcs = new Set<string>();
+        if (ticket.cc && Array.isArray(ticket.cc)) {
+            ticket.cc.forEach(email => allCcs.add(email.toLowerCase()));
+        }
+        if (ticket.replies && Array.isArray(ticket.replies)) {
+            ticket.replies.forEach(reply => {
+                if (reply.cc && Array.isArray(reply.cc)) {
+                    reply.cc.forEach(email => allCcs.add(email.toLowerCase()));
+                }
+            });
+        }
+        
+        setEmailForm(prev => ({
+            ...prev,
+            cc: Array.from(allCcs)
+        }));
+    }, [activeTab, ticket.email, ticket.header, ticket.id, confirmedCircuit, ticket.circuitId, ticket.cc, ticket.replies]);
 
     // Autofill subject line for vendor replies when opening the email modal
     useEffect(() => {

@@ -22,6 +22,7 @@ export interface Ticket {
     status: string;
     priority: string;
     circuitId?: string;
+    cc?: string[];
     date: string; // Formatted date string
     receivedAt?: string; // ISO timestamp from email
     receivedTime?: string; // Display time (24-hour format HH:MM)
