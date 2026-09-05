@@ -323,19 +323,23 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
         if (ticket.cc && Array.isArray(ticket.cc)) {
             ticket.cc.forEach(email => allCcs.add(email.toLowerCase()));
         }
-        if (ticket.replies && Array.isArray(ticket.replies)) {
-            ticket.replies.forEach(reply => {
+        if (replies && Array.isArray(replies)) {
+            replies.forEach(reply => {
                 if (reply.cc && Array.isArray(reply.cc)) {
                     reply.cc.forEach(email => allCcs.add(email.toLowerCase()));
                 }
             });
         }
         
+        const ccArray = Array.from(allCcs);
         setEmailForm(prev => ({
             ...prev,
-            cc: Array.from(allCcs)
+            cc: ccArray
         }));
-    }, [activeTab, ticket.email, ticket.header, ticket.id, confirmedCircuit, ticket.circuitId, ticket.cc, ticket.replies]);
+        if (ccArray.length > 0) {
+            setShowCc(true);
+        }
+    }, [activeTab, ticket.email, ticket.header, ticket.id, confirmedCircuit, ticket.circuitId, ticket.cc, replies]);
 
     // Autofill subject line for vendor replies when opening the email modal
     useEffect(() => {
