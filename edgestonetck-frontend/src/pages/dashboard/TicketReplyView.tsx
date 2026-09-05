@@ -462,7 +462,15 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
         const toastId = toast.loading('Updating status...');
         try {
             setIsUpdatingStatus(true);
-            await ticketService.updateTicket(ticket.id, { status: newStatus });
+            const isMaintenanceStatus = newStatus.toLowerCase() === 'maintenance';
+            // When tagging as Maintenance, set isMaintenance=true so it moves to Maintenance bucket
+            // When moving away from Maintenance, set isMaintenance=false
+            const wasMaintenanceStatus = ticketStatus.toLowerCase() === 'maintenance';
+            const updates: Record<string, any> = { status: newStatus };
+            if (isMaintenanceStatus) updates.isMaintenance = true;
+            else if (wasMaintenanceStatus) updates.isMaintenance = false;
+
+            await ticketService.updateTicket(ticket.id, updates);
 
             setTicketStatus(newStatus);
             localStorage.setItem(`ticket_status_${ticket.id}`, newStatus);
