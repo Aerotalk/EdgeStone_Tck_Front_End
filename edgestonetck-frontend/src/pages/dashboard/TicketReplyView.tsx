@@ -312,7 +312,10 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                         // UPDATE SUBJECT TO USE SUPPLIER CIRCUIT ID INSTEAD OF HEADER
                         const supplierId = matchedCircuit?.supplierCircuitId || 'Unknown Circuit';
                         const defaultSafeSubject = `Re: [${ticket.ticketId}-V] Issue regarding Circuit ${supplierId}`;
-                        const newExistingSubject = vendorReplies.find(r => r.subject)?.subject || localSub || defaultSafeSubject;
+                        
+                        const rawExisting = vendorReplies.find(r => r.subject)?.subject || localSub;
+                        const newExistingSubject = (rawExisting && rawExisting.includes(ticket.ticketId)) ? rawExisting : defaultSafeSubject;
+                        
                         setEmailForm(prev => ({ ...prev, subject: newExistingSubject }));
 
                     } else {
