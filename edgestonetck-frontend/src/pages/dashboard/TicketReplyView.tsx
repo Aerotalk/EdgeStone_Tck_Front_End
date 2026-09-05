@@ -38,6 +38,7 @@ import { GlobalClock } from '../../components/ui/GlobalClock';
 
 interface UITicket extends Ticket {
     name: string;
+    isMaintenance?: boolean;
 }
 
 interface TicketReplyViewProps {
