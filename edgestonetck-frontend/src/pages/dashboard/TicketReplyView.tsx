@@ -49,7 +49,7 @@ interface TicketReplyViewProps {
 export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack }) => {
     const dashboardData = useDashboardData();
     const [, startTransition] = useTransition();
-    const [activeTab, setActiveTab] = useState<string>('client');
+    const [activeTab, setActiveTab] = useState<string>(ticket.ticketType === 'Vendor' ? 'vendor' : 'client');
     const [ticketCircuit, setTicketCircuit] = useState<any>(null);
     const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -677,7 +677,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                             <GlobalClock />
                         </div>
                         <div className="relative flex-shrink-0">
-                            {ticket.ticketType !== 'Vendor' && (
+                            {true && (
                                 <>
                                     <button
                                         onClick={() => !isUpdatingStatus && setShowStatusDropdown(!showStatusDropdown)}
@@ -750,11 +750,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                     {showStatusDropdown && <div className="fixed inset-0 z-[105]" onClick={() => setShowStatusDropdown(false)} />}
                                 </>
                             )}
-                            {ticket.ticketType === 'Vendor' && (
-                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] font-bold border border-gray-200 bg-gray-50 text-gray-600">
-                                    Maintenance (Read-Only)
-                                </div>
-                            )}
+
                         </div>
                     </div>
                 </div>
@@ -762,13 +758,15 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                 <div className="flex items-center justify-between px-6">
                     <div className="flex items-center gap-8">
                         
-                        <button
-                            onClick={() => startTransition(() => setActiveTab('client'))}
-                            className={`flex items-center gap-2 py-4 text-[14px] font-bold transition-all border-b-2 ${activeTab === 'client' ? 'border-gray-900 text-gray-900' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
-                        >
-                            <User size={18} />
-                            Client
-                        </button>
+                        {ticket.ticketType !== 'Vendor' && (
+                            <button
+                                onClick={() => startTransition(() => setActiveTab('client'))}
+                                className={`flex items-center gap-2 py-4 text-[14px] font-bold transition-all border-b-2 ${activeTab === 'client' ? 'border-gray-900 text-gray-900' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
+                            >
+                                <User size={18} />
+                                Client
+                            </button>
+                        )}
                         {ticketCircuit?.isMultiVendor && ticketCircuit?.vendorCircuits ? (
                             ticketCircuit.vendorCircuits.map((vc: any, idx: number) => (
                                 <button
