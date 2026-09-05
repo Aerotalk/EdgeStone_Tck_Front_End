@@ -143,6 +143,17 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
         subject: ''
     });
 
+    // Reset emailForm whenever the ticket changes so stale subjects from a previous ticket don't bleed in
+    useEffect(() => {
+        setEmailForm({
+            from: 'support@edgestone.in',
+            to: [],
+            cc: [],
+            bcc: [],
+            subject: ''
+        });
+    }, [ticket.id]);
+
     const [inputValues, setInputValues] = useState({
         to: '',
         cc: '',
@@ -358,7 +369,9 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
 
                 const supplierId = matchedCircuit?.supplierCircuitId || 'Unknown Circuit';
                 const defaultSafeSubject = `Re: [${ticket.ticketId}-V] Issue regarding Circuit ${supplierId}`;
-                const existingSubject = vendorReplies.find(r => r.subject)?.subject || localSub || defaultSafeSubject;
+                // Only reuse an existing subject if it actually belongs to the current ticket (contains current ticketId)
+                const rawExisting = vendorReplies.find(r => r.subject)?.subject || localSub;
+                const existingSubject = (rawExisting && rawExisting.includes(ticket.ticketId)) ? rawExisting : defaultSafeSubject;
 
                 if (existingSubject) {
                     setEmailForm(prev => ({
