@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, RefreshCw, Map } from 'lucide-react';
+import { Search, RefreshCw } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { GlobalClock } from './GlobalClock';
 import { NotificationDropdown } from './NotificationDropdown';
