@@ -123,14 +123,18 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
 
     // Reset emailForm whenever the ticket changes so stale subjects from a previous ticket don't bleed in
     useEffect(() => {
+        const existingCc = Array.isArray(ticket.cc) ? [...ticket.cc] : [];
         setEmailForm({
             from: 'support@edgestone.in',
             to: [],
-            cc: [],
+            cc: existingCc,
             bcc: [],
             subject: ''
         });
-    }, [ticket.id]);
+        if (existingCc.length > 0) {
+            setShowCc(true);
+        }
+    }, [ticket.id, ticket.cc]);
 
     const [inputValues, setInputValues] = useState({
         to: '',
@@ -243,7 +247,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
         } else if (activeTab.startsWith('vendor')) {
             // Fetch dynamically on vendor tab click
             ticketService.getVendorEmails(ticket.id).then(emails => {
-                const vendorReplies = replies.filter(r => r && (r.category === activeTab || (activeTab.startsWith('vendor') && r.category === 'vendor')));
+                const vendorReplies = replies.filter(r => r && (r.category === activeTab || r.category === 'vendor' || r.category?.startsWith('vendor_') || r.type === 'vendor'));
                 const localSub = localStorage.getItem(`vendor_subject_${ticket.id}`);
                 const existingSubject = vendorReplies.find(r => r.subject)?.subject || localSub || `Re: [${ticket.ticketId}-V] ${ticket.header}`;
 
@@ -337,7 +341,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
     // Autofill subject line for vendor replies when opening the email modal
     useEffect(() => {
         if (showEmailModal && activeTab.startsWith('vendor')) {
-            const vendorReplies = replies.filter(r => r && (r.category === activeTab || (activeTab.startsWith('vendor') && r.category === 'vendor')));
+            const vendorReplies = replies.filter(r => r && (r.category === activeTab || r.category === 'vendor' || r.category?.startsWith('vendor_') || r.type === 'vendor'));
             const localSub = localStorage.getItem(`vendor_subject_${ticket.id}`);
 
             circuitService.getAllCircuits().then(circuits => {
@@ -762,16 +766,24 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                             </button>
                         )}
                         {ticketCircuit?.isMultiVendor && ticketCircuit?.vendorCircuits ? (
-                            ticketCircuit.vendorCircuits.map((vc: any, idx: number) => (
-                                <button
-                                    key={vc.vendorId || idx}
-                                    onClick={() => startTransition(() => setActiveTab(`vendor_${vc.vendorId}`))}
-                                    className={`flex items-center gap-2 py-4 text-[14px] font-bold transition-all border-b-2 ${activeTab === `vendor_${vc.vendorId}` ? 'border-gray-900 text-gray-900' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
-                                >
-                                    <User size={18} />
-                                    {vc.vendor?.name || `Vendor ${idx + 1}`}
-                                </button>
-                            ))
+                            ticketCircuit.vendorCircuits.map((vc: any, idx: number) => {
+                                const count = replies.filter(r => r && (r.category === `vendor_${vc.vendorId}` || r.category === 'vendor' || r.type === 'vendor')).length;
+                                return (
+                                    <button
+                                        key={vc.vendorId || idx}
+                                        onClick={() => startTransition(() => setActiveTab(`vendor_${vc.vendorId}`))}
+                                        className={`flex items-center gap-2 py-4 text-[14px] font-bold transition-all border-b-2 ${activeTab === `vendor_${vc.vendorId}` ? 'border-gray-900 text-gray-900' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
+                                    >
+                                        <User size={18} />
+                                        {vc.vendor?.name || `Vendor ${idx + 1}`}
+                                        {count > 0 && (
+                                            <span className="ml-1 px-1.5 py-0.5 text-[10px] font-bold bg-orange-500 text-white rounded-full">
+                                                {count}
+                                            </span>
+                                        )}
+                                    </button>
+                                );
+                            })
                         ) : (
                             <button
                                 onClick={() => startTransition(() => setActiveTab('vendor'))}
@@ -779,6 +791,11 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                             >
                                 <User size={18} />
                                 Vendor
+                                {replies.filter(r => r && (r.category === 'vendor' || r.category?.startsWith('vendor_') || r.type === 'vendor')).length > 0 && (
+                                    <span className="ml-1 px-1.5 py-0.5 text-[10px] font-bold bg-orange-500 text-white rounded-full">
+                                        {replies.filter(r => r && (r.category === 'vendor' || r.category?.startsWith('vendor_') || r.type === 'vendor')).length}
+                                    </span>
+                                )}
                             </button>
                         )}
 
@@ -876,6 +893,24 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
 
                     {activeTab === 'client' && <div className="ml-5 border-l-2 border-gray-100 py-1"></div>}
 
+                    {/* Vendor Reply Notification Banner on Client Tab */}
+                    {activeTab === 'client' && replies.filter(r => r && (r.category === 'vendor' || r.category?.startsWith('vendor_') || r.type === 'vendor')).length > 0 && (
+                        <div className="bg-amber-50/90 border border-amber-200 rounded-xl p-3.5 flex items-center justify-between shadow-2xs mb-2">
+                            <div className="flex items-center gap-2.5">
+                                <span className="w-2.5 h-2.5 rounded-full bg-orange-500 animate-pulse"></span>
+                                <span className="text-[13px] font-semibold text-amber-900">
+                                    Vendor has replied to this ticket ({replies.filter(r => r && (r.category === 'vendor' || r.category?.startsWith('vendor_') || r.type === 'vendor')).length} message{replies.filter(r => r && (r.category === 'vendor' || r.category?.startsWith('vendor_') || r.type === 'vendor')).length > 1 ? 's' : ''}).
+                                </span>
+                            </div>
+                            <button
+                                onClick={() => startTransition(() => setActiveTab('vendor'))}
+                                className="text-[12px] font-bold text-orange-600 hover:text-orange-700 bg-white border border-orange-200 px-3 py-1 rounded-lg shadow-2xs hover:bg-orange-50 transition-colors cursor-pointer"
+                            >
+                                View Vendor Thread →
+                            </button>
+                        </div>
+                    )}
+
                     {/* Auto Reply (Only in client tab) */}
                     {activeTab === 'client' && (
                         <div className="flex gap-4">
@@ -918,7 +953,19 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                     {activeTab === 'client' && <div className="ml-5 border-l-2 border-gray-100 py-1"></div>}
 
                     {/* Persistent Agent Replies (Filtered by category) */}
-                    {replies.filter(r => r && (r.category === activeTab || (activeTab.startsWith('vendor') && r.category === 'vendor'))).map((reply, idx) => (
+                    {replies.filter(r => {
+                        if (!r) return false;
+                        if (activeTab === 'client') {
+                            return r.category === 'client' || (!r.category && r.type !== 'vendor');
+                        }
+                        if (activeTab === 'vendor') {
+                            return r.category === 'vendor' || r.category?.startsWith('vendor_') || r.type === 'vendor';
+                        }
+                        if (activeTab.startsWith('vendor_')) {
+                            return r.category === activeTab || r.category === 'vendor' || r.type === 'vendor';
+                        }
+                        return r.category === activeTab;
+                    }).map((reply, idx) => (
                         <div key={idx} className="flex flex-col">
                             <div className="flex gap-4">
                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shadow-sm flex-shrink-0 ${reply.type === 'agent' ? 'bg-orange-500 text-white' :

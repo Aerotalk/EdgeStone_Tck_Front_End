@@ -182,7 +182,7 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                     const result = await response.json();
                     const allCircuits = Array.isArray(result) ? result : (result.data || []);
                     const currentCircuit = circuit || ticket.circuitId;
-                    const matched = allCircuits.find((c: any) => c.customerCircuitId === currentCircuit || c.id === currentCircuit);
+                    const matched = allCircuits.find((c: any) => c.customerCircuitId === currentCircuit || c.supplierCircuitId === currentCircuit || c.id === currentCircuit);
                     if (matched) {
                         setFullCircuitDetails(matched);
                         if (matched.client) {
