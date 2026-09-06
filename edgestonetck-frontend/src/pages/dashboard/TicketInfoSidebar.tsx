@@ -442,7 +442,7 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                                 {priority || '-'}
                             </span>
                         </div>
-                        <div className="flex justify-between items-center text-[14px]">
+                        {/* <div className="flex justify-between items-center text-[14px]">
                             <span className="text-gray-400 font-medium">Maintenance Mode</span>
                             <button
                                 onClick={async () => {
@@ -465,7 +465,7 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                             >
                                 <div className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-transform ${ticket.isMaintenance ? 'translate-x-4' : 'translate-x-0'}`} />
                             </button>
-                        </div>
+                        </div> */}
                     </div>
                 </div>
 

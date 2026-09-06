@@ -109,28 +109,6 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
     const [showSigDropdown, setShowSigDropdown] = useState(false);
     const [showSignatureModal, setShowSignatureModal] = useState(false);
 
-    // Auto-reply Modal State
-    const [showAutoReplyModal, setShowAutoReplyModal] = useState(false);
-    const [isSendingAutoReply, setIsSendingAutoReply] = useState(false);
-
-    const handleSendAutoReply = async () => {
-        try {
-            setIsSendingAutoReply(true);
-            await ticketService.sendAutoReply(ticket.id, [ticket.email]);
-            toast.success('Auto-reply sent successfully');
-            setShowAutoReplyModal(false);
-            
-            // If it was Spam or Others, move it back to Support (Open)
-            if (ticketStatus.toLowerCase() === 'spam' || ticketStatus.toLowerCase() === 'others') {
-                await handleStatusChange('Open');
-            }
-        } catch (err: any) {
-            toast.error('Failed to send auto-reply');
-        } finally {
-            setIsSendingAutoReply(false);
-        }
-    };
-
     // Dynamic Circuit Options
     const [dynamicCircuitOptions, setDynamicCircuitOptions] = useState<string[]>([]);
 
@@ -260,7 +238,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                     subject: `Re: [${ticket.ticketId}] ${ticket.header}`
                 }));
             });
-        
+
 
         } else if (activeTab.startsWith('vendor')) {
             // Fetch dynamically on vendor tab click
@@ -288,7 +266,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                         // Extract specific vendor if activeTab is vendor_[vendorId]
                         const isSpecificVendor = activeTab.startsWith('vendor_');
                         const specificVendorId = isSpecificVendor ? activeTab.replace('vendor_', '') : null;
-                        
+
                         let targetVendor = null;
                         if (specificVendorId && matchedCircuit.isMultiVendor && matchedCircuit.vendorCircuits) {
                             const vc = matchedCircuit.vendorCircuits.find((v: any) => v.vendorId === specificVendorId);
@@ -312,10 +290,10 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                         // UPDATE SUBJECT TO USE SUPPLIER CIRCUIT ID INSTEAD OF HEADER
                         const supplierId = matchedCircuit?.supplierCircuitId || 'Unknown Circuit';
                         const defaultSafeSubject = `Re: [${ticket.ticketId}-V] Issue regarding Circuit ${supplierId}`;
-                        
+
                         const rawExisting = vendorReplies.find(r => r.subject)?.subject || localSub;
                         const newExistingSubject = (rawExisting && rawExisting.includes(ticket.ticketId)) ? rawExisting : defaultSafeSubject;
-                        
+
                         setEmailForm(prev => ({ ...prev, subject: newExistingSubject }));
 
                     } else {
@@ -345,7 +323,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                 }
             });
         }
-        
+
         const ccArray = Array.from(allCcs);
         setEmailForm(prev => ({
             ...prev,
@@ -679,14 +657,6 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
 
                     <div className="flex flex-row items-center gap-3 sm:gap-6 relative flex-shrink-0 w-full xl:w-auto justify-between xl:justify-end">
                         <div className="flex items-center gap-4">
-                            {ticket.ticketType !== 'Vendor' && (
-                                <button
-                                    onClick={() => setShowAutoReplyModal(true)}
-                                    className="relative px-3 py-1.5 bg-brand-red text-white text-[13px] font-bold rounded-lg shadow-sm hover:shadow-md transition-all duration-300 focus:outline-none active:scale-95"
-                                >
-                                    Tag as Support & Auto Reply
-                                </button>
-                            )}
                             <button
                                 onClick={handleRefresh}
                                 disabled={isRefreshing}
@@ -709,8 +679,8 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                         className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] font-bold border transition-all whitespace-nowrap ${ticketStatus.toLowerCase() === 'closed'
                                             ? 'bg-green-100/50 text-green-600 border-green-200/30 hover:bg-green-100'
                                             : ticketStatus.toLowerCase() === 'spam' || ticketStatus.toLowerCase() === 'others' || ticketStatus.toLowerCase() === 'maintenance'
-                                            ? 'bg-gray-100/50 text-gray-600 border-gray-200/30 hover:bg-gray-100'
-                                            : 'bg-orange-100/50 text-orange-600 border-orange-200/30 hover:bg-orange-100'
+                                                ? 'bg-gray-100/50 text-gray-600 border-gray-200/30 hover:bg-gray-100'
+                                                : 'bg-orange-100/50 text-orange-600 border-orange-200/30 hover:bg-orange-100'
                                             } ${isUpdatingStatus ? 'opacity-70 cursor-wait' : ''}`}
                                     >
                                         {isUpdatingStatus ? (
@@ -781,7 +751,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
 
                 <div className="flex items-center justify-between px-6">
                     <div className="flex items-center gap-8">
-                        
+
                         {ticket.ticketType !== 'Vendor' && (
                             <button
                                 onClick={() => startTransition(() => setActiveTab('client'))}
@@ -952,7 +922,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                         <div key={idx} className="flex flex-col">
                             <div className="flex gap-4">
                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shadow-sm flex-shrink-0 ${reply.type === 'agent' ? 'bg-orange-500 text-white' :
-                                        reply.type === 'client' ? 'bg-indigo-100 text-indigo-600' : 'bg-orange-100 text-orange-600'
+                                    reply.type === 'client' ? 'bg-indigo-100 text-indigo-600' : 'bg-orange-100 text-orange-600'
                                     }`}>
                                     {reply.author[0].toUpperCase()}
                                 </div>
@@ -992,7 +962,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                                     const fileName = att.originalName || att.filename || att.name || 'Attachment';
                                                     const isLegacy = !att.url && att.contentBytes;
                                                     let href = att.url || (isLegacy ? `data:${att.mimeType || 'application/octet-stream'};base64,${att.contentBytes}` : '#');
-                                                    
+
                                                     // Fix hardcoded localhost from email attachments to use the actual API base URL
                                                     if (href.startsWith('http://localhost:5000') && import.meta.env.VITE_API_BASE_URL) {
                                                         href = href.replace('http://localhost:5000', import.meta.env.VITE_API_BASE_URL);
@@ -1028,10 +998,10 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                                     };
 
                                                     return (
-                                                    <a key={idx} href={href} onClick={handleDownload} className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg hover:bg-gray-100 transition-colors w-fit cursor-pointer">
-                                                        <Paperclip size={14} className="text-gray-400" />
-                                                        <span className="text-[13px] font-medium text-blue-600 hover:underline max-w-[200px] truncate">{fileName}</span>
-                                                    </a>
+                                                        <a key={idx} href={href} onClick={handleDownload} className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg hover:bg-gray-100 transition-colors w-fit cursor-pointer">
+                                                            <Paperclip size={14} className="text-gray-400" />
+                                                            <span className="text-[13px] font-medium text-blue-600 hover:underline max-w-[200px] truncate">{fileName}</span>
+                                                        </a>
                                                     );
                                                 })}
                                             </div>
@@ -1048,16 +1018,16 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                     <div className="pt-4">
                         {ticket.isMaintenance ? (
                             <div className="flex items-center gap-4 flex-wrap">
-                                <div className="flex items-center gap-2 p-3 bg-orange-50 border border-orange-100 rounded-xl text-orange-600 text-[13px] font-bold">
+                                {/* <div className="flex items-center gap-2 p-3 bg-orange-50 border border-orange-100 rounded-xl text-orange-600 text-[13px] font-bold">
                                     🔒 Maintenance Mode — awaiting vendor confirmation
-                                </div>
-                                <button
+                                </div> */}
+                                {/* <button
                                     onClick={() => handleStatusChange('In Progress')}
                                     className="flex items-center gap-2 px-5 py-2.5 border border-green-600 rounded-lg text-[14px] font-bold text-green-600 hover:bg-green-50 transition-all active:scale-95"
                                 >
                                     <CornerUpLeft size={16} />
                                     Maintenance Done — Re-Open
-                                </button>
+                                </button> */}
                                 <button
                                     onClick={() => setShowEmailModal(true)}
                                     className="flex items-center gap-2 px-5 py-2.5 border border-gray-900 rounded-lg text-[14px] font-bold text-gray-900 hover:bg-gray-50 transition-all active:scale-95"
@@ -1503,65 +1473,6 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                             <X size={20} />
                         </button>
                         <SignaturesPage />
-                    </div>
-                </div>
-            )}
-
-            {/* Auto-Reply Confirmation Modal */}
-            {showAutoReplyModal && (
-                <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-[200] flex items-center justify-center p-4 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50/50">
-                            <h3 className="text-[16px] font-bold text-gray-900 flex items-center gap-2">
-                                <Mail size={18} className="text-brand-red" />
-                                Tag as Support & Send Auto Reply
-                            </h3>
-                            <button 
-                                onClick={() => setShowAutoReplyModal(false)}
-                                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all"
-                            >
-                                <X size={18} strokeWidth={2.5} />
-                            </button>
-                        </div>
-                        <div className="p-6">
-                            <p className="text-[14px] text-gray-600 mb-4 leading-relaxed font-medium">
-                                Are you sure you want to tag this ticket as <strong>Support</strong> and send an automated reply to the following recipient(s)?
-                            </p>
-                            <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 mb-6">
-                                <div className="text-[12px] font-bold text-orange-600 uppercase tracking-wider mb-2">Recipients</div>
-                                <div className="flex flex-col gap-2">
-                                    <div className="flex items-center gap-2 text-[14px] font-medium text-gray-900 bg-white px-3 py-2 rounded-lg border border-orange-200/50 shadow-sm">
-                                        <Mail size={14} className="text-orange-400" />
-                                        {ticket.email}
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="flex items-center justify-end gap-3 pt-2">
-                                <button
-                                    onClick={() => setShowAutoReplyModal(false)}
-                                    className="px-5 py-2.5 text-[14px] font-bold text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-all"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={handleSendAutoReply}
-                                    disabled={isSendingAutoReply}
-                                    className="flex items-center gap-2 px-5 py-2.5 bg-brand-red hover:bg-red-600 text-white text-[14px] font-bold rounded-xl shadow-md hover:shadow-lg transition-all disabled:opacity-70 disabled:cursor-not-allowed"
-                                >
-                                    {isSendingAutoReply ? (
-                                        <>
-                                            <Loader2 size={16} className="animate-spin" />
-                                            Sending...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Send size={16} />
-                                            Send Auto-Reply
-                                        </>
-                                    )}
-                                </button>
-                            </div>
-                        </div>
                     </div>
                 </div>
             )}
