@@ -61,13 +61,6 @@ export const Topbar: React.FC<TopbarProps> = ({
 
             <div className="flex-shrink-0 mt-4 sm:mt-0 sm:ml-auto flex items-center gap-4">
                 <button
-                    onClick={() => window.open('/roadmap', '_blank')}
-                    className="relative p-2.5 bg-blue-50 text-blue-600 hover:bg-blue-100 shadow-sm hover:shadow-md border border-blue-200 rounded-full transition-all duration-300 focus:outline-none active:scale-95 group"
-                    title="View Ticket Roadmap"
-                >
-                    <Map size={20} className="transition-transform group-hover:scale-110" />
-                </button>
-                <button
                     onClick={handleRefresh}
                     disabled={isRefreshing}
                     className="relative p-2.5 bg-white text-gray-500 hover:bg-red-50 hover:text-brand-red shadow-sm hover:shadow-md border border-gray-100 rounded-full transition-all duration-300 focus:outline-none active:scale-95 group disabled:opacity-50"
