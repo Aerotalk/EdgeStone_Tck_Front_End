@@ -68,7 +68,7 @@ export const TicketCard: React.FC<TicketCardProps> = ({
             <div className="mb-4">
                 <div className="flex items-center justify-between mb-4">
                     <span className="inline-block bg-[#F5F2F9] text-[#A688C4] text-[12px] font-bold px-2 py-1 rounded-md">
-                        #{ticketId}
+                        {ticketId ? (ticketId.startsWith('#') ? ticketId : `#${ticketId}`) : ''}
                     </span>
 
                     {/* Priority badge — shown only when set */}
