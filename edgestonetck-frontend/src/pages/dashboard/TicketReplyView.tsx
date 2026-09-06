@@ -1058,6 +1058,13 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                     <CornerUpLeft size={16} />
                                     Maintenance Done — Re-Open
                                 </button>
+                                <button
+                                    onClick={() => setShowEmailModal(true)}
+                                    className="flex items-center gap-2 px-5 py-2.5 border border-gray-900 rounded-lg text-[14px] font-bold text-gray-900 hover:bg-gray-50 transition-all active:scale-95"
+                                >
+                                    <Mail size={16} />
+                                    Reply {activeTab.startsWith('vendor') ? 'to Vendor' : ''}
+                                </button>
                             </div>
                         ) : ticketStatus.toLowerCase() === 'closed' ? (
                             <button
