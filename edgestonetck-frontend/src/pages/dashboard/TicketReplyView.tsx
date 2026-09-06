@@ -121,20 +121,21 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
         subject: ''
     });
 
+    // Track recipients (CC & BCC) per tab to completely isolate Client tab from Vendor tab
+    const [tabRecipients, setTabRecipients] = useState<Record<string, { cc: string[], bcc: string[] }>>({});
+
     // Reset emailForm whenever the ticket changes so stale subjects from a previous ticket don't bleed in
     useEffect(() => {
-        const existingCc = Array.isArray(ticket.cc) ? [...ticket.cc] : [];
+        setTabRecipients({});
         setEmailForm({
             from: 'support@edgestone.in',
             to: [],
-            cc: existingCc,
+            cc: [],
             bcc: [],
             subject: ''
         });
-        if (existingCc.length > 0) {
-            setShowCc(true);
-        }
-    }, [ticket.id, ticket.cc]);
+        setShowCc(false);
+    }, [ticket.id]);
 
     const [inputValues, setInputValues] = useState({
         to: '',
@@ -315,28 +316,47 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
             });
         }
 
-        // Aggregate CCs from ticket and its replies globally
-        const allCcs = new Set<string>();
-        if (ticket.cc && Array.isArray(ticket.cc)) {
-            ticket.cc.forEach(email => allCcs.add(email.toLowerCase()));
-        }
-        if (replies && Array.isArray(replies)) {
-            replies.forEach(reply => {
-                if (reply.cc && Array.isArray(reply.cc)) {
-                    reply.cc.forEach(email => allCcs.add(email.toLowerCase()));
-                }
-            });
+        // Aggregate CCs separately for Client tab vs Vendor tab so they never bleed into each other
+        let targetCc: string[] = [];
+        let targetBcc: string[] = [];
+
+        if (tabRecipients[activeTab]) {
+            targetCc = tabRecipients[activeTab].cc;
+            targetBcc = tabRecipients[activeTab].bcc;
+        } else if (activeTab === 'client') {
+            const clientCcs = new Set<string>();
+            if (ticket.cc && Array.isArray(ticket.cc)) {
+                ticket.cc.forEach(email => email && clientCcs.add(email.toLowerCase().trim()));
+            }
+            if (replies && Array.isArray(replies)) {
+                replies.forEach(reply => {
+                    const isClientReply = reply.category === 'client' || (!reply.category && reply.type !== 'vendor');
+                    if (isClientReply && reply.cc && Array.isArray(reply.cc)) {
+                        reply.cc.forEach(email => email && clientCcs.add(email.toLowerCase().trim()));
+                    }
+                });
+            }
+            targetCc = Array.from(clientCcs);
+        } else if (activeTab.startsWith('vendor')) {
+            const vendorCcs = new Set<string>();
+            if (replies && Array.isArray(replies)) {
+                replies.forEach(reply => {
+                    const isVendorReply = reply.category === activeTab || reply.category === 'vendor' || reply.category?.startsWith('vendor_') || reply.type === 'vendor';
+                    if (isVendorReply && reply.cc && Array.isArray(reply.cc)) {
+                        reply.cc.forEach(email => email && vendorCcs.add(email.toLowerCase().trim()));
+                    }
+                });
+            }
+            targetCc = Array.from(vendorCcs);
         }
 
-        const ccArray = Array.from(allCcs);
         setEmailForm(prev => ({
             ...prev,
-            cc: ccArray
+            cc: targetCc,
+            bcc: targetBcc
         }));
-        if (ccArray.length > 0) {
-            setShowCc(true);
-        }
-    }, [activeTab, ticket.email, ticket.header, ticket.id, confirmedCircuit, ticket.circuitId, ticket.cc, replies]);
+        setShowCc(targetCc.length > 0 || targetBcc.length > 0);
+    }, [activeTab, ticket.email, ticket.header, ticket.id, confirmedCircuit, ticket.circuitId, ticket.cc, replies, tabRecipients]);
 
     // Autofill subject line for vendor replies when opening the email modal
     useEffect(() => {
@@ -550,6 +570,11 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                 cc: [],
                 bcc: []
             }));
+            setTabRecipients(prev => {
+                const next = { ...prev };
+                delete next[activeTab];
+                return next;
+            });
             setShowCc(false);
             setShowEmailModal(false);
 
@@ -586,19 +611,43 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
     const addRecipient = (field: 'to' | 'cc' | 'bcc', value: string) => {
         const email = value.trim().replace(/,$/, '');
         if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && !emailForm[field].includes(email)) {
-            setEmailForm(prev => ({
-                ...prev,
-                [field]: [...prev[field], email]
-            }));
+            setEmailForm(prev => {
+                const nextField = [...prev[field], email];
+                if (field === 'cc' || field === 'bcc') {
+                    setTabRecipients(tPrev => ({
+                        ...tPrev,
+                        [activeTab]: {
+                            cc: field === 'cc' ? nextField : (tPrev[activeTab]?.cc ?? prev.cc),
+                            bcc: field === 'bcc' ? nextField : (tPrev[activeTab]?.bcc ?? prev.bcc)
+                        }
+                    }));
+                }
+                return {
+                    ...prev,
+                    [field]: nextField
+                };
+            });
             setInputValues(prev => ({ ...prev, [field]: '' }));
         }
     };
 
     const removeRecipient = (field: 'to' | 'cc' | 'bcc', index: number) => {
-        setEmailForm(prev => ({
-            ...prev,
-            [field]: prev[field].filter((_, i) => i !== index)
-        }));
+        setEmailForm(prev => {
+            const nextField = prev[field].filter((_, i) => i !== index);
+            if (field === 'cc' || field === 'bcc') {
+                setTabRecipients(tPrev => ({
+                    ...tPrev,
+                    [activeTab]: {
+                        cc: field === 'cc' ? nextField : (tPrev[activeTab]?.cc ?? prev.cc),
+                        bcc: field === 'bcc' ? nextField : (tPrev[activeTab]?.bcc ?? prev.bcc)
+                    }
+                }));
+            }
+            return {
+                ...prev,
+                [field]: nextField
+            };
+        });
     };
 
     const handleRecipientKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, field: 'to' | 'cc' | 'bcc') => {
