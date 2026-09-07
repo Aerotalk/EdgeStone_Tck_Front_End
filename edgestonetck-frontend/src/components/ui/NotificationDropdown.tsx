@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, Check, Ticket } from 'lucide-react';
+import { Bell, Check, Ticket, AlertTriangle } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router-dom';
 import type { Notification } from '../../services/notificationService';
 import { notificationService } from '../../services/notificationService';
 import dayjs from 'dayjs';
@@ -11,6 +12,8 @@ export const NotificationDropdown: React.FC = () => {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const navigate = useNavigate();
+    const { id: dashboardId } = useParams();
 
     const fetchNotifications = async () => {
         try {
@@ -71,6 +74,23 @@ export const NotificationDropdown: React.FC = () => {
         }
     };
 
+    const handleNotificationClick = async (notification: Notification) => {
+        if (!notification.isRead) {
+            try {
+                await notificationService.markAsRead(notification.id);
+                setNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, isRead: true } : n));
+            } catch (err) {
+                console.error('Failed to mark read', err);
+            }
+        }
+        if (notification.ticketId) {
+            setIsOpen(false);
+            const cleanId = notification.ticketId.trim();
+            const routeId = dashboardId || 'default';
+            navigate(`/dashboard/${routeId}/tickets?ticketId=${encodeURIComponent(cleanId)}`);
+        }
+    };
+
     const unreadCount = notifications.filter(n => !n.isRead).length;
 
     return (
@@ -125,11 +145,20 @@ export const NotificationDropdown: React.FC = () => {
                             notifications.map(notification => (
                                 <div 
                                     key={notification.id} 
-                                    className={`relative p-4 border-b border-gray-50 transition-colors ${notification.isRead ? 'bg-white' : 'bg-red-50/30'}`}
+                                    onClick={() => handleNotificationClick(notification)}
+                                    className={`relative p-4 border-b border-gray-50 transition-colors cursor-pointer hover:bg-gray-50/80 ${
+                                        notification.type === 'closed_ticket_reply' && !notification.isRead
+                                            ? 'bg-amber-50/60'
+                                            : notification.isRead ? 'bg-white' : 'bg-red-50/30'
+                                    }`}
                                 >
                                     <div className="flex gap-3">
                                         <div className="flex-shrink-0 mt-1">
-                                            {notification.type === 'new_ticket' ? (
+                                            {notification.type === 'closed_ticket_reply' ? (
+                                                <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center">
+                                                    <AlertTriangle size={16} />
+                                                </div>
+                                            ) : notification.type === 'new_ticket' ? (
                                                 <div className="w-8 h-8 rounded-full bg-brand-red/10 text-brand-red flex items-center justify-center">
                                                     <Ticket size={16} />
                                                 </div>
@@ -139,10 +168,17 @@ export const NotificationDropdown: React.FC = () => {
                                                 </div>
                                             )}
                                         </div>
-                                        <div className="flex-1 min-w-0">
-                                            <p className={`text-sm font-medium text-gray-900 ${!notification.isRead ? 'font-semibold' : ''}`}>
-                                                {notification.title || 'Notification'}
-                                            </p>
+                                        <div className="flex-1 min-w-0 pr-6">
+                                            <div className="flex items-center gap-1.5 flex-wrap">
+                                                <p className={`text-sm font-medium text-gray-900 ${!notification.isRead ? 'font-semibold' : ''}`}>
+                                                    {notification.title || 'Notification'}
+                                                </p>
+                                                {notification.type === 'closed_ticket_reply' && (
+                                                    <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-amber-100 text-amber-800">
+                                                        Closed Ticket
+                                                    </span>
+                                                )}
+                                            </div>
                                             <p className="text-xs text-gray-600 mt-0.5 line-clamp-2">
                                                 {notification.message}
                                             </p>

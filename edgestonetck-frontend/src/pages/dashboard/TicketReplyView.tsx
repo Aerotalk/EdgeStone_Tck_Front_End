@@ -966,7 +966,24 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                         </div>
                     )}
 
-                    {activeTab === 'client' && <div className="ml-5 border-l-2 border-gray-100 py-1"></div>}
+                    {/* Closed Ticket Notice Banner */}
+                    {ticketStatus.toLowerCase() === 'closed' && (
+                        <div className="bg-red-50/95 border border-red-200 rounded-xl p-3.5 flex items-center justify-between shadow-2xs mb-2">
+                            <div className="flex items-center gap-2.5">
+                                <span className="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                                <span className="text-[13px] font-semibold text-red-900">
+                                    This ticket is currently Closed. Review the latest replies below and click Reopen Ticket if you want to resume the conversation.
+                                </span>
+                            </div>
+                            <button
+                                onClick={handleReopenTicket}
+                                className="text-[12px] font-bold text-red-700 hover:text-red-800 bg-white border border-red-300 px-3 py-1.5 rounded-lg shadow-2xs hover:bg-red-50 transition-colors cursor-pointer flex items-center gap-1.5 flex-shrink-0"
+                            >
+                                <CornerUpLeft size={14} />
+                                Reopen Ticket
+                            </button>
+                        </div>
+                    )}
 
                     {/* Vendor Reply Notification Banner on Client Tab */}
                     {activeTab === 'client' && replies.filter(r => r && (r.category === 'vendor' || r.category?.startsWith('vendor_') || r.type === 'vendor')).length > 0 && (

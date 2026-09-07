@@ -60,11 +60,19 @@ const DashboardLayout: React.FC = () => {
                     }
 
                     // Toast notification
-                    toast.success(data.message, {
-                        duration: 6000,
-                        icon: '🔔',
-                        style: { background: '#1e1e2e', color: '#fff', borderRadius: '12px', fontWeight: '600' }
-                    });
+                    if (data.type === 'closed_ticket_reply') {
+                        toast(data.message, {
+                            duration: 9000,
+                            icon: '⚠️',
+                            style: { background: '#451a03', color: '#fef3c7', border: '1px solid #d97706', borderRadius: '12px', fontWeight: '600' }
+                        });
+                    } else {
+                        toast.success(data.message, {
+                            duration: 6000,
+                            icon: '🔔',
+                            style: { background: '#1e1e2e', color: '#fff', borderRadius: '12px', fontWeight: '600' }
+                        });
+                    }
 
                     // Chime
                     playChime();
