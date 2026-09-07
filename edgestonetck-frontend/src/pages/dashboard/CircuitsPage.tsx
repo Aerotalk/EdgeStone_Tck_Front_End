@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Topbar } from '../../components/ui/Topbar';
-import { Plus, Check, X, Loader2, Zap, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Check, X, Loader2, Zap, Pencil, Trash2, Eye, Mail, Copy, CheckCheck, Building2 } from 'lucide-react';
 import { DeleteConfirmModal } from '../../components/ui/DeleteConfirmModal';
 import { useAuth } from '../../contexts/AuthContext';
 import { circuitService } from '../../services/circuitService';
@@ -72,6 +72,11 @@ const Field: React.FC<{
 
 const inputCls = "w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-brand-red focus:ring-4 focus:ring-brand-red/5 transition-all";
 const selectCls = "w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-brand-red focus:ring-4 focus:ring-brand-red/5 transition-all appearance-none";
+
+const typeBadge = (type: string) =>
+    type === 'PROTECTED'
+        ? 'bg-blue-50 text-blue-600 border-blue-100'
+        : 'bg-orange-50 text-orange-600 border-orange-100';
 
 // ─── Circuit Form Modal (shared for Add & Edit) ───────────────────────────────
 interface CircuitFormModalProps {
@@ -378,6 +383,340 @@ const CircuitFormModal: React.FC<CircuitFormModalProps> = ({
 );
 };
 
+// ─── Circuit Detail Modal (View Vendors & Emails) ─────────────────────────────
+interface CircuitDetailModalProps {
+    circuit: Circuit;
+    vendors: Vendor[];
+    clients: Client[];
+    onClose: () => void;
+}
+
+const CircuitDetailModal: React.FC<CircuitDetailModalProps> = ({
+    circuit, vendors, clients, onClose
+}) => {
+    const [activeVendorTab, setActiveVendorTab] = useState(0);
+    const [copiedEmail, setCopiedEmail] = useState<string | null>(null);
+
+    const handleCopyEmail = (email: string) => {
+        navigator.clipboard.writeText(email);
+        setCopiedEmail(email);
+        setTimeout(() => setCopiedEmail(null), 2000);
+    };
+
+    const clientObj = clients.find(c => c.id === circuit.clientId) || circuit.client;
+
+    return (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px] animate-in fade-in">
+            <div className="bg-white w-full max-w-3xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
+                {/* Header */}
+                <div className="flex items-center justify-between px-8 py-5 border-b border-gray-100 bg-gray-50/50">
+                    <div className="space-y-1">
+                        <div className="flex items-center gap-3">
+                            <span className="p-2 bg-red-50 text-brand-red rounded-xl">
+                                <Building2 size={18} />
+                            </span>
+                            <div>
+                                <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                                    {circuit.customerCircuitId}
+                                </h2>
+                                <p className="text-xs text-gray-400 font-medium">
+                                    {circuit.supplierCircuitId ? `Supplier Circuit ID: ${circuit.supplierCircuitId}` : 'Circuit Details & Vendor Directory'}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wide uppercase border ${typeBadge(circuit.type)}`}>
+                            {circuit.type}
+                        </span>
+                        <button onClick={onClose} className="p-2 hover:bg-gray-200/60 rounded-full transition-colors">
+                            <X size={18} className="text-gray-400" />
+                        </button>
+                    </div>
+                </div>
+
+                {/* Body */}
+                <div className="overflow-y-auto flex-1 p-8 space-y-6">
+
+                    {/* Section: Associated Vendors & Contacts */}
+                    <div className="bg-gray-50/70 p-5 rounded-2xl border border-gray-200/70">
+                        <div className="flex items-center justify-between mb-4">
+                            <div>
+                                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                                    <Mail size={14} className="text-brand-red" />
+                                    Vendor NOC Contacts & Details
+                                </h3>
+                                <p className="text-xs text-gray-400 mt-0.5">
+                                    {circuit.isMultiVendor 
+                                        ? `This circuit is configured with ${circuit.vendorCircuits?.length || 0} upstream vendors.` 
+                                        : 'Primary supplier assigned to this circuit.'}
+                                </p>
+                            </div>
+                            {circuit.isMultiVendor && (
+                                <span className="px-2.5 py-1 text-xs font-bold text-brand-red bg-red-100/60 border border-red-200 rounded-lg">
+                                    Multi-Vendor ({circuit.vendorCircuits?.length || 0})
+                                </span>
+                            )}
+                        </div>
+
+                        {circuit.isMultiVendor && circuit.vendorCircuits && circuit.vendorCircuits.length > 0 ? (
+                            <div>
+                                {/* Vendor Tabs */}
+                                <div className="flex flex-wrap gap-2 mb-4">
+                                    {circuit.vendorCircuits.map((vc, idx) => {
+                                        const vendorName = vc.vendor?.name || vendors.find(v => v.id === vc.vendorId)?.name || `Vendor ${idx + 1}`;
+                                        return (
+                                            <button
+                                                key={idx}
+                                                type="button"
+                                                onClick={() => setActiveVendorTab(idx)}
+                                                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                                                    activeVendorTab === idx
+                                                        ? 'bg-white shadow-sm border border-gray-200 text-brand-red'
+                                                        : 'bg-transparent text-gray-500 hover:bg-gray-200/50'
+                                                }`}
+                                            >
+                                                {vendorName}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* Active Vendor Details Card */}
+                                {(() => {
+                                    const activeVc = circuit.vendorCircuits[activeVendorTab] || circuit.vendorCircuits[0];
+                                    const fullVendor = vendors.find(v => v.id === activeVc.vendorId) || activeVc.vendor;
+                                    const vendorEmails = fullVendor?.emails || [];
+
+                                    return (
+                                        <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm space-y-4">
+                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-gray-100 gap-2">
+                                                <div>
+                                                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Vendor Name</span>
+                                                    <p className="text-base font-bold text-gray-900">{fullVendor?.name || 'Unknown Vendor'}</p>
+                                                </div>
+                                                {activeVc.supplierCircuitId && (
+                                                    <div className="sm:text-right">
+                                                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Supplier Circuit ID</span>
+                                                        <p className="text-sm font-semibold text-gray-800 font-mono">{activeVc.supplierCircuitId}</p>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Vendor Emails */}
+                                            <div>
+                                                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">
+                                                    NOC / Escalation Emails
+                                                </span>
+                                                {vendorEmails.length > 0 ? (
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {vendorEmails.map((email: string) => (
+                                                            <div
+                                                                key={email}
+                                                                className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-200/70 rounded-lg text-xs font-semibold text-blue-900"
+                                                            >
+                                                                <Mail size={12} className="text-blue-600 flex-shrink-0" />
+                                                                <a
+                                                                    href={`mailto:${email}`}
+                                                                    className="hover:underline select-all"
+                                                                    title="Click to draft email"
+                                                                >
+                                                                    {email}
+                                                                </a>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleCopyEmail(email)}
+                                                                    className="p-1 hover:bg-blue-100 rounded text-blue-500 hover:text-blue-800 transition-colors"
+                                                                    title="Copy email address"
+                                                                >
+                                                                    {copiedEmail === email ? (
+                                                                        <CheckCheck size={12} className="text-emerald-600" />
+                                                                    ) : (
+                                                                        <Copy size={12} />
+                                                                    )}
+                                                                </button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <p className="text-xs text-gray-400 italic">
+                                                        No contact emails configured for this vendor in the Vendors database.
+                                                    </p>
+                                                )}
+                                            </div>
+
+                                            {/* Contract Info */}
+                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-gray-100 text-xs">
+                                                <div>
+                                                    <span className="text-gray-400 font-medium">Supplier PO:</span>
+                                                    <p className="font-semibold text-gray-800 mt-0.5">{activeVc.supplierPoNumber || '—'}</p>
+                                                </div>
+                                                <div>
+                                                    <span className="text-gray-400 font-medium">Contract Type:</span>
+                                                    <p className="font-semibold text-gray-800 mt-0.5">{activeVc.supplierContractType || '—'}</p>
+                                                </div>
+                                                <div>
+                                                    <span className="text-gray-400 font-medium">Supplier MRC:</span>
+                                                    <p className="font-semibold text-gray-800 mt-0.5">
+                                                        {activeVc.supplierMrc != null ? `$${activeVc.supplierMrc.toLocaleString()}` : '—'}
+                                                    </p>
+                                                </div>
+                                                <div>
+                                                    <span className="text-gray-400 font-medium">Term:</span>
+                                                    <p className="font-semibold text-gray-800 mt-0.5">
+                                                        {activeVc.supplierContractTermMonths ? `${activeVc.supplierContractTermMonths} Months` : '—'}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
+                            </div>
+                        ) : circuit.vendor || circuit.vendorId ? (
+                            (() => {
+                                const fullVendor = vendors.find(v => v.id === circuit.vendorId) || circuit.vendor;
+                                const vendorEmails = fullVendor?.emails || [];
+
+                                return (
+                                    <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm space-y-4">
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-gray-100 gap-2">
+                                            <div>
+                                                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Vendor Name</span>
+                                                <p className="text-base font-bold text-gray-900">{fullVendor?.name || 'Unknown Vendor'}</p>
+                                            </div>
+                                            {circuit.supplierCircuitId && (
+                                                <div className="sm:text-right">
+                                                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Supplier Circuit ID</span>
+                                                    <p className="text-sm font-semibold text-gray-800 font-mono">{circuit.supplierCircuitId}</p>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Vendor Emails */}
+                                        <div>
+                                            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">
+                                                NOC / Escalation Emails
+                                            </span>
+                                            {vendorEmails.length > 0 ? (
+                                                <div className="flex flex-wrap gap-2">
+                                                    {vendorEmails.map((email: string) => (
+                                                        <div
+                                                            key={email}
+                                                            className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-200/70 rounded-lg text-xs font-semibold text-blue-900"
+                                                        >
+                                                            <Mail size={12} className="text-blue-600 flex-shrink-0" />
+                                                            <a
+                                                                href={`mailto:${email}`}
+                                                                className="hover:underline select-all"
+                                                                title="Click to draft email"
+                                                            >
+                                                                {email}
+                                                            </a>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleCopyEmail(email)}
+                                                                className="p-1 hover:bg-blue-100 rounded text-blue-500 hover:text-blue-800 transition-colors"
+                                                                title="Copy email address"
+                                                            >
+                                                                {copiedEmail === email ? (
+                                                                    <CheckCheck size={12} className="text-emerald-600" />
+                                                                ) : (
+                                                                    <Copy size={12} />
+                                                                )}
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <p className="text-xs text-gray-400 italic">
+                                                    No contact emails configured for this vendor in the Vendors database.
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        {/* Contract Details */}
+                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-gray-100 text-xs">
+                                            <div>
+                                                <span className="text-gray-400 font-medium">Supplier PO:</span>
+                                                <p className="font-semibold text-gray-800 mt-0.5">{circuit.supplierPoNumber || '—'}</p>
+                                            </div>
+                                            <div>
+                                                <span className="text-gray-400 font-medium">Contract Type:</span>
+                                                <p className="font-semibold text-gray-800 mt-0.5">{circuit.supplierContractType || '—'}</p>
+                                            </div>
+                                            <div>
+                                                <span className="text-gray-400 font-medium">Supplier MRC:</span>
+                                                <p className="font-semibold text-gray-800 mt-0.5">
+                                                    {circuit.supplierMrc != null ? `$${circuit.supplierMrc.toLocaleString()}` : '—'}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <span className="text-gray-400 font-medium">Term:</span>
+                                                <p className="font-semibold text-gray-800 mt-0.5">
+                                                    {circuit.supplierContractTermMonths ? `${circuit.supplierContractTermMonths} Months` : '—'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })()
+                        ) : (
+                            <div className="bg-white p-4 rounded-xl border border-gray-200 text-xs text-gray-400 italic">
+                                No vendor assigned to this circuit.
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Section: Client & Customer Details */}
+                    <div className="bg-white p-5 rounded-2xl border border-gray-200/80 space-y-3">
+                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Client & Customer Contract</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <span className="text-xs text-gray-400 font-medium">Client Name:</span>
+                                <p className="font-bold text-gray-800">{clientObj?.name || '—'}</p>
+                            </div>
+                            <div>
+                                <span className="text-xs text-gray-400 font-medium">Customer PO Number:</span>
+                                <p className="font-bold text-gray-800">{circuit.poNumber || '—'}</p>
+                            </div>
+                            <div>
+                                <span className="text-xs text-gray-400 font-medium">Monthly Recurring Charge (MRC):</span>
+                                <p className="font-bold text-gray-800">
+                                    {circuit.mrc != null ? `$${circuit.mrc.toLocaleString()}` : '—'}
+                                </p>
+                            </div>
+                            <div>
+                                <span className="text-xs text-gray-400 font-medium">Contract Type & Term:</span>
+                                <p className="font-bold text-gray-800">
+                                    {circuit.contractType || '—'} {circuit.contractTermMonths ? `(${circuit.contractTermMonths} Mo)` : ''}
+                                </p>
+                            </div>
+                            {circuit.serviceDescription && (
+                                <div className="sm:col-span-2">
+                                    <span className="text-xs text-gray-400 font-medium">Service Description:</span>
+                                    <p className="text-xs text-gray-600 mt-0.5">{circuit.serviceDescription}</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                </div>
+
+                {/* Footer */}
+                <div className="px-8 py-4 border-t border-gray-100 flex justify-end bg-gray-50/50">
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="px-6 py-2 bg-gray-900 text-white font-bold rounded-xl hover:bg-gray-800 transition-all text-sm"
+                    >
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 const CircuitsPage: React.FC = () => {
     const navigate   = useNavigate();
@@ -392,6 +731,9 @@ const CircuitsPage: React.FC = () => {
     // ── Success toast ──────────────────────────────────────────────────────
     const [showSuccess,    setShowSuccess]    = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
+
+    // ── Detail modal ────────────────────────────────────────────────────────
+    const [detailCircuit,  setDetailCircuit]  = useState<Circuit | null>(null);
 
     // ── Add modal ──────────────────────────────────────────────────────────
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -547,11 +889,6 @@ const CircuitsPage: React.FC = () => {
         );
     });
 
-    const typeBadge = (type: string) =>
-        type === 'PROTECTED'
-            ? 'bg-blue-50 text-blue-600 border-blue-100'
-            : 'bg-orange-50 text-orange-600 border-orange-100';
-
     // ─────────────────────────────────────────────────────────────────────────
     return (
         <div className="flex flex-col h-full overflow-hidden bg-[#F9FAFB] relative transition-all duration-500">
@@ -611,6 +948,16 @@ const CircuitsPage: React.FC = () => {
                 />
             )}
 
+            {/* Detail Modal (View Vendors & Emails) */}
+            {detailCircuit && (
+                <CircuitDetailModal
+                    circuit={detailCircuit}
+                    vendors={vendors}
+                    clients={clients}
+                    onClose={() => setDetailCircuit(null)}
+                />
+            )}
+
             <div className="px-4 sm:px-8 pt-4 sm:pt-6 pb-8 flex-1 overflow-auto relative">
                 {isSuperAdmin() && (
                     <div className="mb-6">
@@ -642,6 +989,13 @@ const CircuitsPage: React.FC = () => {
                                             <span className={`px-2 py-1 rounded-md text-[10px] font-bold tracking-wide uppercase border ${typeBadge(circuit.type)}`}>
                                                 {circuit.type}
                                             </span>
+                                            <button
+                                                onClick={() => setDetailCircuit(circuit)}
+                                                className="p-1.5 hover:bg-blue-50 text-gray-400 hover:text-blue-600 rounded-lg transition-colors"
+                                                title="View vendor details & emails"
+                                            >
+                                                <Eye size={14} />
+                                            </button>
                                             {isSuperAdmin() && (
                                                 <button
                                                     onClick={() => openEdit(circuit)}
@@ -663,11 +1017,21 @@ const CircuitsPage: React.FC = () => {
                                     <div className="flex flex-col gap-2 pt-2 border-t border-gray-50">
                                         <div className="flex justify-between items-center text-sm">
                                             <span className="text-gray-500 font-medium">Vendor:</span>
-                                            <span className="font-bold text-gray-800">
-                                                {circuit.isMultiVendor
-                                                    ? <span className="text-brand-red">Multi-Vendor ({circuit.vendorCircuits?.length || 0})</span>
-                                                    : circuit.vendor?.name || '—'}
-                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => setDetailCircuit(circuit)}
+                                                className="font-bold text-gray-800 text-right hover:text-brand-red transition-colors flex items-center gap-1.5"
+                                                title="Click to view vendor details & emails"
+                                            >
+                                                {circuit.isMultiVendor ? (
+                                                    <span className="text-brand-red underline decoration-dotted">
+                                                        Multi-Vendor ({circuit.vendorCircuits?.length || 0})
+                                                    </span>
+                                                ) : (
+                                                    <span>{circuit.vendor?.name || '—'}</span>
+                                                )}
+                                                <Eye size={12} className="text-gray-400" />
+                                            </button>
                                         </div>
                                         <div className="flex justify-between items-center text-sm">
                                             <span className="text-gray-500 font-medium">Client:</span>
@@ -703,7 +1067,7 @@ const CircuitsPage: React.FC = () => {
                                             <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Vendor</th>
                                             <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Client</th>
                                             <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">MRC</th>
-                                            <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-right w-24">Actions</th>
+                                            <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-right w-28">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -722,9 +1086,34 @@ const CircuitsPage: React.FC = () => {
                                                 </td>
                                                 <td className="px-6 py-4 text-sm font-semibold text-gray-700">
                                                     {circuit.isMultiVendor ? (
-                                                        <span className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-brand-red" />Multi-Vendor ({circuit.vendorCircuits?.length || 0})</span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setDetailCircuit(circuit)}
+                                                            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-brand-red font-semibold text-xs transition-all border border-red-200/60 shadow-xs cursor-pointer group/btn"
+                                                            title="Click to view all vendors & NOC emails"
+                                                        >
+                                                            <div className="w-2 h-2 rounded-full bg-brand-red" />
+                                                            <span>Multi-Vendor ({circuit.vendorCircuits?.length || 0})</span>
+                                                            <Eye size={12} className="opacity-60 group-hover/btn:opacity-100 transition-opacity" />
+                                                        </button>
                                                     ) : circuit.vendor?.name ? (
-                                                        <span className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-indigo-400" />{circuit.vendor.name}</span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setDetailCircuit(circuit)}
+                                                            className="text-left group/btn hover:text-brand-red transition-colors cursor-pointer block"
+                                                            title="Click to view vendor details & NOC emails"
+                                                        >
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-2 h-2 rounded-full bg-indigo-400" />
+                                                                <span className="text-gray-800 font-semibold group-hover/btn:text-brand-red transition-colors">{circuit.vendor.name}</span>
+                                                                <Eye size={12} className="text-gray-400 opacity-0 group-hover/btn:opacity-100 transition-opacity" />
+                                                            </div>
+                                                            {circuit.vendor.emails && circuit.vendor.emails.length > 0 && (
+                                                                <p className="text-[11px] text-gray-400 font-normal pl-4 truncate max-w-[200px]">
+                                                                    {circuit.vendor.emails[0]}
+                                                                </p>
+                                                            )}
+                                                        </button>
                                                     ) : (
                                                         <span className="text-gray-400 font-normal italic">None</span>
                                                     )}
@@ -741,6 +1130,13 @@ const CircuitsPage: React.FC = () => {
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
                                                     <div className="flex items-center justify-end gap-1">
+                                                        <button
+                                                            onClick={() => setDetailCircuit(circuit)}
+                                                            className="p-2 hover:bg-blue-50 text-gray-400 hover:text-blue-600 rounded-lg transition-all"
+                                                            title="View vendor details & emails"
+                                                        >
+                                                            <Eye size={14} />
+                                                        </button>
                                                         {isSuperAdmin() && (
                                                             <button
                                                                 onClick={() => openEdit(circuit)}

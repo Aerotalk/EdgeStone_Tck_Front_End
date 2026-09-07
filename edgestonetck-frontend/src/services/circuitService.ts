@@ -5,9 +5,9 @@ export interface Circuit {
     supplierCircuitId: string | null;
     type: 'PROTECTED' | 'UNPROTECTED';
     vendorId: string | null;
-    vendor: { id: string; name: string; status: string } | null;
+    vendor: { id: string; name: string; status: string; emails?: string[] } | null;
     clientId: string | null;
-    client: { id: string; name: string; status: string } | null;
+    client: { id: string; name: string; status: string; emails?: string[] } | null;
     // Detail fields
     poNumber: string | null;
     serviceDescription: string | null;
@@ -29,7 +29,7 @@ export interface Circuit {
 export interface VendorCircuitData {
     id?: string;
     vendorId?: string | null;
-    vendor?: { id: string; name: string; status: string } | null;
+    vendor?: { id: string; name: string; status: string; emails?: string[] } | null;
     supplierCircuitId?: string | null;
     supplierPoNumber?: string | null;
     supplierServiceDescription?: string | null;
