@@ -109,7 +109,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
 
     const [showCircuitModal, setShowCircuitModal] = useState(false);
     const [selectedCircuit, setSelectedCircuit] = useState(() => {
-        return localStorage.getItem(`confirmed_circuit_id_${ticket.id}`) || ticket.circuitId || 'BA/SNG-TY2/ESPL-003';
+        return localStorage.getItem(`confirmed_circuit_id_${ticket.id}`) || ticket.circuitId || '';
     });
     const [selectedPriority, setSelectedPriority] = useState('');
     const [openDropdown, setOpenDropdown] = useState<'circuit' | 'priority' | null>(null);
@@ -519,14 +519,15 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                 ? circuits.find(c => c.vendor?.name === vendorName)?.vendorId
                 : undefined;
 
-            // Just filter dynamically on client side or pass to backend
+            // Filter circuits dynamically based on vendor or client context to prevent mixing records
             const filtered = circuits.filter(c => {
                 if (activeTab.startsWith('vendor') && vendorId) return c.vendorId === vendorId;
-                return true; // client context sees all or maybe specific ones
+                if (ticket.clientId) return c.clientId === ticket.clientId;
+                return true;
             });
             setDynamicCircuitOptions(filtered.map(c => c.customerCircuitId).filter(Boolean));
         }).catch(err => console.error(err));
-    }, [activeTab, vendorName]);
+    }, [activeTab, vendorName, ticket.clientId]);
 
     // Construct replies from ticket prop
     useEffect(() => {

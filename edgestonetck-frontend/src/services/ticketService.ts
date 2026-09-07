@@ -31,8 +31,10 @@ export interface Ticket {
     updatedAt: string;
     isSlaActive?: boolean;
     ticketType?: string;
-    client?: { name: string };
-    vendor?: { name: string };
+    clientId?: string;
+    vendorId?: string;
+    client?: { id?: string; name: string };
+    vendor?: { id?: string; name: string };
     // Add other fields as needed
 }
 
