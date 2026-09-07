@@ -125,4 +125,16 @@ export const circuitService = {
         const result = await response.json();
         return result.data ?? result;
     },
+
+    deleteCircuit: async (id: string): Promise<void> => {
+        const response = await fetch(`${API_URL}/${id}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders(),
+        });
+        if (!response.ok) {
+            if (response.status === 401) throw new Error('Unauthorized');
+            const err = await response.json().catch(() => ({ message: 'Failed to delete circuit' }));
+            throw new Error(err.message || 'Failed to delete circuit');
+        }
+    },
 };

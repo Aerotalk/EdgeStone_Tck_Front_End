@@ -15,11 +15,13 @@ import {
     Plus,
     Loader2,
     PenLine,
-    RefreshCw
+    RefreshCw,
+    Trash2
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { TicketInfoSidebar } from './TicketInfoSidebar';
 import { NotificationDropdown } from '../../components/ui/NotificationDropdown';
+import { DeleteConfirmModal } from '../../components/ui/DeleteConfirmModal';
 
 import { ticketService, type Reply, type Ticket } from '../../services/ticketService';
 import { signatureService, type Signature } from '../../services/signatureService';
@@ -81,6 +83,26 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
             setTimeout(() => {
                 setIsRefreshing(false);
             }, 800);
+        }
+    };
+
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const handleDeleteTicket = async () => {
+        try {
+            setIsDeleting(true);
+            await ticketService.deleteTicket(ticket.id);
+            toast.success(`Ticket ${ticket.ticketId} deleted successfully`);
+            if (dashboardData?.refresh) {
+                dashboardData.refresh().catch(console.error);
+            }
+            setShowDeleteModal(false);
+            onBack();
+        } catch (err: any) {
+            toast.error(err.message || 'Failed to delete ticket');
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -743,6 +765,13 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                 title="Refresh Conversation"
                             >
                                 <RefreshCw size={20} className={`transition-transform duration-700 ${isRefreshing ? 'animate-spin' : 'group-hover:rotate-180'}`} />
+                            </button>
+                            <button
+                                onClick={() => setShowDeleteModal(true)}
+                                className="relative p-2.5 bg-white text-gray-400 hover:bg-red-50 hover:text-brand-red shadow-sm hover:shadow-md border border-gray-100 rounded-full transition-all duration-300 focus:outline-none active:scale-95 group hidden sm:block"
+                                title="Delete Ticket"
+                            >
+                                <Trash2 size={20} />
                             </button>
                             <NotificationDropdown />
                         </div>
@@ -1615,6 +1644,16 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                     </div>
                 </div>
             )}
+
+            <DeleteConfirmModal
+                isOpen={showDeleteModal}
+                title="Delete Ticket"
+                itemName={`${ticket.ticketId} - ${ticket.header}`}
+                itemType="Ticket"
+                isLoading={isDeleting}
+                onConfirm={handleDeleteTicket}
+                onClose={() => setShowDeleteModal(false)}
+            />
         </div>
     );
 };

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Topbar } from '../../components/ui/Topbar';
-import { Plus, Calendar, Edit3, Check, X, Loader2 } from 'lucide-react';
+import { Plus, Calendar, Edit3, Check, X, Loader2, Trash2 } from 'lucide-react';
+import { DeleteConfirmModal } from '../../components/ui/DeleteConfirmModal';
 import { useAuth } from '../../contexts/AuthContext';
 import { vendorService } from '../../services/vendorService';
 import type { Vendor } from '../../services/vendorService';
@@ -17,6 +18,8 @@ const VendorsPage: React.FC = () => {
     const [editFormData, setEditFormData] = useState<Partial<Vendor>>({});
     const [showSuccess, setShowSuccess] = useState(false);
     const [successMessage, setSuccessMessage] = useState('Details Updated Successfully');
+    const [vendorToDelete, setVendorToDelete] = useState<Vendor | null>(null);
+    const [isDeletingVendor, setIsDeletingVendor] = useState(false);
 
     // Add Vendor Modal states
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -89,6 +92,30 @@ const VendorsPage: React.FC = () => {
                 localStorage.removeItem('edgestone_user');
                 navigate('/login');
             }
+        }
+    };
+
+    const handleDeleteVendor = async () => {
+        if (!vendorToDelete) return;
+        try {
+            setIsDeletingVendor(true);
+            await vendorService.deleteVendor(vendorToDelete.id);
+            setSuccessMessage(`Vendor ${vendorToDelete.name} Deleted Successfully`);
+            setShowSuccess(true);
+            setTimeout(() => setShowSuccess(false), 2000);
+            await fetchVendors();
+            await refreshDashboard();
+            setVendorToDelete(null);
+        } catch (error: any) {
+            console.error('Failed to delete vendor:', error);
+            if (error.message === 'Unauthorized') {
+                localStorage.removeItem('edgestone_user');
+                navigate('/login');
+            } else {
+                alert(error.message || 'Failed to delete vendor');
+            }
+        } finally {
+            setIsDeletingVendor(false);
         }
     };
 
@@ -455,15 +482,25 @@ const VendorsPage: React.FC = () => {
                                                 )}
                                             </div>
 
-                                            {!isSupportCrew() && (
+                                            <div className="flex items-center gap-2 pt-1">
+                                                {!isSupportCrew() && (
+                                                    <button
+                                                        onClick={() => handleEditClick(vendor)}
+                                                        className="flex-1 py-2.5 flex items-center justify-center gap-2 text-sm font-bold text-gray-600 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                                                    >
+                                                        <Edit3 size={16} />
+                                                        Edit Vendor
+                                                    </button>
+                                                )}
                                                 <button
-                                                    onClick={() => handleEditClick(vendor)}
-                                                    className="w-full py-2.5 flex items-center justify-center gap-2 text-sm font-bold text-gray-600 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                                                    onClick={() => setVendorToDelete(vendor)}
+                                                    className={`py-2.5 px-3 flex items-center justify-center gap-2 text-sm font-bold text-gray-400 hover:text-brand-red bg-gray-50 hover:bg-red-50 rounded-xl transition-colors ${isSupportCrew() ? 'w-full' : ''}`}
+                                                    title="Delete Vendor"
                                                 >
-                                                    <Edit3 size={16} />
-                                                    Edit Vendor
+                                                    <Trash2 size={16} />
+                                                    {isSupportCrew() && <span>Delete Vendor</span>}
                                                 </button>
-                                            )}
+                                            </div>
                                         </>
                                     )}
                                 </div>
@@ -601,14 +638,22 @@ const VendorsPage: React.FC = () => {
                                                                 </button>
                                                             </>
                                                         ) : (
-                                                            !isSupportCrew() && (
-                                                                <button onClick={() => handleEditClick(vendor)} className="flex items-center gap-2 text-sm font-bold text-gray-400 hover:text-brand-red transition-all group">
-                                                                    <span className="opacity-0 group-hover:opacity-100 transition-opacity">Edit</span>
-                                                                    <div className="p-2 group-hover:bg-brand-red/5 rounded-lg transition-colors">
-                                                                        <Edit3 size={18} />
+                                                            <div className="flex items-center justify-end gap-2">
+                                                                {!isSupportCrew() && (
+                                                                    <button onClick={() => handleEditClick(vendor)} className="flex items-center gap-2 text-sm font-bold text-gray-400 hover:text-brand-red transition-all group" title="Edit Vendor">
+                                                                        <span className="opacity-0 group-hover:opacity-100 transition-opacity">Edit</span>
+                                                                        <div className="p-2 group-hover:bg-brand-red/5 rounded-lg transition-colors">
+                                                                            <Edit3 size={18} />
+                                                                        </div>
+                                                                    </button>
+                                                                )}
+                                                                <button onClick={() => setVendorToDelete(vendor)} className="flex items-center gap-2 text-sm font-bold text-gray-400 hover:text-brand-red transition-all group" title="Delete Vendor">
+                                                                    <span className="opacity-0 group-hover:opacity-100 transition-opacity text-brand-red">Delete</span>
+                                                                    <div className="p-2 text-gray-400 group-hover:text-brand-red group-hover:bg-brand-red/5 rounded-lg transition-colors">
+                                                                        <Trash2 size={18} />
                                                                     </div>
                                                                 </button>
-                                                            )
+                                                            </div>
                                                         )}
                                                     </div>
                                                 </td>
@@ -621,6 +666,16 @@ const VendorsPage: React.FC = () => {
                     </>
                 )}
             </div>
+
+            <DeleteConfirmModal
+                isOpen={!!vendorToDelete}
+                title="Delete Vendor"
+                itemName={vendorToDelete?.name || ''}
+                itemType="Vendor"
+                isLoading={isDeletingVendor}
+                onConfirm={handleDeleteVendor}
+                onClose={() => setVendorToDelete(null)}
+            />
         </div>
     );
 };

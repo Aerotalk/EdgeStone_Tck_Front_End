@@ -175,5 +175,18 @@ export const ticketService = {
 
         const result = await response.json();
         return result.ticket;
+    },
+
+    deleteTicket: async (id: string): Promise<void> => {
+        const response = await fetch(`${API_URL}/${id}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders(),
+        });
+
+        if (!response.ok) {
+            if (response.status === 401) throw new Error('Unauthorized');
+            const err = await response.json().catch(() => ({ message: 'Failed to delete ticket' }));
+            throw new Error(err.message || 'Failed to delete ticket');
+        }
     }
 };

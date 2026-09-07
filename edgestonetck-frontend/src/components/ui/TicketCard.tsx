@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mail, MessageSquare, Calendar } from 'lucide-react';
+import { Mail, MessageSquare, Calendar, Trash2 } from 'lucide-react';
 import { formatDateIST } from '../../utils/dateUtils';
 
 interface TicketCardProps {
@@ -10,6 +10,7 @@ interface TicketCardProps {
     date: string;
     priority?: string;
     onReply?: () => void;
+    onDelete?: () => void;
 }
 
 const PriorityBars = ({ priority }: { priority: string }) => {
@@ -45,7 +46,8 @@ export const TicketCard: React.FC<TicketCardProps> = ({
     header,
     date,
     priority,
-    onReply
+    onReply,
+    onDelete
 }) => {
     // Extract initials from name
     const getInitials = (fullName: string) => {
@@ -111,13 +113,28 @@ export const TicketCard: React.FC<TicketCardProps> = ({
                 </div>
             </div>
 
-            <button
-                onClick={onReply}
-                className="w-full mt-2 py-2.5 border border-gray-900 rounded-xl flex items-center justify-center gap-2 text-[14px] font-bold text-gray-900 hover:bg-gray-50 active:scale-[0.98] transition-all"
-            >
-                <Mail size={16} strokeWidth={2.5} />
-                Reply
-            </button>
+            <div className="flex items-center gap-2 mt-2">
+                <button
+                    onClick={onReply}
+                    className="flex-1 py-2.5 border border-gray-900 rounded-xl flex items-center justify-center gap-2 text-[14px] font-bold text-gray-900 hover:bg-gray-50 active:scale-[0.98] transition-all"
+                >
+                    <Mail size={16} strokeWidth={2.5} />
+                    Reply
+                </button>
+                {onDelete && (
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onDelete();
+                        }}
+                        className="p-2.5 border border-gray-200 text-gray-400 hover:text-brand-red hover:border-brand-red/30 hover:bg-brand-red/5 rounded-xl transition-all"
+                        title="Delete Ticket"
+                    >
+                        <Trash2 size={16} />
+                    </button>
+                )}
+            </div>
         </div>
     );
 };

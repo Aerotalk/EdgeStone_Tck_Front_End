@@ -12,6 +12,8 @@ import {
     Loader2
 } from 'lucide-react';
 import { TicketCard } from '../../components/ui/TicketCard';
+import { DeleteConfirmModal } from '../../components/ui/DeleteConfirmModal';
+import { toast } from 'react-hot-toast';
 import { ticketService, type Ticket } from '../../services/ticketService';
 import { useDashboardData } from '../../contexts/DashboardDataContext';
 
@@ -31,23 +33,13 @@ const TicketsPage: React.FC = () => {
     const [tickets, setTickets] = useState<UITicket[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [ticketToDelete, setTicketToDelete] = useState<UITicket | null>(null);
+    const [isDeletingTicket, setIsDeletingTicket] = useState(false);
 
     const fetchTickets = async () => {
         try {
             setLoading(true);
             const data = await ticketService.getAllTickets();
-
-            // Map backend data to UI format if needed, but our Ticket interface matches closely enough
-            // Backend returns 'header' as subject. TicketCard expects 'header'.
-            // Backend returns 'ticketId' as friendly ID.
-            // Backend 'date' is string.
-            // We need to ensure 'name' exists. Backend ticket might not have name directly but from email parsing?
-            // Wait, Backend Ticket model has email, but name?
-            // In createTicketFromEmail, we didn't save name to Ticket model directly, only 'email'.
-            // The 'name' in mock was 'CmF L2 Airtel'.
-            // We might need to extract name or use email if name missing.
-            // Let's check Ticket model again. It has 'email' and 'clientId' (relation).
-            // For now, use email as name if name not available, or part of email.
 
             const formattedTickets = data.map(t => ({
                 ...t,
@@ -105,6 +97,23 @@ const TicketsPage: React.FC = () => {
             }
         }
     }, [urlTicketId, tickets]);
+
+    const handleConfirmDeleteTicket = async () => {
+        if (!ticketToDelete) return;
+        try {
+            setIsDeletingTicket(true);
+            await ticketService.deleteTicket(ticketToDelete.id);
+            toast.success('Ticket deleted successfully');
+            setTicketToDelete(null);
+            await fetchTickets();
+            refreshDashboard();
+        } catch (err: any) {
+            console.error('Failed to delete ticket:', err);
+            toast.error(err.response?.data?.message || 'Failed to delete ticket');
+        } finally {
+            setIsDeletingTicket(false);
+        }
+    };
 
     const filteredTickets = tickets.filter(t => {
         // Use DB status as source of truth — normalise "In Progress" → "in-progress"
@@ -175,8 +184,8 @@ const TicketsPage: React.FC = () => {
                             searchParams.delete('ticketId');
                             setSearchParams(searchParams);
                         }
-                        fetchTickets(); // Refresh local list
-                        refreshDashboard(); // Sync dashboard counts
+                        fetchTickets();
+                        refreshDashboard();
                     }}
                 />
             </div>
@@ -184,7 +193,7 @@ const TicketsPage: React.FC = () => {
     }
 
     return (
-        <div className="flex flex-col h-full overflow-hidden bg-[#F9FAFB]">
+        <div className="flex flex-col h-full bg-[#FDFBF9]">
             <Topbar title="Tickets" searchPlaceholder="Search tickets..." onSearch={setSearchQuery} />
 
             <SubHeader
@@ -225,6 +234,7 @@ const TicketsPage: React.FC = () => {
                                 date={ticket.createdAt || ticket.date}
                                 priority={ticket.priority || localStorage.getItem(`confirmed_priority_${ticket.id}`) || undefined}
                                 onReply={() => setSelectedTicket(ticket)}
+                                onDelete={() => setTicketToDelete(ticket)}
                             />
                         ))}
                     </div>
@@ -238,6 +248,16 @@ const TicketsPage: React.FC = () => {
                     </div>
                 )}
             </div>
+
+            <DeleteConfirmModal
+                isOpen={!!ticketToDelete}
+                title="Delete Ticket"
+                itemName={ticketToDelete?.ticketId ? `${ticketToDelete.ticketId} - ${ticketToDelete.header}` : ''}
+                itemType="Ticket"
+                isLoading={isDeletingTicket}
+                onConfirm={handleConfirmDeleteTicket}
+                onClose={() => setTicketToDelete(null)}
+            />
         </div>
     );
 };

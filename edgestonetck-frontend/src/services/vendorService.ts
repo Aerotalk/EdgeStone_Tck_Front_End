@@ -95,5 +95,17 @@ export const vendorService = {
         const result = await response.json();
         console.log('✅ Vendor updated successfully:', result);
         return result;
+    },
+
+    deleteVendor: async (id: string): Promise<void> => {
+        const response = await fetch(`${API_URL}/${id}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders(),
+        });
+        if (!response.ok) {
+            if (response.status === 401) throw new Error('Unauthorized');
+            const error = await response.json().catch(() => ({ message: 'Failed to delete vendor' }));
+            throw new Error(error.message || 'Failed to delete vendor');
+        }
     }
 };

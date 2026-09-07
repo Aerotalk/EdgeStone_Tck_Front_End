@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Topbar } from '../../components/ui/Topbar';
-import { Plus, Check, X, Loader2, Zap, Pencil } from 'lucide-react';
+import { Plus, Check, X, Loader2, Zap, Pencil, Trash2 } from 'lucide-react';
+import { DeleteConfirmModal } from '../../components/ui/DeleteConfirmModal';
 import { useAuth } from '../../contexts/AuthContext';
 import { circuitService } from '../../services/circuitService';
 import type { Circuit, CreateCircuitData, UpdateCircuitData } from '../../services/circuitService';
@@ -390,6 +391,31 @@ const CircuitsPage: React.FC = () => {
     const [editForm,       setEditForm]       = useState<CreateCircuitData>(blankForm());
     const [editSubmitting, setEditSubmitting] = useState(false);
 
+    // ── Delete modal ───────────────────────────────────────────────────────
+    const [circuitToDelete, setCircuitToDelete] = useState<Circuit | null>(null);
+    const [isDeletingCircuit, setIsDeletingCircuit] = useState(false);
+
+    const handleDeleteCircuit = async () => {
+        if (!circuitToDelete) return;
+        try {
+            setIsDeletingCircuit(true);
+            await circuitService.deleteCircuit(circuitToDelete.id);
+            toast(`Circuit ${circuitToDelete.customerCircuitId} Deleted Successfully`);
+            await fetchData();
+            setCircuitToDelete(null);
+        } catch (error: any) {
+            console.error('Failed to delete circuit:', error);
+            if (error.message === 'Unauthorized') {
+                localStorage.removeItem('edgestone_user');
+                navigate('/login');
+            } else {
+                alert(error.message || 'Failed to delete circuit');
+            }
+        } finally {
+            setIsDeletingCircuit(false);
+        }
+    };
+
     // ─────────────────────────────────────────────────────────────────────
     useEffect(() => { fetchData(); }, []);
 
@@ -605,6 +631,13 @@ const CircuitsPage: React.FC = () => {
                                                     <Pencil size={14} className="text-gray-400" />
                                                 </button>
                                             )}
+                                            <button
+                                                onClick={() => setCircuitToDelete(circuit)}
+                                                className="p-1.5 hover:bg-red-50 text-gray-400 hover:text-brand-red rounded-lg transition-colors"
+                                                title="Delete circuit"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
                                         </div>
                                     </div>
                                     <div className="flex flex-col gap-2 pt-2 border-t border-gray-50">
@@ -650,9 +683,7 @@ const CircuitsPage: React.FC = () => {
                                             <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Vendor</th>
                                             <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Client</th>
                                             <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">MRC</th>
-                                            {isSuperAdmin() && (
-                                                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider w-16"></th>
-                                            )}
+                                            <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-right w-24">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -688,17 +719,26 @@ const CircuitsPage: React.FC = () => {
                                                         ? `$${circuit.vendorCircuits?.reduce((sum, vc) => sum + (vc.supplierMrc || 0), 0).toLocaleString() || 0}`
                                                         : (circuit.mrc ? `$${circuit.mrc.toLocaleString()}` : '—')}
                                                 </td>
-                                                {isSuperAdmin() && (
-                                                    <td className="px-6 py-4">
+                                                <td className="px-6 py-4 text-right">
+                                                    <div className="flex items-center justify-end gap-1">
+                                                        {isSuperAdmin() && (
+                                                            <button
+                                                                onClick={() => openEdit(circuit)}
+                                                                className="p-2 opacity-0 group-hover:opacity-100 hover:bg-gray-100 rounded-lg transition-all"
+                                                                title="Edit circuit"
+                                                            >
+                                                                <Pencil size={14} className="text-gray-500" />
+                                                            </button>
+                                                        )}
                                                         <button
-                                                            onClick={() => openEdit(circuit)}
-                                                            className="p-2 opacity-0 group-hover:opacity-100 hover:bg-gray-100 rounded-lg transition-all"
-                                                            title="Edit circuit"
+                                                            onClick={() => setCircuitToDelete(circuit)}
+                                                            className="p-2 opacity-0 group-hover:opacity-100 hover:bg-red-50 text-gray-400 hover:text-brand-red rounded-lg transition-all"
+                                                            title="Delete circuit"
                                                         >
-                                                            <Pencil size={14} className="text-gray-500" />
+                                                            <Trash2 size={14} />
                                                         </button>
-                                                    </td>
-                                                )}
+                                                    </div>
+                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -708,6 +748,16 @@ const CircuitsPage: React.FC = () => {
                     </>
                 )}
             </div>
+
+            <DeleteConfirmModal
+                isOpen={!!circuitToDelete}
+                title="Delete Circuit"
+                itemName={circuitToDelete?.customerCircuitId || ''}
+                itemType="Circuit"
+                isLoading={isDeletingCircuit}
+                onConfirm={handleDeleteCircuit}
+                onClose={() => setCircuitToDelete(null)}
+            />
         </div>
     );
 };

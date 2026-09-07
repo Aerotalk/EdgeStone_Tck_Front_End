@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Topbar } from '../../components/ui/Topbar';
-import { Plus, Calendar, Edit3, Check, X, Loader2 } from 'lucide-react';
+import { Plus, Calendar, Edit3, Check, X, Loader2, Trash2 } from 'lucide-react';
+import { DeleteConfirmModal } from '../../components/ui/DeleteConfirmModal';
 import { useAuth } from '../../contexts/AuthContext';
 import { clientService } from '../../services/clientService';
 import type { Client } from '../../services/clientService';
@@ -17,6 +18,8 @@ const ClientsPage: React.FC = () => {
     const [editFormData, setEditFormData] = useState<Partial<Client>>({});
     const [showSuccess, setShowSuccess] = useState(false);
     const [successMessage, setSuccessMessage] = useState('Details Updated Successfully');
+    const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
+    const [isDeletingClient, setIsDeletingClient] = useState(false);
 
     // Add Client Modal states
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -89,6 +92,30 @@ const ClientsPage: React.FC = () => {
                 localStorage.removeItem('edgestone_user');
                 navigate('/login');
             }
+        }
+    };
+
+    const handleDeleteClient = async () => {
+        if (!clientToDelete) return;
+        try {
+            setIsDeletingClient(true);
+            await clientService.deleteClient(clientToDelete.id);
+            setSuccessMessage(`Client ${clientToDelete.name} Deleted Successfully`);
+            setShowSuccess(true);
+            setTimeout(() => setShowSuccess(false), 2000);
+            await fetchClients();
+            await refreshDashboard();
+            setClientToDelete(null);
+        } catch (error: any) {
+            console.error('Failed to delete client:', error);
+            if (error.message === 'Unauthorized') {
+                localStorage.removeItem('edgestone_user');
+                navigate('/login');
+            } else {
+                alert(error.message || 'Failed to delete client');
+            }
+        } finally {
+            setIsDeletingClient(false);
         }
     };
 
@@ -454,15 +481,25 @@ const ClientsPage: React.FC = () => {
                                                 )}
                                             </div>
 
-                                            {!isSupportCrew() && (
+                                            <div className="flex items-center gap-2 pt-1">
+                                                {!isSupportCrew() && (
+                                                    <button
+                                                        onClick={() => handleEditClick(client)}
+                                                        className="flex-1 py-2.5 flex items-center justify-center gap-2 text-sm font-bold text-gray-600 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                                                    >
+                                                        <Edit3 size={16} />
+                                                        Edit Client
+                                                    </button>
+                                                )}
                                                 <button
-                                                    onClick={() => handleEditClick(client)}
-                                                    className="w-full py-2.5 flex items-center justify-center gap-2 text-sm font-bold text-gray-600 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                                                    onClick={() => setClientToDelete(client)}
+                                                    className={`py-2.5 px-3 flex items-center justify-center gap-2 text-sm font-bold text-gray-400 hover:text-brand-red bg-gray-50 hover:bg-red-50 rounded-xl transition-colors ${isSupportCrew() ? 'w-full' : ''}`}
+                                                    title="Delete Client"
                                                 >
-                                                    <Edit3 size={16} />
-                                                    Edit Client
+                                                    <Trash2 size={16} />
+                                                    {isSupportCrew() && <span>Delete Client</span>}
                                                 </button>
-                                            )}
+                                            </div>
                                         </>
                                     )}
                                 </div>
@@ -618,17 +655,30 @@ const ClientsPage: React.FC = () => {
                                                                 </button>
                                                             </>
                                                         ) : (
-                                                            !isSupportCrew() && (
+                                                            <div className="flex items-center justify-end gap-2">
+                                                                {!isSupportCrew() && (
+                                                                    <button
+                                                                        onClick={() => handleEditClick(client)}
+                                                                        className="flex items-center gap-2 text-sm font-bold text-gray-400 hover:text-brand-red transition-all group"
+                                                                        title="Edit Client"
+                                                                    >
+                                                                        <span className="opacity-0 group-hover:opacity-100 transition-opacity">Edit</span>
+                                                                        <div className="p-2 group-hover:bg-brand-red/5 rounded-lg transition-colors">
+                                                                            <Edit3 size={18} />
+                                                                        </div>
+                                                                    </button>
+                                                                )}
                                                                 <button
-                                                                    onClick={() => handleEditClick(client)}
+                                                                    onClick={() => setClientToDelete(client)}
                                                                     className="flex items-center gap-2 text-sm font-bold text-gray-400 hover:text-brand-red transition-all group"
+                                                                    title="Delete Client"
                                                                 >
-                                                                    <span className="opacity-0 group-hover:opacity-100 transition-opacity">Edit</span>
-                                                                    <div className="p-2 group-hover:bg-brand-red/5 rounded-lg transition-colors">
-                                                                        <Edit3 size={18} />
+                                                                    <span className="opacity-0 group-hover:opacity-100 transition-opacity text-brand-red">Delete</span>
+                                                                    <div className="p-2 text-gray-400 group-hover:text-brand-red group-hover:bg-brand-red/5 rounded-lg transition-colors">
+                                                                        <Trash2 size={18} />
                                                                     </div>
                                                                 </button>
-                                                            )
+                                                            </div>
                                                         )}
                                                     </div>
                                                 </td>
@@ -641,6 +691,16 @@ const ClientsPage: React.FC = () => {
                     </>
                 )}
             </div>
+
+            <DeleteConfirmModal
+                isOpen={!!clientToDelete}
+                title="Delete Client"
+                itemName={clientToDelete?.name || ''}
+                itemType="Client"
+                isLoading={isDeletingClient}
+                onConfirm={handleDeleteClient}
+                onClose={() => setClientToDelete(null)}
+            />
         </div>
     );
 };
