@@ -370,8 +370,18 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
             if (replies && Array.isArray(replies)) {
                 replies.forEach(reply => {
                     const isClientReply = reply.category === 'client' || (!reply.category && reply.type !== 'vendor');
-                    if (isClientReply && reply.cc && Array.isArray(reply.cc)) {
-                        reply.cc.forEach(email => email && clientCcs.add(email.toLowerCase().trim()));
+                    if (isClientReply) {
+                        if (reply.cc && Array.isArray(reply.cc)) {
+                            reply.cc.forEach(email => email && clientCcs.add(email.toLowerCase().trim()));
+                        }
+                        if (reply.to && Array.isArray(reply.to)) {
+                            reply.to.forEach(email => {
+                                const clean = email && email.toLowerCase().trim();
+                                if (clean && !clean.includes('edgestone.in') && clean !== ticket.email?.toLowerCase()) {
+                                    clientCcs.add(clean);
+                                }
+                            });
+                        }
                     }
                 });
             }
@@ -431,14 +441,23 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                     const isVendorReply = isSpecificVendor
                         ? reply.category === activeTab
                         : (reply.category === 'vendor' || (!reply.category && reply.type === 'vendor'));
-                    if (isVendorReply && reply.cc && Array.isArray(reply.cc)) {
-                        reply.cc.forEach(email => {
-                            const clean = email && email.toLowerCase().trim();
-                            // Client emails and other vendor emails must NEVER be added to vendor CCs
-                            if (clean && !clientEmails.has(clean) && !otherVendorsEmails.has(clean)) {
-                                vendorCcs.add(clean);
-                            }
-                        });
+                    if (isVendorReply) {
+                        if (reply.cc && Array.isArray(reply.cc)) {
+                            reply.cc.forEach(email => {
+                                const clean = email && email.toLowerCase().trim();
+                                if (clean && !clean.includes('edgestone.in') && !clientEmails.has(clean) && !otherVendorsEmails.has(clean)) {
+                                    vendorCcs.add(clean);
+                                }
+                            });
+                        }
+                        if (reply.to && Array.isArray(reply.to)) {
+                            reply.to.forEach(email => {
+                                const clean = email && email.toLowerCase().trim();
+                                if (clean && !clean.includes('edgestone.in') && !clientEmails.has(clean) && !otherVendorsEmails.has(clean)) {
+                                    vendorCcs.add(clean);
+                                }
+                            });
+                        }
                     }
                 });
             }
@@ -1182,7 +1201,14 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                                 </div>
                                                 <div className="flex flex-col gap-0.5">
                                                     <p className="text-[12px] text-gray-400 font-medium">
-                                                        To: {reply.type === 'agent' ? (reply.to?.join(', ') || (activeTab === 'client' ? ticket.email : 'Vendor NOC')) : 'support@edgestone.in'}
+                                                        To: {reply.type === 'agent'
+                                                            ? (reply.to?.join(', ') || (activeTab === 'client' ? ticket.email : 'Vendor NOC'))
+                                                            : (() => {
+                                                                const extraTos = (reply.to || []).slice(1).filter(e => e && e.toLowerCase() !== 'support@edgestone.in');
+                                                                return extraTos.length > 0
+                                                                    ? `support@edgestone.in, ${extraTos.join(', ')}`
+                                                                    : 'support@edgestone.in';
+                                                            })()}
                                                     </p>
                                                     {reply.cc && reply.cc.length > 0 && (
                                                         <p className="text-[11px] text-gray-400 font-medium">Cc: {reply.cc.join(', ')}</p>
