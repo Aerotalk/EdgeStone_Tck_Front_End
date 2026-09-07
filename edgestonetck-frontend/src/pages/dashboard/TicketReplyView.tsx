@@ -338,12 +338,38 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
             }
             targetCc = Array.from(clientCcs);
         } else if (activeTab.startsWith('vendor')) {
+            // Collect all client-side emails (requester, client CCs, client reply recipients) to guarantee client emails NEVER appear in vendor CC
+            const clientEmails = new Set<string>();
+            if (ticket.email) clientEmails.add(ticket.email.toLowerCase().trim());
+            if (ticket.cc && Array.isArray(ticket.cc)) {
+                ticket.cc.forEach(email => email && clientEmails.add(email.toLowerCase().trim()));
+            }
+            if (replies && Array.isArray(replies)) {
+                replies.forEach(reply => {
+                    const isClientReply = reply.category === 'client' || (!reply.category && reply.type !== 'vendor');
+                    if (isClientReply) {
+                        if (reply.cc && Array.isArray(reply.cc)) {
+                            reply.cc.forEach(email => email && clientEmails.add(email.toLowerCase().trim()));
+                        }
+                        if (reply.to && Array.isArray(reply.to)) {
+                            reply.to.forEach(email => email && clientEmails.add(email.toLowerCase().trim()));
+                        }
+                    }
+                });
+            }
+
             const vendorCcs = new Set<string>();
             if (replies && Array.isArray(replies)) {
                 replies.forEach(reply => {
                     const isVendorReply = reply.category === activeTab || reply.category === 'vendor' || reply.category?.startsWith('vendor_') || reply.type === 'vendor';
                     if (isVendorReply && reply.cc && Array.isArray(reply.cc)) {
-                        reply.cc.forEach(email => email && vendorCcs.add(email.toLowerCase().trim()));
+                        reply.cc.forEach(email => {
+                            const clean = email && email.toLowerCase().trim();
+                            // Client emails must NEVER be added to vendor CCs
+                            if (clean && !clientEmails.has(clean)) {
+                                vendorCcs.add(clean);
+                            }
+                        });
                     }
                 });
             }
