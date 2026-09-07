@@ -91,6 +91,9 @@ const CircuitFormModal: React.FC<CircuitFormModalProps> = ({
     const [activeTab, setActiveTab] = React.useState(0);
 
     const addVendorTab = () => {
+        if ((form.vendorCircuits || []).length >= 4) {
+            return;
+        }
         const newVc = { supplierMrc: 800 };
         onChange('vendorCircuits', [...(form.vendorCircuits || []), newVc]);
         setActiveTab((form.vendorCircuits?.length || 0));
@@ -275,9 +278,12 @@ const CircuitFormModal: React.FC<CircuitFormModalProps> = ({
                         </div>
                     ) : (
                         <div className="bg-gray-50/50 p-4 rounded-xl border border-gray-100">
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Multi-Vendor Suppliers</p>
+                            <div className="flex items-center justify-between mb-3">
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Multi-Vendor Suppliers (Max 4)</p>
+                                <span className="text-[11px] font-semibold text-gray-500">{(form.vendorCircuits || []).length}/4 Vendors</span>
+                            </div>
                             
-                            <div className="flex flex-wrap gap-2 mb-4">
+                            <div className="flex flex-wrap items-center gap-2 mb-4">
                                 {form.vendorCircuits?.map((_, idx) => (
                                     <div key={idx} className="relative group">
                                         <button
@@ -292,13 +298,19 @@ const CircuitFormModal: React.FC<CircuitFormModalProps> = ({
                                         </button>
                                     </div>
                                 ))}
-                                <button
-                                    type="button"
-                                    onClick={addVendorTab}
-                                    className="px-4 py-2 rounded-lg text-sm font-semibold text-brand-red bg-red-50 hover:bg-red-100 transition-colors flex items-center gap-1"
-                                >
-                                    <Plus size={14} /> Add Vendor
-                                </button>
+                                {(!form.vendorCircuits || form.vendorCircuits.length < 4) ? (
+                                    <button
+                                        type="button"
+                                        onClick={addVendorTab}
+                                        className="px-4 py-2 rounded-lg text-sm font-semibold text-brand-red bg-red-50 hover:bg-red-100 transition-colors flex items-center gap-1"
+                                    >
+                                        <Plus size={14} /> Add Vendor
+                                    </button>
+                                ) : (
+                                    <span className="px-3 py-1.5 text-xs font-semibold text-gray-400 bg-gray-100 border border-gray-200 rounded-lg">
+                                        Max 4 Vendors Reached
+                                    </span>
+                                )}
                             </div>
 
                             {form.vendorCircuits && form.vendorCircuits.length > 0 && form.vendorCircuits[activeTab] && (
@@ -472,6 +484,10 @@ const CircuitsPage: React.FC = () => {
 
     const handleAddSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (addForm.isMultiVendor && (addForm.vendorCircuits || []).length > 4) {
+            alert('A Multi-Vendor circuit can have at most 4 vendors.');
+            return;
+        }
         try {
             setAddSubmitting(true);
             await circuitService.createCircuit(addForm);
@@ -500,6 +516,10 @@ const CircuitsPage: React.FC = () => {
     const handleEditSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!editCircuit) return;
+        if (editForm.isMultiVendor && (editForm.vendorCircuits || []).length > 4) {
+            alert('A Multi-Vendor circuit can have at most 4 vendors.');
+            return;
+        }
         try {
             setEditSubmitting(true);
             const payload: UpdateCircuitData = { ...editForm };

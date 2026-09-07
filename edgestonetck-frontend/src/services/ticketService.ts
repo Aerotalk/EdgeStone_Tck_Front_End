@@ -149,8 +149,9 @@ export const ticketService = {
         return response.json();
     },
 
-    getVendorEmails: async (id: string): Promise<string[]> => {
-        const response = await fetch(`${API_URL}/${id}/vendor-emails`, {
+    getVendorEmails: async (id: string, vendorId?: string): Promise<string[]> => {
+        const query = vendorId ? `?vendorId=${encodeURIComponent(vendorId)}` : '';
+        const response = await fetch(`${API_URL}/${id}/vendor-emails${query}`, {
             headers: getAuthHeaders(),
         });
         if (!response.ok) return [];

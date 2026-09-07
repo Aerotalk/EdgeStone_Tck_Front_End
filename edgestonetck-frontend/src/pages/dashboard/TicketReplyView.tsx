@@ -177,7 +177,13 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                 c.customerCircuitId === ticket.circuitId ||
                 c.id === ticket.circuitId
             );
-            if (matchedCircuit) setTicketCircuit(matchedCircuit);
+            if (matchedCircuit) {
+                setTicketCircuit(matchedCircuit);
+                const firstVc = matchedCircuit.vendorCircuits?.[0];
+                if (matchedCircuit.isMultiVendor && firstVc?.vendorId) {
+                    setActiveTab(prev => (prev === 'vendor' ? `vendor_${firstVc.vendorId}` : prev));
+                }
+            }
         }).catch(console.error);
     }, [confirmedCircuit, ticket.header, ticket.circuitId]);
 
@@ -268,10 +274,13 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
 
 
         } else if (activeTab.startsWith('vendor')) {
-            // Fetch dynamically on vendor tab click
-            ticketService.getVendorEmails(ticket.id).then(emails => {
-                const vendorReplies = replies.filter(r => r && (r.category === activeTab || r.category === 'vendor' || r.category?.startsWith('vendor_') || r.type === 'vendor'));
-                const localSub = localStorage.getItem(`vendor_subject_${ticket.id}`);
+            const isSpecificVendor = activeTab.startsWith('vendor_');
+            const specificVendorId = isSpecificVendor ? activeTab.replace('vendor_', '') : undefined;
+
+            // Fetch dynamically on vendor tab click - pass specific vendorId if multi-vendor
+            ticketService.getVendorEmails(ticket.id, specificVendorId).then(emails => {
+                const vendorReplies = replies.filter(r => r && (isSpecificVendor ? r.category === activeTab : (r.category === 'vendor' || (!r.category && r.type === 'vendor'))));
+                const localSub = localStorage.getItem(`vendor_subject_${ticket.id}_${activeTab}`);
                 const existingSubject = vendorReplies.find(r => r.subject)?.subject || localSub || `Re: [${ticket.ticketId}-V] ${ticket.header}`;
 
                 setEmailForm(prev => ({
@@ -290,14 +299,15 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                     );
 
                     if (matchedCircuit) {
-                        // Extract specific vendor if activeTab is vendor_[vendorId]
-                        const isSpecificVendor = activeTab.startsWith('vendor_');
-                        const specificVendorId = isSpecificVendor ? activeTab.replace('vendor_', '') : null;
-
                         let targetVendor = null;
+                        let targetSupplierCircuitId = matchedCircuit.supplierCircuitId;
+
                         if (specificVendorId && matchedCircuit.isMultiVendor && matchedCircuit.vendorCircuits) {
                             const vc = matchedCircuit.vendorCircuits.find((v: any) => v.vendorId === specificVendorId);
-                            if (vc && vc.vendor) targetVendor = vc.vendor;
+                            if (vc) {
+                                if (vc.vendor) targetVendor = vc.vendor;
+                                if (vc.supplierCircuitId) targetSupplierCircuitId = vc.supplierCircuitId;
+                            }
                         } else if (matchedCircuit.vendor) {
                             targetVendor = matchedCircuit.vendor;
                         }
@@ -314,8 +324,8 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                             setVendorName('EdgeStone Vendor');
                         }
 
-                        // UPDATE SUBJECT TO USE SUPPLIER CIRCUIT ID INSTEAD OF HEADER
-                        const supplierId = matchedCircuit?.supplierCircuitId || 'Unknown Circuit';
+                        // UPDATE SUBJECT TO USE SPECIFIC SUPPLIER CIRCUIT ID INSTEAD OF HEADER
+                        const supplierId = targetSupplierCircuitId || 'Unknown Circuit';
                         const defaultSafeSubject = `Re: [${ticket.ticketId}-V] Issue regarding Circuit ${supplierId}`;
 
                         const rawExisting = vendorReplies.find(r => r.subject)?.subject || localSub;
@@ -347,6 +357,13 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
             targetBcc = tabRecipients[activeTab].bcc;
         } else if (activeTab === 'client') {
             const clientCcs = new Set<string>();
+            const storedClientCc = localStorage.getItem(`ticket_client_cc_${ticket.id}`);
+            if (storedClientCc) {
+                try {
+                    const parsed = JSON.parse(storedClientCc);
+                    if (Array.isArray(parsed)) parsed.forEach(e => e && clientCcs.add(e.toLowerCase().trim()));
+                } catch (_) {}
+            }
             if (ticket.cc && Array.isArray(ticket.cc)) {
                 ticket.cc.forEach(email => email && clientCcs.add(email.toLowerCase().trim()));
             }
@@ -360,6 +377,9 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
             }
             targetCc = Array.from(clientCcs);
         } else if (activeTab.startsWith('vendor')) {
+            const isSpecificVendor = activeTab.startsWith('vendor_');
+            const specificVendorId = isSpecificVendor ? activeTab.replace('vendor_', '') : null;
+
             // Collect all client-side emails (requester, client CCs, client reply recipients) to guarantee client emails NEVER appear in vendor CC
             const clientEmails = new Set<string>();
             if (ticket.email) clientEmails.add(ticket.email.toLowerCase().trim());
@@ -380,15 +400,42 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                 });
             }
 
+            // Also collect other vendors' emails so vendor 1's emails NEVER leak into vendor 2's CC
+            const otherVendorsEmails = new Set<string>();
+            if (ticketCircuit?.isMultiVendor && Array.isArray(ticketCircuit?.vendorCircuits)) {
+                ticketCircuit.vendorCircuits.forEach((vc: any) => {
+                    if (vc.vendorId !== specificVendorId && vc.vendor?.emails) {
+                        vc.vendor.emails.forEach((e: string) => otherVendorsEmails.add(e.toLowerCase().trim()));
+                    }
+                });
+            }
+
             const vendorCcs = new Set<string>();
+            const storedVendorCc = localStorage.getItem(`ticket_vendor_cc_${ticket.id}_${activeTab}`);
+            if (storedVendorCc) {
+                try {
+                    const parsed = JSON.parse(storedVendorCc);
+                    if (Array.isArray(parsed)) {
+                        parsed.forEach(e => {
+                            const clean = e && e.toLowerCase().trim();
+                            if (clean && !clientEmails.has(clean) && !otherVendorsEmails.has(clean)) {
+                                vendorCcs.add(clean);
+                            }
+                        });
+                    }
+                } catch (_) {}
+            }
+
             if (replies && Array.isArray(replies)) {
                 replies.forEach(reply => {
-                    const isVendorReply = reply.category === activeTab || reply.category === 'vendor' || reply.category?.startsWith('vendor_') || reply.type === 'vendor';
+                    const isVendorReply = isSpecificVendor
+                        ? reply.category === activeTab
+                        : (reply.category === 'vendor' || (!reply.category && reply.type === 'vendor'));
                     if (isVendorReply && reply.cc && Array.isArray(reply.cc)) {
                         reply.cc.forEach(email => {
                             const clean = email && email.toLowerCase().trim();
-                            // Client emails must NEVER be added to vendor CCs
-                            if (clean && !clientEmails.has(clean)) {
+                            // Client emails and other vendor emails must NEVER be added to vendor CCs
+                            if (clean && !clientEmails.has(clean) && !otherVendorsEmails.has(clean)) {
                                 vendorCcs.add(clean);
                             }
                         });
@@ -404,13 +451,16 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
             bcc: targetBcc
         }));
         setShowCc(targetCc.length > 0 || targetBcc.length > 0);
-    }, [activeTab, ticket.email, ticket.header, ticket.id, confirmedCircuit, ticket.circuitId, ticket.cc, replies, tabRecipients]);
+    }, [activeTab, ticket.email, ticket.header, ticket.id, confirmedCircuit, ticket.circuitId, ticket.cc, replies, tabRecipients, ticketCircuit]);
 
     // Autofill subject line for vendor replies when opening the email modal
     useEffect(() => {
         if (showEmailModal && activeTab.startsWith('vendor')) {
-            const vendorReplies = replies.filter(r => r && (r.category === activeTab || r.category === 'vendor' || r.category?.startsWith('vendor_') || r.type === 'vendor'));
-            const localSub = localStorage.getItem(`vendor_subject_${ticket.id}`);
+            const isSpecificVendor = activeTab.startsWith('vendor_');
+            const specificVendorId = isSpecificVendor ? activeTab.replace('vendor_', '') : undefined;
+
+            const vendorReplies = replies.filter(r => r && (isSpecificVendor ? r.category === activeTab : (r.category === 'vendor' || (!r.category && r.type === 'vendor'))));
+            const localSub = localStorage.getItem(`vendor_subject_${ticket.id}_${activeTab}`);
 
             circuitService.getAllCircuits().then(circuits => {
                 const matchedCircuit = circuits.find(c =>
@@ -420,7 +470,13 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                     c.id === ticket.circuitId
                 );
 
-                const supplierId = matchedCircuit?.supplierCircuitId || 'Unknown Circuit';
+                let targetSupplierCircuitId = matchedCircuit?.supplierCircuitId;
+                if (specificVendorId && matchedCircuit?.isMultiVendor && matchedCircuit?.vendorCircuits) {
+                    const vc = matchedCircuit.vendorCircuits.find((v: any) => v.vendorId === specificVendorId);
+                    if (vc?.supplierCircuitId) targetSupplierCircuitId = vc.supplierCircuitId;
+                }
+
+                const supplierId = targetSupplierCircuitId || 'Unknown Circuit';
                 const defaultSafeSubject = `Re: [${ticket.ticketId}-V] Issue regarding Circuit ${supplierId}`;
                 // Only reuse an existing subject if it actually belongs to the current ticket (contains current ticketId)
                 const rawExisting = vendorReplies.find(r => r.subject)?.subject || localSub;
@@ -600,10 +656,16 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                 });
 
                 if (emailForm.subject.trim()) {
-                    localStorage.setItem(`vendor_subject_${ticket.id}`, emailForm.subject.trim());
+                    localStorage.setItem(`vendor_subject_${ticket.id}_${activeTab}`, emailForm.subject.trim());
+                }
+                if (emailForm.cc && emailForm.cc.length > 0) {
+                    localStorage.setItem(`ticket_vendor_cc_${ticket.id}_${activeTab}`, JSON.stringify(emailForm.cc));
                 }
             } else {
                 newReply = await ticketService.replyToTicket(ticket.id, plainBody, fullHtmlContent, uploadedAttachments, emailForm);
+                if (emailForm.cc && emailForm.cc.length > 0) {
+                    localStorage.setItem(`ticket_client_cc_${ticket.id}`, JSON.stringify(emailForm.cc));
+                }
             }
 
             // Update local state
@@ -670,6 +732,13 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                         }
                     }));
                 }
+                if (field === 'cc') {
+                    if (activeTab.startsWith('vendor')) {
+                        localStorage.setItem(`ticket_vendor_cc_${ticket.id}_${activeTab}`, JSON.stringify(nextField));
+                    } else if (activeTab === 'client') {
+                        localStorage.setItem(`ticket_client_cc_${ticket.id}`, JSON.stringify(nextField));
+                    }
+                }
                 return {
                     ...prev,
                     [field]: nextField
@@ -690,6 +759,13 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                         bcc: field === 'bcc' ? nextField : (tPrev[activeTab]?.bcc ?? prev.bcc)
                     }
                 }));
+            }
+            if (field === 'cc') {
+                if (activeTab.startsWith('vendor')) {
+                    localStorage.setItem(`ticket_vendor_cc_${ticket.id}_${activeTab}`, JSON.stringify(nextField));
+                } else if (activeTab === 'client') {
+                    localStorage.setItem(`ticket_client_cc_${ticket.id}`, JSON.stringify(nextField));
+                }
             }
             return {
                 ...prev,
@@ -870,8 +946,8 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                             </button>
                         )}
                         {ticketCircuit?.isMultiVendor && ticketCircuit?.vendorCircuits ? (
-                            ticketCircuit.vendorCircuits.map((vc: any, idx: number) => {
-                                const count = replies.filter(r => r && (r.category === `vendor_${vc.vendorId}` || r.category === 'vendor' || r.type === 'vendor')).length;
+                            ticketCircuit.vendorCircuits.slice(0, 4).map((vc: any, idx: number) => {
+                                const count = replies.filter(r => r && r.category === `vendor_${vc.vendorId}`).length;
                                 return (
                                     <button
                                         key={vc.vendorId || idx}
@@ -895,9 +971,9 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                             >
                                 <User size={18} />
                                 Vendor
-                                {replies.filter(r => r && (r.category === 'vendor' || r.category?.startsWith('vendor_') || r.type === 'vendor')).length > 0 && (
+                                {replies.filter(r => r && (r.category === 'vendor' || (!r.category && r.type === 'vendor'))).length > 0 && (
                                     <span className="ml-1 px-1.5 py-0.5 text-[10px] font-bold bg-orange-500 text-white rounded-full">
-                                        {replies.filter(r => r && (r.category === 'vendor' || r.category?.startsWith('vendor_') || r.type === 'vendor')).length}
+                                        {replies.filter(r => r && (r.category === 'vendor' || (!r.category && r.type === 'vendor'))).length}
                                     </span>
                                 )}
                             </button>
@@ -1080,10 +1156,10 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                             return r.category === 'client' || (!r.category && r.type !== 'vendor');
                         }
                         if (activeTab === 'vendor') {
-                            return r.category === 'vendor' || r.category?.startsWith('vendor_') || r.type === 'vendor';
+                            return r.category === 'vendor' || (!r.category && r.type === 'vendor');
                         }
                         if (activeTab.startsWith('vendor_')) {
-                            return r.category === activeTab || r.category === 'vendor' || r.type === 'vendor';
+                            return r.category === activeTab;
                         }
                         return r.category === activeTab;
                     }).map((reply, idx) => (
