@@ -16,7 +16,8 @@ import {
     Loader2,
     PenLine,
     RefreshCw,
-    Trash2
+    Trash2,
+    Download
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { TicketInfoSidebar } from './TicketInfoSidebar';
@@ -727,10 +728,44 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
     };
 
 
+    const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024; // 20MB limit
+    const MAX_FILES_ALLOWED = 10;
+
+    const formatFileSize = (bytes?: number) => {
+        if (!bytes || isNaN(bytes)) return '';
+        if (bytes < 1024) return `${bytes} B`;
+        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    };
+
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
-            setAttachments(prev => [...prev, ...Array.from(e.target.files!)]);
+            const newFiles = Array.from(e.target.files);
+            const validFiles: File[] = [];
+            const oversizedFiles: string[] = [];
+
+            newFiles.forEach(file => {
+                if (file.size > MAX_FILE_SIZE_BYTES) {
+                    oversizedFiles.push(`"${file.name}" (${formatFileSize(file.size)})`);
+                } else {
+                    validFiles.push(file);
+                }
+            });
+
+            if (oversizedFiles.length > 0) {
+                toast.error(`File size limit of 20MB exceeded for: ${oversizedFiles.join(', ')}`);
+            }
+
+            setAttachments(prev => {
+                const combined = [...prev, ...validFiles];
+                if (combined.length > MAX_FILES_ALLOWED) {
+                    toast.error(`Maximum ${MAX_FILES_ALLOWED} attachments allowed. Excess files were not added.`);
+                    return combined.slice(0, MAX_FILES_ALLOWED);
+                }
+                return combined;
+            });
         }
+        e.target.value = '';
     };
 
     const removeAttachment = (index: number) => {
@@ -1231,47 +1266,84 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                                 {reply.attachments.map((att: any, idx: number) => {
                                                     const fileName = att.originalName || att.filename || att.name || 'Attachment';
                                                     const isLegacy = !att.url && att.contentBytes;
-                                                    let href = att.url || (isLegacy ? `data:${att.mimeType || 'application/octet-stream'};base64,${att.contentBytes}` : '#');
+                                                    const isExceeded = !!att.exceededLimit || !!att.error;
+                                                    const apiBase = import.meta.env.VITE_API_BASE_URL || '';
 
-                                                    // Fix hardcoded localhost from email attachments to use the actual API base URL
-                                                    if (href.startsWith('http://localhost:5000') && import.meta.env.VITE_API_BASE_URL) {
-                                                        href = href.replace('http://localhost:5000', import.meta.env.VITE_API_BASE_URL);
+                                                    let downloadUrl = '#';
+                                                    if (att.filename) {
+                                                        downloadUrl = `${apiBase}/api/upload/attachments/${encodeURIComponent(att.filename)}/download?name=${encodeURIComponent(fileName)}`;
+                                                    } else if (att.downloadUrl) {
+                                                        downloadUrl = att.downloadUrl.startsWith('http://localhost:5000') && apiBase
+                                                            ? att.downloadUrl.replace('http://localhost:5000', apiBase)
+                                                            : (att.downloadUrl.startsWith('/') ? `${apiBase}${att.downloadUrl}` : att.downloadUrl);
+                                                    } else if (att.url) {
+                                                        downloadUrl = att.url.startsWith('http://localhost:5000') && apiBase
+                                                            ? att.url.replace('http://localhost:5000', apiBase)
+                                                            : (att.url.startsWith('/') ? `${apiBase}${att.url}` : att.url);
                                                     }
 
-                                                    const handleDownload = async (e: React.MouseEvent) => {
+                                                    const handleDownload = (e: React.MouseEvent) => {
                                                         e.preventDefault();
-                                                        if (isLegacy) {
-                                                            const link = document.createElement('a');
-                                                            link.href = href;
-                                                            link.download = fileName;
-                                                            link.click();
+                                                        if (isExceeded) {
+                                                            alert(`Unable to download: ${att.error || 'File exceeded system size limit of 25MB'}`);
                                                             return;
                                                         }
-                                                        try {
-                                                            const response = await fetch(href);
-                                                            if (!response.ok) {
-                                                                throw new Error(`Server returned ${response.status}: File not found or unavailable`);
-                                                            }
-                                                            const blob = await response.blob();
-                                                            const url = window.URL.createObjectURL(blob);
+
+                                                        if (isLegacy) {
                                                             const link = document.createElement('a');
-                                                            link.href = url;
+                                                            link.href = `data:${att.mimeType || 'application/octet-stream'};base64,${att.contentBytes}`;
                                                             link.download = fileName;
                                                             document.body.appendChild(link);
                                                             link.click();
                                                             document.body.removeChild(link);
-                                                            window.URL.revokeObjectURL(url);
-                                                        } catch (error) {
-                                                            console.error('Download failed:', error);
-                                                            alert(`Unable to download file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                                                            return;
                                                         }
+
+                                                        // Stream large files via browser native download
+                                                        const link = document.createElement('a');
+                                                        link.href = downloadUrl;
+                                                        link.download = fileName;
+                                                        link.target = '_blank';
+                                                        link.rel = 'noopener noreferrer';
+                                                        document.body.appendChild(link);
+                                                        link.click();
+                                                        document.body.removeChild(link);
                                                     };
 
                                                     return (
-                                                        <a key={idx} href={href} onClick={handleDownload} className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg hover:bg-gray-100 transition-colors w-fit cursor-pointer">
-                                                            <Paperclip size={14} className="text-gray-400" />
-                                                            <span className="text-[13px] font-medium text-blue-600 hover:underline max-w-[200px] truncate">{fileName}</span>
-                                                        </a>
+                                                        <div key={idx} className="flex items-center gap-2">
+                                                            <button
+                                                                type="button"
+                                                                onClick={handleDownload}
+                                                                className={`flex items-center gap-2.5 px-3 py-2 rounded-lg border transition-all text-left group ${
+                                                                    isExceeded 
+                                                                        ? 'bg-red-50/70 border-red-200 text-red-600 cursor-not-allowed' 
+                                                                        : 'bg-gray-50 border-gray-100 hover:bg-orange-50/50 hover:border-orange-200 text-gray-700 cursor-pointer shadow-sm'
+                                                                }`}
+                                                                title={isExceeded ? att.error : `Click to download ${fileName}`}
+                                                            >
+                                                                <Paperclip size={14} className={isExceeded ? 'text-red-400' : 'text-gray-400 group-hover:text-orange-500'} />
+                                                                <div className="flex flex-col">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className={`text-[13px] font-medium max-w-[260px] truncate ${isExceeded ? 'text-red-700 line-through' : 'text-blue-600 group-hover:text-orange-600 group-hover:underline'}`}>
+                                                                            {fileName}
+                                                                        </span>
+                                                                        {att.size && (
+                                                                            <span className="text-[10px] text-gray-400 font-semibold bg-gray-100 px-1.5 py-0.5 rounded">
+                                                                                {formatFileSize(att.size)}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                    {isExceeded ? (
+                                                                        <span className="text-[11px] text-red-500 font-medium">⚠️ {att.error}</span>
+                                                                    ) : (
+                                                                        <span className="text-[10px] text-gray-400 flex items-center gap-1 group-hover:text-orange-500">
+                                                                            <Download size={10} /> Click to download
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            </button>
+                                                        </div>
                                                     );
                                                 })}
                                             </div>
@@ -1609,12 +1681,15 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
 
                                 <div className="flex items-center gap-3 px-6 py-3.5 bg-gray-50/50 border-t border-gray-100/80 flex-shrink-0">
                                     <button
+                                        type="button"
                                         onClick={() => fileInputRef.current?.click()}
-                                        className="p-1.5 text-gray-400 hover:text-orange-500 hover:bg-orange-50 rounded-lg transition-all flex items-center gap-2"
-                                        title="Attach files"
+                                        className="px-2.5 py-1.5 text-gray-500 hover:text-orange-500 hover:bg-orange-50 rounded-lg transition-all flex items-center gap-2 border border-gray-200/60 bg-white shadow-2xs"
+                                        title="Attach files (Max 20MB per file, up to 10 files)"
                                     >
-                                        <Paperclip size={18} />
-                                        {attachments.length > 0 && <span className="text-[11px] font-bold text-gray-600">{attachments.length} files</span>}
+                                        <Paperclip size={16} />
+                                        <span className="text-[12px] font-medium">Attach files</span>
+                                        <span className="text-[10px] text-gray-400 font-normal">(Max 20MB)</span>
+                                        {attachments.length > 0 && <span className="text-[11px] font-bold text-orange-600 bg-orange-100/80 px-1.5 py-0.5 rounded-full">{attachments.length}/10</span>}
                                     </button>
                                     <button className="p-1.5 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all">
                                         <Eye size={18} />
@@ -1624,11 +1699,18 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
 
                             {/* Attachment Pills */}
                             {attachments.length > 0 && (
-                                <div className="flex flex-wrap gap-2">
+                                <div className="flex flex-wrap gap-2 pt-1">
                                     {attachments.map((file, i) => (
-                                        <div key={i} className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-xl">
-                                            <span className="text-[11px] font-bold text-gray-600 truncate max-w-[150px]">{file.name}</span>
-                                            <button onClick={() => removeAttachment(i)} className="text-gray-400 hover:text-red-500">
+                                        <div key={i} className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 border border-gray-200/80 rounded-xl shadow-2xs">
+                                            <Paperclip size={12} className="text-gray-400" />
+                                            <span className="text-[11px] font-bold text-gray-700 truncate max-w-[180px]">{file.name}</span>
+                                            <span className="text-[10px] text-gray-400 font-medium">({formatFileSize(file.size)})</span>
+                                            <button 
+                                                type="button"
+                                                onClick={() => removeAttachment(i)} 
+                                                className="text-gray-400 hover:text-red-500 p-0.5 rounded hover:bg-red-50 transition-colors"
+                                                title="Remove file"
+                                            >
                                                 <X size={12} />
                                             </button>
                                         </div>
