@@ -23,6 +23,7 @@ import { toast } from 'react-hot-toast';
 import { TicketInfoSidebar } from './TicketInfoSidebar';
 import { NotificationDropdown } from '../../components/ui/NotificationDropdown';
 import { DeleteConfirmModal } from '../../components/ui/DeleteConfirmModal';
+import { EmailRecipientAutocomplete } from '../../components/ui/EmailRecipientAutocomplete';
 
 import { ticketService, type Reply, type Ticket } from '../../services/ticketService';
 import { signatureService, type Signature } from '../../services/signatureService';
@@ -160,11 +161,6 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
         setShowCc(false);
     }, [ticket.id]);
 
-    const [inputValues, setInputValues] = useState({
-        to: '',
-        cc: '',
-        bcc: ''
-    });
 
     const [confirmedCircuit, setConfirmedCircuit] = useState(() => {
         return localStorage.getItem(`confirmed_circuit_id_${ticket.id}`) || ticket.circuitId || '';
@@ -799,7 +795,6 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                     [field]: nextField
                 };
             });
-            setInputValues(prev => ({ ...prev, [field]: '' }));
         }
     };
 
@@ -827,15 +822,6 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                 [field]: nextField
             };
         });
-    };
-
-    const handleRecipientKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, field: 'to' | 'cc' | 'bcc') => {
-        if (e.key === 'Enter' || e.key === ',') {
-            e.preventDefault();
-            addRecipient(field, inputValues[field]);
-        } else if (e.key === 'Backspace' && !inputValues[field] && emailForm[field].length > 0) {
-            removeRecipient(field, emailForm[field].length - 1);
-        }
     };
 
     // vendorEmail removed (declared at top)
@@ -1564,82 +1550,44 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                     />
                                 </div>
 
-                                <div className="flex items-center gap-4 px-4 py-2 bg-gray-50 border border-gray-100 rounded-2xl group focus-within:ring-4 focus-within:ring-gray-900/5 focus-within:border-gray-200 transition-all min-h-[52px]">
-                                    <span className="text-[13px] font-bold text-gray-400 uppercase tracking-wider w-12 flex-shrink-0">To</span>
-                                    <div className="flex-1 flex flex-wrap gap-2 py-1">
-                                        {emailForm.to.map((email, i) => (
-                                            <div key={i} className="flex items-center gap-1.5 px-2.5 py-1 bg-white border border-gray-200 rounded-lg shadow-sm animate-in zoom-in-95 duration-200">
-                                                <span className="text-[13px] font-bold text-gray-900">{email}</span>
-                                                <button onClick={() => removeRecipient('to', i)} className="text-gray-400 hover:text-red-500 transition-colors">
-                                                    <X size={12} />
-                                                </button>
-                                            </div>
-                                        ))}
-                                        <input
-                                            type="text"
-                                            placeholder={emailForm.to.length === 0 ? "Add recipients..." : ""}
-                                            value={inputValues.to}
-                                            onChange={(e) => setInputValues(prev => ({ ...prev, to: e.target.value }))}
-                                            onKeyDown={(e) => handleRecipientKeyDown(e, 'to')}
-                                            onBlur={() => addRecipient('to', inputValues.to)}
-                                            className="flex-1 min-w-[120px] bg-transparent border-none focus:ring-0 text-[14px] font-bold text-gray-900 placeholder:text-gray-300 py-1"
-                                        />
-                                    </div>
-                                    <button
-                                        onClick={() => setShowCc(!showCc)}
-                                        className={`p-1 rounded-md transition-all flex-shrink-0 ${showCc ? 'bg-orange-100 text-orange-600' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}
-                                        title="Add Cc/Bcc"
-                                    >
-                                        <Plus size={16} />
-                                    </button>
-                                </div>
+                                <EmailRecipientAutocomplete
+                                    label="To"
+                                    recipients={emailForm.to}
+                                    onAddRecipient={(email) => addRecipient('to', email)}
+                                    onRemoveRecipient={(idx) => removeRecipient('to', idx)}
+                                    placeholder={emailForm.to.length === 0 ? "Add recipients..." : ""}
+                                    rightElement={
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowCc(!showCc)}
+                                            className={`p-1 rounded-md transition-all flex-shrink-0 ${showCc ? 'bg-orange-100 text-orange-600' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}
+                                            title="Add Cc/Bcc"
+                                        >
+                                            <Plus size={16} />
+                                        </button>
+                                    }
+                                />
 
                                 {showCc && (
                                     <>
-                                        <div className="flex items-center gap-4 px-4 py-2 bg-gray-50 border border-gray-100 rounded-2xl group focus-within:ring-4 focus-within:ring-gray-900/5 focus-within:border-gray-200 transition-all animate-in slide-in-from-top-2 duration-300 min-h-[52px]">
-                                            <span className="text-[13px] font-bold text-gray-400 uppercase tracking-wider w-12 flex-shrink-0">Cc</span>
-                                            <div className="flex-1 flex flex-wrap gap-2 py-1">
-                                                {emailForm.cc.map((email, i) => (
-                                                    <div key={i} className="flex items-center gap-1.5 px-2.5 py-1 bg-white border border-gray-200 rounded-lg shadow-sm animate-in zoom-in-95 duration-200">
-                                                        <span className="text-[13px] font-bold text-gray-900">{email}</span>
-                                                        <button onClick={() => removeRecipient('cc', i)} className="text-gray-400 hover:text-red-500 transition-colors">
-                                                            <X size={12} />
-                                                        </button>
-                                                    </div>
-                                                ))}
-                                                <input
-                                                    type="text"
-                                                    placeholder="Cc recipients..."
-                                                    value={inputValues.cc}
-                                                    onChange={(e) => setInputValues(prev => ({ ...prev, cc: e.target.value }))}
-                                                    onKeyDown={(e) => handleRecipientKeyDown(e, 'cc')}
-                                                    onBlur={() => addRecipient('cc', inputValues.cc)}
-                                                    className="flex-1 min-w-[120px] bg-transparent border-none focus:ring-0 text-[14px] font-bold text-gray-900 placeholder:text-gray-300 py-1"
-                                                />
-                                            </div>
+                                        <div className="animate-in slide-in-from-top-2 duration-300">
+                                            <EmailRecipientAutocomplete
+                                                label="Cc"
+                                                recipients={emailForm.cc}
+                                                onAddRecipient={(email) => addRecipient('cc', email)}
+                                                onRemoveRecipient={(idx) => removeRecipient('cc', idx)}
+                                                placeholder="Cc recipients..."
+                                            />
                                         </div>
 
-                                        <div className="flex items-center gap-4 px-4 py-2 bg-gray-50 border border-gray-100 rounded-2xl group focus-within:ring-4 focus-within:ring-gray-900/5 focus-within:border-gray-200 transition-all animate-in slide-in-from-top-2 duration-300 min-h-[52px]">
-                                            <span className="text-[13px] font-bold text-gray-400 uppercase tracking-wider w-12 flex-shrink-0">Bcc</span>
-                                            <div className="flex-1 flex flex-wrap gap-2 py-1">
-                                                {emailForm.bcc.map((email, i) => (
-                                                    <div key={i} className="flex items-center gap-1.5 px-2.5 py-1 bg-white border border-gray-100 rounded-lg shadow-sm animate-in zoom-in-95 duration-200">
-                                                        <span className="text-[13px] font-bold text-gray-900">{email}</span>
-                                                        <button onClick={() => removeRecipient('bcc', i)} className="text-gray-400 hover:text-red-500 transition-colors">
-                                                            <X size={12} />
-                                                        </button>
-                                                    </div>
-                                                ))}
-                                                <input
-                                                    type="text"
-                                                    placeholder="Bcc recipients..."
-                                                    value={inputValues.bcc}
-                                                    onChange={(e) => setInputValues(prev => ({ ...prev, bcc: e.target.value }))}
-                                                    onKeyDown={(e) => handleRecipientKeyDown(e, 'bcc')}
-                                                    onBlur={() => addRecipient('bcc', inputValues.bcc)}
-                                                    className="flex-1 min-w-[120px] bg-transparent border-none focus:ring-0 text-[14px] font-bold text-gray-900 placeholder:text-gray-300 py-1"
-                                                />
-                                            </div>
+                                        <div className="animate-in slide-in-from-top-2 duration-300">
+                                            <EmailRecipientAutocomplete
+                                                label="Bcc"
+                                                recipients={emailForm.bcc}
+                                                onAddRecipient={(email) => addRecipient('bcc', email)}
+                                                onRemoveRecipient={(idx) => removeRecipient('bcc', idx)}
+                                                placeholder="Bcc recipients..."
+                                            />
                                         </div>
                                     </>
                                 )}
