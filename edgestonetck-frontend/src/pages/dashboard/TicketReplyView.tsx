@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useTransition } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
 import {
     ChevronLeft,
@@ -54,9 +55,21 @@ interface TicketReplyViewProps {
 export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack }) => {
     const dashboardData = useDashboardData();
     const [, startTransition] = useTransition();
-    const [activeTab, setActiveTab] = useState<string>(ticket.ticketType === 'Vendor' ? 'vendor' : 'client');
+    const [searchParams] = useSearchParams();
+    const tabParam = searchParams.get('tab');
+    const [activeTab, setActiveTab] = useState<string>(() => {
+        if (tabParam === 'vendor' || tabParam?.startsWith('vendor_')) return tabParam;
+        return ticket.ticketType === 'Vendor' ? 'vendor' : 'client';
+    });
     const [ticketCircuit, setTicketCircuit] = useState<any>(null);
     const [isRefreshing, setIsRefreshing] = useState(false);
+
+    useEffect(() => {
+        const tab = searchParams.get('tab');
+        if (tab === 'vendor' || tab?.startsWith('vendor_') || tab === 'client') {
+            setActiveTab(tab);
+        }
+    }, [searchParams]);
 
     const handleRefresh = async () => {
         try {
@@ -141,7 +154,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
     const getLockedSubject = (tab: string = activeTab): string => {
         if (tab.startsWith('vendor')) {
             const isSpecificVendor = tab.startsWith('vendor_');
-            const vendorReplies = replies.filter(r => r && (isSpecificVendor ? r.category === tab : (r.category === 'vendor' || (!r.category && r.type === 'vendor'))));
+            const vendorReplies = replies.filter(r => r && (isSpecificVendor ? r.category === tab : (r.category === 'vendor' || r.category?.startsWith('vendor_') || r.type === 'vendor')));
             const existingSubject = vendorReplies.find(r => r.subject)?.subject;
             if (existingSubject && existingSubject.includes(ticket.ticketId)) {
                 return existingSubject;
@@ -297,7 +310,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
 
             // Fetch dynamically on vendor tab click - pass specific vendorId if multi-vendor
             ticketService.getVendorEmails(ticket.id, specificVendorId).then(emails => {
-                const vendorReplies = replies.filter(r => r && (isSpecificVendor ? r.category === activeTab : (r.category === 'vendor' || (!r.category && r.type === 'vendor'))));
+                const vendorReplies = replies.filter(r => r && (isSpecificVendor ? r.category === activeTab : (r.category === 'vendor' || r.category?.startsWith('vendor_') || r.type === 'vendor')));
                 const localSub = localStorage.getItem(`vendor_subject_${ticket.id}_${activeTab}`);
                 const existingSubject = vendorReplies.find(r => r.subject)?.subject || localSub || `Re: [${ticket.ticketId}-V] ${ticket.header}`;
 
@@ -502,7 +515,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                 const isSpecificVendor = activeTab.startsWith('vendor_');
                 const specificVendorId = isSpecificVendor ? activeTab.replace('vendor_', '') : undefined;
 
-                const vendorReplies = replies.filter(r => r && (isSpecificVendor ? r.category === activeTab : (r.category === 'vendor' || (!r.category && r.type === 'vendor'))));
+                const vendorReplies = replies.filter(r => r && (isSpecificVendor ? r.category === activeTab : (r.category === 'vendor' || r.category?.startsWith('vendor_') || r.type === 'vendor')));
                 const localSub = localStorage.getItem(`vendor_subject_${ticket.id}_${activeTab}`);
 
                 circuitService.getAllCircuits().then(circuits => {
@@ -553,12 +566,49 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
         }).catch(err => console.error(err));
     }, [activeTab, vendorName, ticket.clientId]);
 
-    // Construct replies from ticket prop
+    // Construct replies from ticket prop & keep fresh via auto-poll and notifications
     useEffect(() => {
         if (ticket.replies) {
             setReplies(ticket.replies);
         }
     }, [ticket]);
+
+    useEffect(() => {
+        let isMounted = true;
+        const fetchLatestReplies = async () => {
+            try {
+                const allTickets = await ticketService.getAllTickets();
+                if (!isMounted) return;
+                const fresh = allTickets.find(t => t.id === ticket.id);
+                if (fresh?.replies) {
+                    setReplies(fresh.replies);
+                }
+                if (fresh?.status) {
+                    setTicketStatus(fresh.status);
+                }
+            } catch (err) {
+                console.error('Failed to sync ticket replies:', err);
+            }
+        };
+
+        // Fetch fresh replies on mount
+        fetchLatestReplies();
+
+        // Listen for new notifications in real-time
+        const handleNewNotification = () => {
+            fetchLatestReplies();
+        };
+        window.addEventListener('new_notification', handleNewNotification);
+
+        // Auto-poll every 10 seconds while ticket is open
+        const pollInterval = setInterval(fetchLatestReplies, 10000);
+
+        return () => {
+            isMounted = false;
+            window.removeEventListener('new_notification', handleNewNotification);
+            clearInterval(pollInterval);
+        };
+    }, [ticket.id]);
 
     // Load signatures and auto-insert default reply signature
     useEffect(() => {
@@ -1045,9 +1095,9 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                             >
                                 <User size={18} />
                                 Vendor
-                                {replies.filter(r => r && (r.category === 'vendor' || (!r.category && r.type === 'vendor'))).length > 0 && (
+                                {replies.filter(r => r && (r.category === 'vendor' || r.category?.startsWith('vendor_') || r.type === 'vendor')).length > 0 && (
                                     <span className="ml-1 px-1.5 py-0.5 text-[10px] font-bold bg-orange-500 text-white rounded-full">
-                                        {replies.filter(r => r && (r.category === 'vendor' || (!r.category && r.type === 'vendor'))).length}
+                                        {replies.filter(r => r && (r.category === 'vendor' || r.category?.startsWith('vendor_') || r.type === 'vendor')).length}
                                     </span>
                                 )}
                             </button>
@@ -1230,10 +1280,10 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                             return r.category === 'client' || (!r.category && r.type !== 'vendor');
                         }
                         if (activeTab === 'vendor') {
-                            return r.category === 'vendor' || (!r.category && r.type === 'vendor');
+                            return r.category === 'vendor' || r.category?.startsWith('vendor_') || r.type === 'vendor';
                         }
                         if (activeTab.startsWith('vendor_')) {
-                            return r.category === activeTab;
+                            return r.category === activeTab || (r.category === 'vendor' && r.type === 'agent');
                         }
                         return r.category === activeTab;
                     }).map((reply, idx) => (

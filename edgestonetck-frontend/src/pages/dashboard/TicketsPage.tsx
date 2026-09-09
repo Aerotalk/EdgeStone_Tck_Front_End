@@ -51,6 +51,11 @@ const TicketsPage: React.FC = () => {
             }));
 
             setTickets(formattedTickets);
+            setSelectedTicket(prev => {
+                if (!prev) return null;
+                const updated = formattedTickets.find(t => t.id === prev.id);
+                return updated ? { ...prev, ...updated, replies: updated.replies || prev.replies } : prev;
+            });
             setError(null);
         } catch (err: any) {
             console.error('Failed to fetch tickets:', err);
@@ -66,7 +71,17 @@ const TicketsPage: React.FC = () => {
 
         // Optional: Poll for new tickets every 30s
         const interval = setInterval(fetchTickets, 30000);
-        return () => clearInterval(interval);
+
+        // Listen for real-time notification events
+        const handleNewNotification = () => {
+            fetchTickets();
+        };
+        window.addEventListener('new_notification', handleNewNotification);
+
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('new_notification', handleNewNotification);
+        };
     }, []);
 
     const handleDateApply = (type: FilterType, range: { start: string; end: string }) => {

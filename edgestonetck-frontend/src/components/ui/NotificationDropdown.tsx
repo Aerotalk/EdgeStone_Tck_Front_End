@@ -87,7 +87,9 @@ export const NotificationDropdown: React.FC = () => {
             setIsOpen(false);
             const cleanId = notification.ticketId.trim();
             const routeId = dashboardId || 'default';
-            navigate(`/dashboard/${routeId}/tickets?ticketId=${encodeURIComponent(cleanId)}`);
+            const isVendorNotif = notification.type === 'vendor_reply' || (notification.title && notification.title.toLowerCase().includes('vendor')) || (notification.message && notification.message.toLowerCase().includes('vendor'));
+            const tabParam = isVendorNotif ? '&tab=vendor' : '';
+            navigate(`/dashboard/${routeId}/tickets?ticketId=${encodeURIComponent(cleanId)}${tabParam}`);
         }
     };
 
