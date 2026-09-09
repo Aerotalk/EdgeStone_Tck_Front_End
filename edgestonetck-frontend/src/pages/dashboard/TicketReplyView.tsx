@@ -17,7 +17,8 @@ import {
     PenLine,
     RefreshCw,
     Trash2,
-    Download
+    Download,
+    Lock
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { TicketInfoSidebar } from './TicketInfoSidebar';
@@ -136,6 +137,26 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
     // Dynamic Circuit Options
     const [dynamicCircuitOptions, setDynamicCircuitOptions] = useState<string[]>([]);
 
+    // Helper to calculate the immutable locked subject line for mid-conversation replies
+    const getLockedSubject = (tab: string = activeTab): string => {
+        if (tab.startsWith('vendor')) {
+            const isSpecificVendor = tab.startsWith('vendor_');
+            const vendorReplies = replies.filter(r => r && (isSpecificVendor ? r.category === tab : (r.category === 'vendor' || (!r.category && r.type === 'vendor'))));
+            const existingSubject = vendorReplies.find(r => r.subject)?.subject;
+            if (existingSubject && existingSubject.includes(ticket.ticketId)) {
+                return existingSubject;
+            }
+            const supplierId = ticketCircuit?.supplierCircuitId || confirmedCircuit || ticket.circuitId;
+            if (supplierId) {
+                return `Re: [${ticket.ticketId}-V] Issue regarding Circuit ${supplierId}`;
+            }
+            return `Re: [${ticket.ticketId}-V] ${ticket.header}`;
+        }
+        return ticket.header.toLowerCase().startsWith('re:')
+            ? `[${ticket.ticketId}] ${ticket.header}`
+            : `Re: [${ticket.ticketId}] ${ticket.header}`;
+    };
+
     // Email Modal form states
     const [emailForm, setEmailForm] = useState({
         from: 'support@edgestone.in',
@@ -148,7 +169,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
     // Track recipients (CC & BCC) per tab to completely isolate Client tab from Vendor tab
     const [tabRecipients, setTabRecipients] = useState<Record<string, { cc: string[], bcc: string[] }>>({});
 
-    // Reset emailForm whenever the ticket changes so stale subjects from a previous ticket don't bleed in
+    // Reset emailForm whenever the ticket changes so stale data from a previous ticket don't bleed in
     useEffect(() => {
         setTabRecipients({});
         setEmailForm({
@@ -156,10 +177,10 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
             to: [],
             cc: [],
             bcc: [],
-            subject: ''
+            subject: getLockedSubject(activeTab)
         });
         setShowCc(false);
-    }, [ticket.id]);
+    }, [ticket.id, activeTab]);
 
 
     const [confirmedCircuit, setConfirmedCircuit] = useState(() => {
@@ -469,42 +490,49 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
         setShowCc(targetCc.length > 0 || targetBcc.length > 0);
     }, [activeTab, ticket.email, ticket.header, ticket.id, confirmedCircuit, ticket.circuitId, ticket.cc, replies, tabRecipients, ticketCircuit]);
 
-    // Autofill subject line for vendor replies when opening the email modal
+    // Ensure subject line is locked and populated when opening the email modal
     useEffect(() => {
-        if (showEmailModal && activeTab.startsWith('vendor')) {
-            const isSpecificVendor = activeTab.startsWith('vendor_');
-            const specificVendorId = isSpecificVendor ? activeTab.replace('vendor_', '') : undefined;
+        if (showEmailModal) {
+            if (activeTab === 'client') {
+                setEmailForm(prev => ({
+                    ...prev,
+                    subject: getLockedSubject('client')
+                }));
+            } else if (activeTab.startsWith('vendor')) {
+                const isSpecificVendor = activeTab.startsWith('vendor_');
+                const specificVendorId = isSpecificVendor ? activeTab.replace('vendor_', '') : undefined;
 
-            const vendorReplies = replies.filter(r => r && (isSpecificVendor ? r.category === activeTab : (r.category === 'vendor' || (!r.category && r.type === 'vendor'))));
-            const localSub = localStorage.getItem(`vendor_subject_${ticket.id}_${activeTab}`);
+                const vendorReplies = replies.filter(r => r && (isSpecificVendor ? r.category === activeTab : (r.category === 'vendor' || (!r.category && r.type === 'vendor'))));
+                const localSub = localStorage.getItem(`vendor_subject_${ticket.id}_${activeTab}`);
 
-            circuitService.getAllCircuits().then(circuits => {
-                const matchedCircuit = circuits.find(c =>
-                    (confirmedCircuit && c.customerCircuitId === confirmedCircuit) ||
-                    c.customerCircuitId === ticket.header ||
-                    c.customerCircuitId === ticket.circuitId ||
-                    c.id === ticket.circuitId
-                );
+                circuitService.getAllCircuits().then(circuits => {
+                    const matchedCircuit = circuits.find(c =>
+                        (confirmedCircuit && c.customerCircuitId === confirmedCircuit) ||
+                        c.customerCircuitId === ticket.header ||
+                        c.customerCircuitId === ticket.circuitId ||
+                        c.id === ticket.circuitId
+                    );
 
-                let targetSupplierCircuitId = matchedCircuit?.supplierCircuitId;
-                if (specificVendorId && matchedCircuit?.isMultiVendor && matchedCircuit?.vendorCircuits) {
-                    const vc = matchedCircuit.vendorCircuits.find((v: any) => v.vendorId === specificVendorId);
-                    if (vc?.supplierCircuitId) targetSupplierCircuitId = vc.supplierCircuitId;
-                }
+                    let targetSupplierCircuitId = matchedCircuit?.supplierCircuitId;
+                    if (specificVendorId && matchedCircuit?.isMultiVendor && matchedCircuit?.vendorCircuits) {
+                        const vc = matchedCircuit.vendorCircuits.find((v: any) => v.vendorId === specificVendorId);
+                        if (vc?.supplierCircuitId) targetSupplierCircuitId = vc.supplierCircuitId;
+                    }
 
-                const supplierId = targetSupplierCircuitId || 'Unknown Circuit';
-                const defaultSafeSubject = `Re: [${ticket.ticketId}-V] Issue regarding Circuit ${supplierId}`;
-                // Only reuse an existing subject if it actually belongs to the current ticket (contains current ticketId)
-                const rawExisting = vendorReplies.find(r => r.subject)?.subject || localSub;
-                const existingSubject = (rawExisting && rawExisting.includes(ticket.ticketId)) ? rawExisting : defaultSafeSubject;
+                    const supplierId = targetSupplierCircuitId || 'Unknown Circuit';
+                    const defaultSafeSubject = `Re: [${ticket.ticketId}-V] Issue regarding Circuit ${supplierId}`;
+                    // Only reuse an existing subject if it actually belongs to the current ticket (contains current ticketId)
+                    const rawExisting = vendorReplies.find(r => r.subject)?.subject || localSub;
+                    const existingSubject = (rawExisting && rawExisting.includes(ticket.ticketId)) ? rawExisting : defaultSafeSubject;
 
-                if (existingSubject) {
-                    setEmailForm(prev => ({
-                        ...prev,
-                        subject: existingSubject
-                    }));
-                }
-            }).catch(console.error);
+                    if (existingSubject) {
+                        setEmailForm(prev => ({
+                            ...prev,
+                            subject: existingSubject
+                        }));
+                    }
+                }).catch(console.error);
+            }
         }
     }, [showEmailModal, activeTab, replies, ticket.id, ticket.ticketId, confirmedCircuit, ticket.circuitId]);
 
@@ -662,24 +690,29 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
 
             // Send to client or vendor based on the active tab
             let newReply;
+            const finalSubject = emailForm.subject.trim() || getLockedSubject(activeTab);
             if (activeTab.startsWith('vendor')) {
                 const vendorId = activeTab.replace('vendor_', '');
                 newReply = await ticketService.replyToVendor(ticket.id, {
                     ...emailForm,
+                    subject: finalSubject,
                     message: plainBody,
                     htmlContent: fullHtmlContent,
                     attachments: uploadedAttachments,
                     vendorId: vendorId !== 'vendor' ? vendorId : undefined
                 });
 
-                if (emailForm.subject.trim()) {
-                    localStorage.setItem(`vendor_subject_${ticket.id}_${activeTab}`, emailForm.subject.trim());
+                if (finalSubject) {
+                    localStorage.setItem(`vendor_subject_${ticket.id}_${activeTab}`, finalSubject);
                 }
                 if (emailForm.cc && emailForm.cc.length > 0) {
                     localStorage.setItem(`ticket_vendor_cc_${ticket.id}_${activeTab}`, JSON.stringify(emailForm.cc));
                 }
             } else {
-                newReply = await ticketService.replyToTicket(ticket.id, plainBody, fullHtmlContent, uploadedAttachments, emailForm);
+                newReply = await ticketService.replyToTicket(ticket.id, plainBody, fullHtmlContent, uploadedAttachments, {
+                    ...emailForm,
+                    subject: finalSubject
+                });
                 if (emailForm.cc && emailForm.cc.length > 0) {
                     localStorage.setItem(`ticket_client_cc_${ticket.id}`, JSON.stringify(emailForm.cc));
                 }
@@ -1592,14 +1625,26 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                     </>
                                 )}
 
-                                <div className="flex items-center gap-4 px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl group focus-within:ring-4 focus-within:ring-gray-900/5 focus-within:border-gray-200 transition-all">
-                                    <span className="text-[13px] font-bold text-gray-400 uppercase tracking-wider w-12">Subject</span>
+                                <div
+                                    className="flex items-center gap-4 px-4 py-3 bg-gray-100/70 border border-gray-200/80 rounded-2xl select-none cursor-not-allowed transition-all"
+                                    title="Subject is locked to preserve email thread integrity"
+                                >
+                                    <span className="text-[13px] font-bold text-gray-400 uppercase tracking-wider w-12 flex-shrink-0">Subject</span>
                                     <input
                                         type="text"
-                                        value={emailForm.subject}
-                                        onChange={(e) => setEmailForm(prev => ({ ...prev, subject: e.target.value }))}
-                                        className="flex-1 bg-transparent border-none focus:ring-0 text-[14px] font-bold text-gray-900 placeholder:text-gray-300"
+                                        readOnly
+                                        disabled
+                                        tabIndex={-1}
+                                        value={emailForm.subject || getLockedSubject(activeTab)}
+                                        className="flex-1 bg-transparent border-none focus:ring-0 text-[14px] font-bold text-gray-700 cursor-not-allowed select-all outline-none"
                                     />
+                                    <div
+                                        className="flex items-center gap-1.5 px-2.5 py-1 bg-gray-200/70 text-gray-500 rounded-lg text-[11px] font-bold tracking-wide flex-shrink-0"
+                                        title="Subject cannot be changed mid-conversation"
+                                    >
+                                        <Lock size={12} className="text-gray-400" />
+                                        <span>Locked</span>
+                                    </div>
                                 </div>
                             </div>
 
@@ -1742,7 +1787,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                                 </button>
                                 <button
                                     onClick={handleSendReply}
-                                    disabled={(!replyText.trim() && !signatureHtml && attachments.length === 0) || isSending || !emailForm.subject.trim()}
+                                    disabled={(!replyText.trim() && !signatureHtml && attachments.length === 0) || isSending || !(emailForm.subject.trim() || getLockedSubject(activeTab))}
                                     className="flex items-center gap-2.5 px-8 py-3 bg-orange-500 text-white rounded-xl text-[15px] font-bold hover:bg-orange-600 transition-all active:scale-[0.98] shadow-[0_20px_40px_-12px_rgba(249,115,22,0.3)] disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed group"
                                 >
                                     <span>{isSending ? 'Sending...' : 'Send Message'}</span>
