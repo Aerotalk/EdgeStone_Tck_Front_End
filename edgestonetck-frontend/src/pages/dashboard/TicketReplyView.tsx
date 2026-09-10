@@ -520,11 +520,15 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
             targetCc = Array.from(vendorCcs);
         }
 
-        setEmailForm(prev => ({
-            ...prev,
-            cc: targetCc,
-            bcc: targetBcc
-        }));
+        setEmailForm(prev => {
+            const toLowerSet = new Set((prev.to || []).map(e => e.toLowerCase().trim()));
+            const cleanCc = targetCc.filter(e => !toLowerSet.has(e.toLowerCase().trim()));
+            return {
+                ...prev,
+                cc: cleanCc,
+                bcc: targetBcc.filter(e => !toLowerSet.has(e.toLowerCase().trim()) && !cleanCc.some(c => c.toLowerCase().trim() === e.toLowerCase().trim()))
+            };
+        });
         setShowCc(targetCc.length > 0 || targetBcc.length > 0);
     }, [activeTab, ticket.email, ticket.header, ticket.id, confirmedCircuit, ticket.circuitId, ticket.cc, replies, tabRecipients, ticketCircuit]);
 
@@ -843,28 +847,47 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
 
     const addRecipient = (field: 'to' | 'cc' | 'bcc', value: string) => {
         const email = value.trim().replace(/,$/, '');
-        if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && !emailForm[field].includes(email)) {
+        if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            const cleanLower = email.toLowerCase();
             setEmailForm(prev => {
-                const nextField = [...prev[field], email];
-                if (field === 'cc' || field === 'bcc') {
-                    setTabRecipients(tPrev => ({
-                        ...tPrev,
-                        [activeTab]: {
-                            cc: field === 'cc' ? nextField : (tPrev[activeTab]?.cc ?? prev.cc),
-                            bcc: field === 'bcc' ? nextField : (tPrev[activeTab]?.bcc ?? prev.bcc)
-                        }
-                    }));
+                if (prev[field].some(e => e.toLowerCase() === cleanLower)) return prev;
+
+                let nextTo = [...prev.to];
+                let nextCc = [...prev.cc];
+                let nextBcc = [...prev.bcc];
+
+                if (field === 'to') {
+                    nextTo.push(email);
+                    nextCc = nextCc.filter(e => e.toLowerCase() !== cleanLower);
+                    nextBcc = nextBcc.filter(e => e.toLowerCase() !== cleanLower);
+                } else if (field === 'cc') {
+                    if (nextTo.some(e => e.toLowerCase() === cleanLower)) return prev;
+                    nextCc.push(email);
+                    nextBcc = nextBcc.filter(e => e.toLowerCase() !== cleanLower);
+                } else {
+                    if (nextTo.some(e => e.toLowerCase() === cleanLower) || nextCc.some(e => e.toLowerCase() === cleanLower)) return prev;
+                    nextBcc.push(email);
                 }
-                if (field === 'cc') {
-                    if (activeTab.startsWith('vendor')) {
-                        localStorage.setItem(`ticket_vendor_cc_${ticket.id}_${activeTab}`, JSON.stringify(nextField));
-                    } else if (activeTab === 'client') {
-                        localStorage.setItem(`ticket_client_cc_${ticket.id}`, JSON.stringify(nextField));
+
+                setTabRecipients(tPrev => ({
+                    ...tPrev,
+                    [activeTab]: {
+                        cc: nextCc,
+                        bcc: nextBcc
                     }
+                }));
+
+                if (activeTab.startsWith('vendor')) {
+                    localStorage.setItem(`ticket_vendor_cc_${ticket.id}_${activeTab}`, JSON.stringify(nextCc));
+                } else if (activeTab === 'client') {
+                    localStorage.setItem(`ticket_client_cc_${ticket.id}`, JSON.stringify(nextCc));
                 }
+
                 return {
                     ...prev,
-                    [field]: nextField
+                    to: nextTo,
+                    cc: nextCc,
+                    bcc: nextBcc
                 };
             });
         }
