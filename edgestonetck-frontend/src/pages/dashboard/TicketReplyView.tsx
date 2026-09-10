@@ -150,24 +150,62 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
     // Dynamic Circuit Options
     const [dynamicCircuitOptions, setDynamicCircuitOptions] = useState<string[]>([]);
 
+    const getCleanSubject = (subj: string): string => {
+        if (!subj) return '';
+        let clean = subj.replace(/^(Re|Fwd|FW|RE|FWD):\s*/gi, '').trim();
+        clean = clean.replace(/^\[#?[A-Za-z0-9_-]+?(?:-V)?\]\s*/i, '').trim();
+        return clean;
+    };
+
     // Helper to calculate the immutable locked subject line for mid-conversation replies
     const getLockedSubject = (tab: string = activeTab): string => {
         if (tab.startsWith('vendor')) {
             const isSpecificVendor = tab.startsWith('vendor_');
-            const vendorReplies = replies.filter(r => r && (isSpecificVendor ? r.category === tab : (r.category === 'vendor' || r.category?.startsWith('vendor_') || r.type === 'vendor')));
-            const existingSubject = vendorReplies.find(r => r.subject)?.subject;
-            if (existingSubject && existingSubject.includes(ticket.ticketId)) {
-                return existingSubject;
+            const vendorReplies = replies.filter(r => r && (isSpecificVendor ? r.category === tab : (r.category === tab || r.category === 'vendor' || r.category?.startsWith('vendor_') || r.type === 'vendor')));
+
+            // 1. Check if any vendor reply in the thread has a subject
+            const latestVendorReplyWithSubject = [...vendorReplies]
+                .reverse()
+                .find(r => r.subject && r.subject.trim() && (r.type === 'vendor' || r.author?.toLowerCase().includes('vendor') || r.author?.toLowerCase().includes('aerovendor')));
+
+            // 2. Identify if this is a Maintenance ticket or Vendor-originated ticket
+            const isMaintenanceTicket = ticket.isMaintenance || ticket.status?.toLowerCase() === 'maintenance';
+            const isVendorTicket = ticket.ticketType === 'Vendor' || ticket.ticketId?.includes('V');
+
+            // 3. Determine vendor-provided subject (Vendor-provided subject is PRIMARY for maintenance & vendor tickets)
+            let vendorProvidedSubject = '';
+            if (latestVendorReplyWithSubject?.subject) {
+                vendorProvidedSubject = latestVendorReplyWithSubject.subject;
+            } else if (isMaintenanceTicket || isVendorTicket || vendorReplies.some(r => r.type === 'vendor')) {
+                vendorProvidedSubject = ticket.header;
             }
+
+            // 4. If a valid localSub exists in localStorage from this conversation, check if it's usable.
+            // Discard any contaminated localSub that has "Issue regarding Circuit" when a vendor-provided subject exists!
+            const localSub = localStorage.getItem(`vendor_subject_${ticket.id}_${tab}`);
+            if (localSub && localSub.includes(ticket.ticketId)) {
+                const isContaminatedIssueSubject = localSub.includes('Issue regarding Circuit');
+                if (!vendorProvidedSubject || !isContaminatedIssueSubject) {
+                    return localSub;
+                }
+            }
+
+            // 5. If vendor provided a subject (primary for maintenance & vendor communication), format and lock it
+            if (vendorProvidedSubject) {
+                const cleanSubject = getCleanSubject(vendorProvidedSubject) || vendorProvidedSubject;
+                return `Re: [${ticket.ticketId}-V] ${cleanSubject}`;
+            }
+
+            // 6. Fallback ONLY for client-originated tickets where vendor has never emailed (initial outreach to vendor):
             const supplierId = ticketCircuit?.supplierCircuitId || confirmedCircuit || ticket.circuitId;
             if (supplierId) {
                 return `Re: [${ticket.ticketId}-V] Issue regarding Circuit ${supplierId}`;
             }
             return `Re: [${ticket.ticketId}-V] ${ticket.header}`;
         }
-        return ticket.header.toLowerCase().startsWith('re:')
-            ? `[${ticket.ticketId}] ${ticket.header}`
-            : `Re: [${ticket.ticketId}] ${ticket.header}`;
+
+        const cleanHeader = getCleanSubject(ticket.header) || ticket.header;
+        return `Re: [${ticket.ticketId}] ${cleanHeader}`;
     };
 
     // Email Modal form states
@@ -310,14 +348,12 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
 
             // Fetch dynamically on vendor tab click - pass specific vendorId if multi-vendor
             ticketService.getVendorEmails(ticket.id, specificVendorId).then(emails => {
-                const vendorReplies = replies.filter(r => r && (isSpecificVendor ? r.category === activeTab : (r.category === 'vendor' || r.category?.startsWith('vendor_') || r.type === 'vendor')));
-                const localSub = localStorage.getItem(`vendor_subject_${ticket.id}_${activeTab}`);
-                const existingSubject = vendorReplies.find(r => r.subject)?.subject || localSub || `Re: [${ticket.ticketId}-V] ${ticket.header}`;
+                const lockedSub = getLockedSubject(activeTab);
 
                 setEmailForm(prev => ({
                     ...prev,
                     to: emails,
-                    subject: existingSubject
+                    subject: lockedSub
                 }));
 
                 // Fetch the vendor name associated specifically with the connected circuit
@@ -331,13 +367,11 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
 
                     if (matchedCircuit) {
                         let targetVendor = null;
-                        let targetSupplierCircuitId = matchedCircuit.supplierCircuitId;
 
                         if (specificVendorId && matchedCircuit.isMultiVendor && matchedCircuit.vendorCircuits) {
                             const vc = matchedCircuit.vendorCircuits.find((v: any) => v.vendorId === specificVendorId);
-                            if (vc) {
-                                if (vc.vendor) targetVendor = vc.vendor;
-                                if (vc.supplierCircuitId) targetSupplierCircuitId = vc.supplierCircuitId;
+                            if (vc && vc.vendor) {
+                                targetVendor = vc.vendor;
                             }
                         } else if (matchedCircuit.vendor) {
                             targetVendor = matchedCircuit.vendor;
@@ -355,15 +389,6 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                             setVendorName('EdgeStone Vendor');
                         }
 
-                        // UPDATE SUBJECT TO USE SPECIFIC SUPPLIER CIRCUIT ID INSTEAD OF HEADER
-                        const supplierId = targetSupplierCircuitId || 'Unknown Circuit';
-                        const defaultSafeSubject = `Re: [${ticket.ticketId}-V] Issue regarding Circuit ${supplierId}`;
-
-                        const rawExisting = vendorReplies.find(r => r.subject)?.subject || localSub;
-                        const newExistingSubject = (rawExisting && rawExisting.includes(ticket.ticketId)) ? rawExisting : defaultSafeSubject;
-
-                        setEmailForm(prev => ({ ...prev, subject: newExistingSubject }));
-
                     } else {
                         setVendorName('EdgeStone Vendor');
                     }
@@ -373,7 +398,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                 setEmailForm(prev => ({
                     ...prev,
                     to: [],
-                    subject: `RE: ${ticket.header}`
+                    subject: getLockedSubject(activeTab)
                 }));
                 setVendorName('EdgeStone Vendor');
             });
@@ -506,46 +531,10 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
     // Ensure subject line is locked and populated when opening the email modal
     useEffect(() => {
         if (showEmailModal) {
-            if (activeTab === 'client') {
-                setEmailForm(prev => ({
-                    ...prev,
-                    subject: getLockedSubject('client')
-                }));
-            } else if (activeTab.startsWith('vendor')) {
-                const isSpecificVendor = activeTab.startsWith('vendor_');
-                const specificVendorId = isSpecificVendor ? activeTab.replace('vendor_', '') : undefined;
-
-                const vendorReplies = replies.filter(r => r && (isSpecificVendor ? r.category === activeTab : (r.category === 'vendor' || r.category?.startsWith('vendor_') || r.type === 'vendor')));
-                const localSub = localStorage.getItem(`vendor_subject_${ticket.id}_${activeTab}`);
-
-                circuitService.getAllCircuits().then(circuits => {
-                    const matchedCircuit = circuits.find(c =>
-                        (confirmedCircuit && c.customerCircuitId === confirmedCircuit) ||
-                        c.customerCircuitId === ticket.header ||
-                        c.customerCircuitId === ticket.circuitId ||
-                        c.id === ticket.circuitId
-                    );
-
-                    let targetSupplierCircuitId = matchedCircuit?.supplierCircuitId;
-                    if (specificVendorId && matchedCircuit?.isMultiVendor && matchedCircuit?.vendorCircuits) {
-                        const vc = matchedCircuit.vendorCircuits.find((v: any) => v.vendorId === specificVendorId);
-                        if (vc?.supplierCircuitId) targetSupplierCircuitId = vc.supplierCircuitId;
-                    }
-
-                    const supplierId = targetSupplierCircuitId || 'Unknown Circuit';
-                    const defaultSafeSubject = `Re: [${ticket.ticketId}-V] Issue regarding Circuit ${supplierId}`;
-                    // Only reuse an existing subject if it actually belongs to the current ticket (contains current ticketId)
-                    const rawExisting = vendorReplies.find(r => r.subject)?.subject || localSub;
-                    const existingSubject = (rawExisting && rawExisting.includes(ticket.ticketId)) ? rawExisting : defaultSafeSubject;
-
-                    if (existingSubject) {
-                        setEmailForm(prev => ({
-                            ...prev,
-                            subject: existingSubject
-                        }));
-                    }
-                }).catch(console.error);
-            }
+            setEmailForm(prev => ({
+                ...prev,
+                subject: getLockedSubject(activeTab)
+            }));
         }
     }, [showEmailModal, activeTab, replies, ticket.id, ticket.ticketId, confirmedCircuit, ticket.circuitId]);
 
