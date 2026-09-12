@@ -150,6 +150,63 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
     // Dynamic Circuit Options
     const [dynamicCircuitOptions, setDynamicCircuitOptions] = useState<string[]>([]);
 
+    // Single Source of Truth (SSOT) Thread Matcher
+    const isReplyForTab = (reply: any, tab: string, circuit: any): boolean => {
+        if (!reply) return false;
+        if (tab === 'client') {
+            return reply.category === 'client' || (!reply.category && reply.type !== 'vendor');
+        }
+        if (tab === 'vendor') {
+            return reply.category === 'vendor' || reply.category?.startsWith('vendor_') || reply.type === 'vendor';
+        }
+        if (tab.startsWith('vendor_')) {
+            if (reply.category === tab) return true;
+            if (reply.category === 'vendor') {
+                const currentVendorId = tab.replace('vendor_', '');
+                const currentVc = circuit?.vendorCircuits?.find((vc: any) => vc.vendorId === currentVendorId);
+                const vendorEmails = (currentVc?.vendor?.emails || []).map((e: string) => e.toLowerCase().trim());
+                const vendorName = currentVc?.vendor?.name?.toLowerCase().trim();
+                const participants = [
+                    ...(reply.to || []),
+                    ...(reply.cc || []),
+                    reply.author || ''
+                ].map((t: string) => t.toLowerCase().trim());
+
+                if (reply.type === 'agent') {
+                    const replyTos = [
+                        ...(reply.to || []),
+                        ...(reply.cc || [])
+                    ].map((t: string) => t.toLowerCase().trim());
+
+                    if (vendorEmails.length > 0 && replyTos.some((t: string) => vendorEmails.includes(t))) {
+                        return true;
+                    }
+
+                    // If it matches another vendor on this circuit, it must NOT show in this vendor's tab!
+                    if (circuit?.vendorCircuits && circuit.vendorCircuits.length > 1) {
+                        const matchesOtherVendor = circuit.vendorCircuits.some((vc: any) => {
+                            if (vc.vendorId === currentVendorId) return false;
+                            const otherEmails = (vc.vendor?.emails || []).map((e: string) => e.toLowerCase().trim());
+                            return replyTos.some((t: string) => otherEmails.includes(t));
+                        });
+                        if (matchesOtherVendor) return false;
+                    }
+
+                    return circuit?.vendorCircuits?.length === 1;
+                }
+
+                if (reply.type === 'vendor') {
+                    const matchesEmail = vendorEmails.some((e: string) => participants.some((p: string) => p.includes(e)));
+                    const matchesAuthor = vendorName && (reply.author?.toLowerCase().includes(vendorName) || participants.some((p: string) => p.includes(vendorName)));
+                    if (matchesEmail || matchesAuthor) return true;
+                    if (circuit?.vendorCircuits?.length === 1) return true;
+                }
+            }
+            return false;
+        }
+        return reply.category === tab;
+    };
+
     const getCleanSubject = (subj: string): string => {
         if (!subj) return '';
         let clean = subj.replace(/^(Re|Fwd|FW|RE|FWD):\s*/gi, '').trim();
@@ -197,7 +254,15 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
             }
 
             // 6. Fallback ONLY for client-originated tickets where vendor has never emailed (initial outreach to vendor):
-            const supplierId = ticketCircuit?.supplierCircuitId || confirmedCircuit || ticket.circuitId;
+            let supplierId: string | null = null;
+            if (isSpecificVendor && ticketCircuit?.vendorCircuits) {
+                const currentVendorId = tab.replace('vendor_', '');
+                const vc = ticketCircuit.vendorCircuits.find((v: any) => v.vendorId === currentVendorId);
+                if (vc && vc.supplierCircuitId) supplierId = vc.supplierCircuitId;
+            }
+            if (!supplierId) {
+                supplierId = ticketCircuit?.supplierCircuitId || confirmedCircuit || ticket.circuitId;
+            }
             if (supplierId) {
                 return `Re: [${ticket.ticketId}-V] Issue regarding Circuit ${supplierId}`;
             }
@@ -1083,7 +1148,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                         )}
                         {ticketCircuit?.isMultiVendor && ticketCircuit?.vendorCircuits ? (
                             ticketCircuit.vendorCircuits.slice(0, 4).map((vc: any, idx: number) => {
-                                const count = replies.filter(r => r && r.category === `vendor_${vc.vendorId}`).length;
+                                const count = replies.filter(r => isReplyForTab(r, `vendor_${vc.vendorId}`, ticketCircuit)).length;
                                 return (
                                     <button
                                         key={vc.vendorId || idx}
@@ -1226,23 +1291,6 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                         </div>
                     )}
 
-                    {/* Vendor Reply Notification Banner on Client Tab */}
-                    {activeTab === 'client' && replies.filter(r => r && (r.category === 'vendor' || r.category?.startsWith('vendor_') || r.type === 'vendor')).length > 0 && (
-                        <div className="bg-amber-50/90 border border-amber-200 rounded-xl p-3.5 flex items-center justify-between shadow-2xs mb-2">
-                            <div className="flex items-center gap-2.5">
-                                <span className="w-2.5 h-2.5 rounded-full bg-orange-500 animate-pulse"></span>
-                                <span className="text-[13px] font-semibold text-amber-900">
-                                    Vendor has replied to this ticket ({replies.filter(r => r && (r.category === 'vendor' || r.category?.startsWith('vendor_') || r.type === 'vendor')).length} message{replies.filter(r => r && (r.category === 'vendor' || r.category?.startsWith('vendor_') || r.type === 'vendor')).length > 1 ? 's' : ''}).
-                                </span>
-                            </div>
-                            <button
-                                onClick={() => startTransition(() => setActiveTab('vendor'))}
-                                className="text-[12px] font-bold text-orange-600 hover:text-orange-700 bg-white border border-orange-200 px-3 py-1 rounded-lg shadow-2xs hover:bg-orange-50 transition-colors cursor-pointer"
-                            >
-                                View Vendor Thread →
-                            </button>
-                        </div>
-                    )}
 
                     {/* Auto Reply (Only in client tab) */}
                     {activeTab === 'client' && (
@@ -1285,20 +1333,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
 
                     {activeTab === 'client' && <div className="ml-5 border-l-2 border-gray-100 py-1"></div>}
 
-                    {/* Persistent Agent Replies (Filtered by category) */}
-                    {replies.filter(r => {
-                        if (!r) return false;
-                        if (activeTab === 'client') {
-                            return r.category === 'client' || (!r.category && r.type !== 'vendor');
-                        }
-                        if (activeTab === 'vendor') {
-                            return r.category === 'vendor' || r.category?.startsWith('vendor_') || r.type === 'vendor';
-                        }
-                        if (activeTab.startsWith('vendor_')) {
-                            return r.category === activeTab || (r.category === 'vendor' && r.type === 'agent');
-                        }
-                        return r.category === activeTab;
-                    }).map((reply, idx) => (
+                    {replies.filter(r => isReplyForTab(r, activeTab, ticketCircuit)).map((reply, idx) => (
                         <div key={idx} className="flex flex-col">
                             <div className="flex gap-4">
                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shadow-sm flex-shrink-0 ${reply.type === 'agent' ? 'bg-orange-500 text-white' :
