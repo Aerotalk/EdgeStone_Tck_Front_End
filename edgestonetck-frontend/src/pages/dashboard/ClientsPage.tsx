@@ -10,7 +10,7 @@ import { useDashboardData } from '../../contexts/DashboardDataContext';
 
 const ClientsPage: React.FC = () => {
     const navigate = useNavigate();
-    const { isSupportCrew } = useAuth();
+    const { isSupportCrew, canDelete } = useAuth();
     const { refresh: refreshDashboard } = useDashboardData();
     const [clients, setClients] = useState<Client[]>([]);
     const [loading, setLoading] = useState(true);
@@ -491,14 +491,16 @@ const ClientsPage: React.FC = () => {
                                                         Edit Client
                                                     </button>
                                                 )}
-                                                <button
-                                                    onClick={() => setClientToDelete(client)}
-                                                    className={`py-2.5 px-3 flex items-center justify-center gap-2 text-sm font-bold text-gray-400 hover:text-brand-red bg-gray-50 hover:bg-red-50 rounded-xl transition-colors ${isSupportCrew() ? 'w-full' : ''}`}
-                                                    title="Delete Client"
-                                                >
-                                                    <Trash2 size={16} />
-                                                    {isSupportCrew() && <span>Delete Client</span>}
-                                                </button>
+                                                {canDelete() && (
+                                                    <button
+                                                        onClick={() => setClientToDelete(client)}
+                                                        className="py-2.5 px-3 flex items-center justify-center gap-2 text-sm font-bold text-gray-400 hover:text-brand-red bg-gray-50 hover:bg-red-50 rounded-xl transition-colors"
+                                                        title="Delete Client"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                        <span>Delete Client</span>
+                                                    </button>
+                                                )}
                                             </div>
                                         </>
                                     )}
@@ -668,16 +670,18 @@ const ClientsPage: React.FC = () => {
                                                                         </div>
                                                                     </button>
                                                                 )}
-                                                                <button
-                                                                    onClick={() => setClientToDelete(client)}
-                                                                    className="flex items-center gap-2 text-sm font-bold text-gray-400 hover:text-brand-red transition-all group"
-                                                                    title="Delete Client"
-                                                                >
-                                                                    <span className="opacity-0 group-hover:opacity-100 transition-opacity text-brand-red">Delete</span>
-                                                                    <div className="p-2 text-gray-400 group-hover:text-brand-red group-hover:bg-brand-red/5 rounded-lg transition-colors">
-                                                                        <Trash2 size={18} />
-                                                                    </div>
-                                                                </button>
+                                                                {canDelete() && (
+                                                                    <button
+                                                                        onClick={() => setClientToDelete(client)}
+                                                                        className="flex items-center gap-2 text-sm font-bold text-gray-400 hover:text-brand-red transition-all group"
+                                                                        title="Delete Client"
+                                                                    >
+                                                                        <span className="opacity-0 group-hover:opacity-100 transition-opacity text-brand-red">Delete</span>
+                                                                        <div className="p-2 text-gray-400 group-hover:text-brand-red group-hover:bg-brand-red/5 rounded-lg transition-colors">
+                                                                            <Trash2 size={18} />
+                                                                        </div>
+                                                                    </button>
+                                                                )}
                                                             </div>
                                                         )}
                                                     </div>

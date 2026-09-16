@@ -5,6 +5,7 @@ import { nowDateIST, nowTimeIST, formatDateWithTZ, formatTimeWithTZ } from '../.
 import { getAuthHeaders, API_URL_SLA } from '../../types/sla';
 import { toast } from 'react-hot-toast';
 import { clientService } from '../../services/clientService';
+import { useAuth } from '../../contexts/AuthContext';
 
 const SUPPORT_AGENTS = [
     { id: 'agent-1', name: 'Soumyajit' },
@@ -55,6 +56,7 @@ interface ActivityLog {
 
 export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, priority, circuit, status, closedAt, activeTab, vendorEmail, vendorName, onTimeZoneChangeActive }) => {
     const { id } = useParams();
+    const { canDelete } = useAuth();
     const [isNotesOpen, setIsNotesOpen] = useState(false);
     const [notes, setNotes] = useState<Note[]>([]);
     const [newNote, setNewNote] = useState('');
@@ -227,6 +229,7 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
     };
 
     const handleDeleteNote = (index: number) => {
+        if (!canDelete()) return;
         const updatedNotes = notes.filter((_, i) => i !== index);
         setNotes(updatedNotes);
         localStorage.setItem(`ticket_notes_${ticket.id}`, JSON.stringify(updatedNotes));
@@ -692,13 +695,15 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                                         <div className="p-3 bg-white border border-gray-100 rounded-xl shadow-sm hover:border-red-100 transition-colors">
                                             <p className="text-[12px] text-gray-600 font-medium leading-relaxed break-words whitespace-pre-wrap pr-4">{note.text}</p>
                                             <div className="mt-2 flex justify-between items-center">
-                                                <button
-                                                    onClick={() => handleDeleteNote(i)}
-                                                    className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
-                                                    title="Delete note"
-                                                >
-                                                    <Trash2 size={12} />
-                                                </button>
+                                                {canDelete() && (
+                                                    <button
+                                                        onClick={() => handleDeleteNote(i)}
+                                                        className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                                                        title="Delete note"
+                                                    >
+                                                        <Trash2 size={12} />
+                                                    </button>
+                                                )}
                                                 <div className="flex items-center gap-2">
                                                     <span className="text-[10px] font-bold text-orange-500/70">{note.author || 'Agent'}</span>
                                                     <span className="text-[10px] font-bold text-gray-400">{note.time}</span>

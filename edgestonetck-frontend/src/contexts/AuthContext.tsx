@@ -20,6 +20,7 @@ interface AuthContextType {
     isManager: () => boolean;
     isSupportCrew: () => boolean;
     isAgent: () => boolean;
+    canDelete: () => boolean;
     getCurrentUser: () => User | null;
 }
 
@@ -73,12 +74,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return user?.role === 'agent';
     };
 
+    const canDelete = (): boolean => {
+        return isSuperAdmin() || isManager();
+    };
+
     const getCurrentUser = (): User | null => {
         return user;
     };
 
     return (
-        <AuthContext.Provider value={{ user, isLoading, login, logout, isSuperAdmin, isManager, isSupportCrew, isAgent, getCurrentUser }}>
+        <AuthContext.Provider value={{ user, isLoading, login, logout, isSuperAdmin, isManager, isSupportCrew, isAgent, canDelete, getCurrentUser }}>
             {children}
         </AuthContext.Provider>
     );

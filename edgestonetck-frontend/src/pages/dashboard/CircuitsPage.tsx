@@ -720,7 +720,7 @@ const CircuitDetailModal: React.FC<CircuitDetailModalProps> = ({
 // ─── Main Page ────────────────────────────────────────────────────────────────
 const CircuitsPage: React.FC = () => {
     const navigate   = useNavigate();
-    const { isSuperAdmin } = useAuth();
+    const { isSuperAdmin, canDelete } = useAuth();
 
     const [circuits,  setCircuits]  = useState<Circuit[]>([]);
     const [vendors,   setVendors]   = useState<Vendor[]>([]);
@@ -1005,13 +1005,15 @@ const CircuitsPage: React.FC = () => {
                                                     <Pencil size={14} className="text-gray-400" />
                                                 </button>
                                             )}
-                                            <button
-                                                onClick={() => setCircuitToDelete(circuit)}
-                                                className="p-1.5 hover:bg-red-50 text-gray-400 hover:text-brand-red rounded-lg transition-colors"
-                                                title="Delete circuit"
-                                            >
-                                                <Trash2 size={14} />
-                                            </button>
+                                            {canDelete() && (
+                                                <button
+                                                    onClick={() => setCircuitToDelete(circuit)}
+                                                    className="p-1.5 hover:bg-red-50 text-gray-400 hover:text-brand-red rounded-lg transition-colors"
+                                                    title="Delete circuit"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                     <div className="flex flex-col gap-2 pt-2 border-t border-gray-50">
@@ -1146,13 +1148,15 @@ const CircuitsPage: React.FC = () => {
                                                                 <Pencil size={14} className="text-gray-500" />
                                                             </button>
                                                         )}
-                                                        <button
-                                                            onClick={() => setCircuitToDelete(circuit)}
-                                                            className="p-2 opacity-0 group-hover:opacity-100 hover:bg-red-50 text-gray-400 hover:text-brand-red rounded-lg transition-all"
-                                                            title="Delete circuit"
-                                                        >
-                                                            <Trash2 size={14} />
-                                                        </button>
+                                                        {canDelete() && (
+                                                            <button
+                                                                onClick={() => setCircuitToDelete(circuit)}
+                                                                className="p-2 opacity-0 group-hover:opacity-100 hover:bg-red-50 text-gray-400 hover:text-brand-red rounded-lg transition-all"
+                                                                title="Delete circuit"
+                                                            >
+                                                                <Trash2 size={14} />
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 </td>
                                             </tr>

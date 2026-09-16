@@ -140,7 +140,7 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
     const [globalTimeZone, setGlobalTimeZone] = useState('UTC');
 
     // Signature state
-    const { user } = useAuth();
+    const { user, canDelete } = useAuth();
     const [signatures, setSignatures] = useState<Signature[]>([]);
     const [activeSignatureId, setActiveSignatureId] = useState<string | null>(null);
     const [signatureHtml, setSignatureHtml] = useState<string>(''); // Raw HTML — never stripped
@@ -1043,13 +1043,15 @@ export const TicketReplyView: React.FC<TicketReplyViewProps> = ({ ticket, onBack
                             >
                                 <RefreshCw size={20} className={`transition-transform duration-700 ${isRefreshing ? 'animate-spin' : 'group-hover:rotate-180'}`} />
                             </button>
-                            <button
-                                onClick={() => setShowDeleteModal(true)}
-                                className="relative p-2.5 bg-white text-gray-400 hover:bg-red-50 hover:text-brand-red shadow-sm hover:shadow-md border border-gray-100 rounded-full transition-all duration-300 focus:outline-none active:scale-95 group hidden sm:block"
-                                title="Delete Ticket"
-                            >
-                                <Trash2 size={20} />
-                            </button>
+                            {canDelete() && (
+                                <button
+                                    onClick={() => setShowDeleteModal(true)}
+                                    className="relative p-2.5 bg-white text-gray-400 hover:bg-red-50 hover:text-brand-red shadow-sm hover:shadow-md border border-gray-100 rounded-full transition-all duration-300 focus:outline-none active:scale-95 group hidden sm:block"
+                                    title="Delete Ticket"
+                                >
+                                    <Trash2 size={20} />
+                                </button>
+                            )}
                             <NotificationDropdown />
                         </div>
                         <div className="overflow-x-auto scrollbar-hide max-w-full">

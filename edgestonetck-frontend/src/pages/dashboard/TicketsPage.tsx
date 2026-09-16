@@ -16,6 +16,7 @@ import { DeleteConfirmModal } from '../../components/ui/DeleteConfirmModal';
 import { toast } from 'react-hot-toast';
 import { ticketService, type Ticket } from '../../services/ticketService';
 import { useDashboardData } from '../../contexts/DashboardDataContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface UITicket extends Ticket {
     name: string;
@@ -24,6 +25,7 @@ interface UITicket extends Ticket {
 
 const TicketsPage: React.FC = () => {
     const { refresh: refreshDashboard } = useDashboardData();
+    const { canDelete } = useAuth();
     const [searchParams, setSearchParams] = useSearchParams();
     const urlTicketId = searchParams.get('ticketId');
     const [activeTab, setActiveTab] = useState('open');
@@ -249,7 +251,7 @@ const TicketsPage: React.FC = () => {
                                 date={ticket.createdAt || ticket.date}
                                 priority={ticket.priority || localStorage.getItem(`confirmed_priority_${ticket.id}`) || undefined}
                                 onReply={() => setSelectedTicket(ticket)}
-                                onDelete={() => setTicketToDelete(ticket)}
+                                onDelete={canDelete() ? () => setTicketToDelete(ticket) : undefined}
                             />
                         ))}
                     </div>

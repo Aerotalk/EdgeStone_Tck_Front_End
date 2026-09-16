@@ -10,7 +10,7 @@ import { useDashboardData } from '../../contexts/DashboardDataContext';
 
 const VendorsPage: React.FC = () => {
     const navigate = useNavigate();
-    const { isSupportCrew } = useAuth();
+    const { isSupportCrew, canDelete } = useAuth();
     const { refresh: refreshDashboard } = useDashboardData();
     const [vendors, setVendors] = useState<Vendor[]>([]);
     const [loading, setLoading] = useState(true);
@@ -492,14 +492,16 @@ const VendorsPage: React.FC = () => {
                                                         Edit Vendor
                                                     </button>
                                                 )}
-                                                <button
-                                                    onClick={() => setVendorToDelete(vendor)}
-                                                    className={`py-2.5 px-3 flex items-center justify-center gap-2 text-sm font-bold text-gray-400 hover:text-brand-red bg-gray-50 hover:bg-red-50 rounded-xl transition-colors ${isSupportCrew() ? 'w-full' : ''}`}
-                                                    title="Delete Vendor"
-                                                >
-                                                    <Trash2 size={16} />
-                                                    {isSupportCrew() && <span>Delete Vendor</span>}
-                                                </button>
+                                                {canDelete() && (
+                                                    <button
+                                                        onClick={() => setVendorToDelete(vendor)}
+                                                        className="py-2.5 px-3 flex items-center justify-center gap-2 text-sm font-bold text-gray-400 hover:text-brand-red bg-gray-50 hover:bg-red-50 rounded-xl transition-colors"
+                                                        title="Delete Vendor"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                        <span>Delete Vendor</span>
+                                                    </button>
+                                                )}
                                             </div>
                                         </>
                                     )}
@@ -647,12 +649,14 @@ const VendorsPage: React.FC = () => {
                                                                         </div>
                                                                     </button>
                                                                 )}
-                                                                <button onClick={() => setVendorToDelete(vendor)} className="flex items-center gap-2 text-sm font-bold text-gray-400 hover:text-brand-red transition-all group" title="Delete Vendor">
-                                                                    <span className="opacity-0 group-hover:opacity-100 transition-opacity text-brand-red">Delete</span>
-                                                                    <div className="p-2 text-gray-400 group-hover:text-brand-red group-hover:bg-brand-red/5 rounded-lg transition-colors">
-                                                                        <Trash2 size={18} />
-                                                                    </div>
-                                                                </button>
+                                                                {canDelete() && (
+                                                                    <button onClick={() => setVendorToDelete(vendor)} className="flex items-center gap-2 text-sm font-bold text-gray-400 hover:text-brand-red transition-all group" title="Delete Vendor">
+                                                                        <span className="opacity-0 group-hover:opacity-100 transition-opacity text-brand-red">Delete</span>
+                                                                        <div className="p-2 text-gray-400 group-hover:text-brand-red group-hover:bg-brand-red/5 rounded-lg transition-colors">
+                                                                            <Trash2 size={18} />
+                                                                        </div>
+                                                                    </button>
+                                                                )}
                                                             </div>
                                                         )}
                                                     </div>
