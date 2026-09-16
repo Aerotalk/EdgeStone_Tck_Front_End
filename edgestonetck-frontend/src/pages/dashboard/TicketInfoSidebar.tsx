@@ -69,8 +69,16 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
     const [slaStatus, setSlaStatus] = useState('Safe');
     const [slaStartDate, setSlaStartDate] = useState('');
     const [slaStartTime, setSlaStartTime] = useState('');
-    const [slaTimeZone, setSlaTimeZone] = useState('UTC');
-    const [isSlaActive, setIsSlaActive] = useState(ticket.isSlaActive !== undefined ? ticket.isSlaActive : true);
+    const isVendorTicket = Boolean(ticket.ticketId?.startsWith('#V') || ticket.ticketType === 'Vendor');
+    const [isSlaActive, setIsSlaActive] = useState(isVendorTicket ? false : (ticket.isSlaActive !== undefined ? ticket.isSlaActive : true));
+
+    useEffect(() => {
+        if (isVendorTicket) {
+            setIsSlaActive(false);
+        } else {
+            setIsSlaActive(ticket.isSlaActive !== undefined ? ticket.isSlaActive : true);
+        }
+    }, [ticket.id, isVendorTicket, ticket.isSlaActive]);
 
     const [fullCircuitDetails, setFullCircuitDetails] = useState<any>(null);
     const [clientName, setClientName] = useState('');
@@ -358,6 +366,10 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
     };
 
     const handleSlaToggle = async () => {
+        if (isVendorTicket) {
+            toast.error('SLA is disabled for Vendor (#V) tickets. Only Client tickets support SLA.');
+            return;
+        }
         const newValue = !isSlaActive;
         setIsSlaActive(newValue);
         try {
@@ -475,19 +487,28 @@ export const TicketInfoSidebar: React.FC<TicketInfoSidebarProps> = ({ ticket, pr
                 {/* SLA Calculator Section */}
                 <div className="p-8 border-b border-gray-50">
                     <div className="flex items-center justify-between mb-6">
-                        <h4 className="text-[14px] font-bold text-gray-900 tracking-tight">SLA calculator</h4>
+                        <div>
+                            <h4 className="text-[14px] font-bold text-gray-900 tracking-tight">SLA calculator</h4>
+                            {isVendorTicket && (
+                                <p className="text-[11px] text-gray-400 font-medium mt-0.5">Disabled for Vendor tickets</p>
+                            )}
+                        </div>
                         <div className="flex items-center gap-2">
-                            <span className="text-[11px] font-bold text-gray-400 uppercase">{isSlaActive ? 'SLA ON' : 'SLA OFF'}</span>
+                            <span className="text-[11px] font-bold text-gray-400 uppercase">
+                                {isVendorTicket ? 'SLA DISABLED' : (isSlaActive ? 'SLA ON' : 'SLA OFF')}
+                            </span>
                             <button
                                 onClick={handleSlaToggle}
-                                className={`w-8 h-4 rounded-full transition-colors relative ${isSlaActive ? 'bg-orange-500' : 'bg-gray-200'}`}
+                                disabled={isVendorTicket}
+                                title={isVendorTicket ? 'SLA is disabled for Vendor (#V) tickets' : ''}
+                                className={`w-8 h-4 rounded-full transition-colors relative ${isVendorTicket ? 'bg-gray-200 cursor-not-allowed opacity-60' : (isSlaActive ? 'bg-orange-500' : 'bg-gray-200')}`}
                             >
-                                <div className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-transform ${isSlaActive ? 'translate-x-4' : 'translate-x-0'}`} />
+                                <div className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-transform ${!isVendorTicket && isSlaActive ? 'translate-x-4' : 'translate-x-0'}`} />
                             </button>
                         </div>
                     </div>
 
-                    <div className={`space-y-4 ${!isSlaActive ? 'opacity-50 pointer-events-none' : ''}`}>
+                    <div className={`space-y-4 ${(!isSlaActive || isVendorTicket) ? 'opacity-50 pointer-events-none' : ''}`}>
                         <div className="flex justify-between items-center pb-1">
                             <span className="text-[12px] font-bold text-gray-400 uppercase tracking-wider">Circuit ID</span>
                             <span className={`text-[14px] font-bold ${circuit || ticket.circuitId ? 'text-gray-900' : 'text-gray-400'}`}>
